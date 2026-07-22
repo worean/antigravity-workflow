@@ -21,7 +21,20 @@
 
 ---
 
-## 3. Language & File Encoding Standards
+## 3. Sub-Service Unit Testing Standards (`src/tests/`)
+
+신규 기능 개발 및 이슈 수정 시 다음 단위 테스트 작성 지침을 엄격히 준수해야 합니다:
+
+1. **테스트 파일 위치**: 모든 테스트 코드는 `src/tests/` 디렉터리 하위에 작성합니다.
+2. **Service 단위 및 경우의 수(Use-Case) 검증**: 테스트 코드는 Sub-Service 단위로 작성되며, 해당 서비스에서 제공하는 다양한 경우의 수(성공, 실패, 예외, 경계 조건 등)에 맞춰 테스트를 진행합니다.
+3. **파일명 명명 규칙**: `{domain}.{service}.test.ts` 파일명을 엄격히 준수합니다.
+   - `domain`: 서비스가 속한 범주 (예: `auth`, `projects`, `issues` 등)
+   - `service`: 대상 서비스 기능 명칭 (예: `jwtAuth`, `createProject`, `emailLogin` 등)
+   - **예시**: `src/tests/auth.jwtAuth.test.ts`, `src/tests/projects.createProject.test.ts`
+
+---
+
+## 4. Language & File Encoding Standards
 
 - **한국어 우선**: 모든 질의응답 및 설명, 마크다운 문서는 한국어로 진행합니다.
 - **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서 파일은 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다. (단, JSON 파일 및 CLI 패키지 파일은 파싱 호환성을 위해 Plain UTF-8 적용)
@@ -29,7 +42,7 @@
 
 ---
 
-## 4. Operating Principles
+## 5. Operating Principles
 
 1. **Self-Annealing Loop**: 오류 및 컴파일 에러 발생 시 원인을 파악하여 자동 정정 테스트 후 보고합니다.
 2. **Modular Scalability**: 신규 기능 추가 시 거대한 단일 서비스 파일에 추가하지 않고, `services/{newAction}.service.ts` 전담 서비스 파일로 생성하여 확장합니다.
