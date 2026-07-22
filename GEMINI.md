@@ -1,11 +1,9 @@
-﻿# 📌 AntiGravity Workflow System - Unified Agent Instructions
+# 📌 AntiGravity Workflow System - Unified Agent Instructions
 
 ## 1. Project Context & Structure
-이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**으로, 다음과 같은 3개의 주요 서브 디렉터리로 분리되어 구성되어 있습니다:
+이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 백엔드 REST API 서버 프로젝트입니다:
 
 - **`workflow_server/`**: Node.js + Express + TypeScript + Prisma ORM 기반의 백엔드 REST API 프로젝트
-- **`workflow_electron/`**: Electron + Vite + React + TypeScript 기반의 데스크톱 프론트엔드 프로젝트
-- **`python_archive/`**: 파이썬 데이터 수집 및 캘린더 워크플로우 자동화 스크립트 아카이브
 
 ---
 
@@ -23,15 +21,7 @@
 
 ---
 
-## 3. Frontend Standards (`workflow_electron/`)
-
-- **Tech Stack**: Electron + Vite + React + TypeScript + Vanilla CSS
-- **Design Aesthetics**: Modern Dark Theme, Glassmorphism, Google Fonts (`Outfit` / `Inter`), Rich Hover Micro-animations
-- **API 연동**: `workflow_server` (`http://localhost:4000`) 백엔드 REST API와 통신하며, 로그인 시 발급받은 JWT 토큰을 `Authorization: Bearer <jwt_token>` 헤더로 전송합니다.
-
----
-
-## 4. Language & File Encoding Standards
+## 3. Language & File Encoding Standards
 
 - **한국어 우선**: 모든 질의응답 및 설명, 마크다운 문서는 한국어로 진행합니다.
 - **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서 파일은 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다. (단, JSON 파일 및 CLI 패키지 파일은 파싱 호환성을 위해 Plain UTF-8 적용)
@@ -39,7 +29,7 @@
 
 ---
 
-## 5. Operating Principles
+## 4. Operating Principles
 
 1. **Self-Annealing Loop**: 오류 및 컴파일 에러 발생 시 원인을 파악하여 자동 정정 테스트 후 보고합니다.
 2. **Modular Scalability**: 신규 기능 추가 시 거대한 단일 서비스 파일에 추가하지 않고, `services/{newAction}.service.ts` 전담 서비스 파일로 생성하여 확장합니다.
