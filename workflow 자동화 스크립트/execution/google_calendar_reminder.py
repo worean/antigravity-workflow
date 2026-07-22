@@ -23,8 +23,8 @@ try:
 except AttributeError:
     pass
 
-# 읽기 전용 캘린더 권한 범위
-SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+# 읽기 및 쓰기가 포함된 캘린더 전체 권한 범위
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 def load_env(env_path=".env"):
     """.env 파일에서 환경 변수를 수동으로 로드합니다."""
@@ -82,6 +82,55 @@ def get_calendar_service():
                 
     return build('calendar', 'v3', credentials=creds)
 
+def load_calendar_config(service):
+    """
+    calendar_config.json 파일에서 모니터링할 캘린더 설정을 로드합니다.
+    파일이 없으면 구글 Calendar List API를 조회하여 새로 생성합니다.
+    """
+    config_path = 'calendar_config.json'
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8-sig') as f:
+                config_data = json.load(f)
+            configs = config_data.get("managed_calendars", [])
+            if configs:
+                enabled = [c for c in configs if c.get("enabled", True)]
+                if enabled:
+                    return enabled
+                else:
+                    print(f"[{datetime.datetime.now()}] 경고: calendar_config.json에 활성화(enabled=true)된 캘린더가 없습니다.", file=sys.stderr)
+        except Exception as e:
+            print(f"[{datetime.datetime.now()}] calendar_config.json 로드 중 오류 발생: {e}. 구글 API로부터 목록을 갱신합니다.", file=sys.stderr)
+            
+    try:
+        print(f"[{datetime.datetime.now()}] 구글 계정에서 캘린더 목록을 조회하여 새로운 '{config_path}' 파일을 생성합니다...")
+        calendar_list_result = service.calendarList().list().execute()
+        calendar_items = calendar_list_result.get('items', [])
+        
+        configs = []
+        for item in calendar_items:
+            summary = item.get('summaryOverride') or item.get('summary') or item.get('id')
+            configs.append({
+                "id": item.get('id'),
+                "summary": summary,
+                "description": item.get('description', ''),
+                "enabled": True
+            })
+            
+        config_data = {
+            "managed_calendars": configs
+        }
+        
+        with open(config_path, 'w', encoding='utf-8-sig') as f:
+            json.dump(config_data, f, ensure_ascii=False, indent=2)
+            
+        print(f"[{datetime.datetime.now()}] '{config_path}' 파일이 생성되었습니다. 감시를 원치 않는 캘린더는 'enabled': false 로 설정해 주세요.")
+        return [c for c in configs if c["enabled"]]
+    except Exception as e:
+        print(f"[{datetime.datetime.now()}] 캘린더 목록을 구글 API로부터 조회하는 중 오류 발생: {e}", file=sys.stderr)
+        return [{"id": "primary", "summary": "기본 캘린더", "enabled": True}]
+
 def parse_event_time(time_dict):
     """구글 캘린더 API의 시간 딕셔너리를 시스템 타임존이 반영된 tz-aware datetime 객체로 파싱합니다."""
     if 'dateTime' in time_dict:
@@ -112,7 +161,7 @@ def format_timedelta(td):
         return f"{hours}시간 {minutes}분"
     return f"{minutes}분"
 
-def generate_report(events, now, lead_time_minutes, report_dir):
+def generate_report(events, now, lead_time_minutes, report_dir, enabled_calendars):
     """분석 결과를 토대로 마크다운 리포트를 작성하고 저장합니다."""
     os.makedirs(report_dir, exist_ok=True)
     report_filename = f"report_{now.strftime('%Y%m%d_%H%M%S')}.md"
@@ -145,7 +194,8 @@ def generate_report(events, now, lead_time_minutes, report_dir):
             'end': end_dt,
             'is_all_day': is_all_day,
             'is_completed': is_completed,
-            'htmlLink': event.get('htmlLink', '')
+            'htmlLink': event.get('htmlLink', ''),
+            'calendar_name': event.get('calendar_name', '알 수 없음')
         }
         
         if is_completed:
@@ -162,6 +212,12 @@ def generate_report(events, now, lead_time_minutes, report_dir):
     report_content.append(f"# 📅 Google 캘린더 오늘 일정 및 리마인드 리포트")
     report_content.append(f"- **기준 일시**: {now.strftime('%Y-%m-%d %H:%M:%S')}")
     report_content.append(f"- **설정된 알림 기준 시간**: {lead_time_minutes}분 전")
+    
+    # 모니터링 대상 캘린더 리스트 표시
+    report_content.append("\n### 📂 모니터링 대상 캘린더")
+    for cal in enabled_calendars:
+        report_content.append(f"- {cal['summary']} (`{cal['id']}`)")
+        
     report_content.append("\n## 📊 일정 요약")
     report_content.append(f"- ⚠️ **미완료 기한 초과 (Overdue)**: {len(overdue_list)}건")
     report_content.append(f"- ⏰ **진행 중 (In Progress)**: {len(in_progress_list)}건")
@@ -177,6 +233,7 @@ def generate_report(events, now, lead_time_minutes, report_dir):
             time_str = "종일 일정" if ev['is_all_day'] else f"{ev['start'].strftime('%H:%M')} ~ {ev['end'].strftime('%H:%M')}"
             overdue_duration = now - ev['end']
             report_content.append(f"### 🛑 {ev['summary']}")
+            report_content.append(f"- **캘린더**: {ev['calendar_name']}")
             report_content.append(f"- **시간**: {time_str}")
             report_content.append(f"- **상태**: ⚠️ 마감 기한 지남 (지연 시간: **{format_timedelta(overdue_duration)}**)")
             if ev['description']:
@@ -193,6 +250,7 @@ def generate_report(events, now, lead_time_minutes, report_dir):
             time_str = "종일 일정" if ev['is_all_day'] else f"{ev['start'].strftime('%H:%M')} ~ {ev['end'].strftime('%H:%M')}"
             remaining_time = ev['end'] - now
             report_content.append(f"### ⚡ {ev['summary']}")
+            report_content.append(f"- **캘린더**: {ev['calendar_name']}")
             report_content.append(f"- **시간**: {time_str}")
             report_content.append(f"- **상태**: 진행 중 (마감까지 **{format_timedelta(remaining_time)}** 남음)")
             if ev['description']:
@@ -215,6 +273,7 @@ def generate_report(events, now, lead_time_minutes, report_dir):
             soon_tag = " [🔔 시작 임박!]" if is_soon else ""
             
             report_content.append(f"### ⏳ {ev['summary']}{soon_tag}")
+            report_content.append(f"- **캘린더**: {ev['calendar_name']}")
             report_content.append(f"- **시간**: {time_str}")
             if ev['is_all_day']:
                 report_content.append(f"- **상태**: 오늘 예정됨 (종일)")
@@ -233,6 +292,7 @@ def generate_report(events, now, lead_time_minutes, report_dir):
         for ev in completed_list:
             time_str = "종일 일정" if ev['is_all_day'] else f"{ev['start'].strftime('%H:%M')} ~ {ev['end'].strftime('%H:%M')}"
             report_content.append(f"###  {ev['summary']}")
+            report_content.append(f"- **캘린더**: {ev['calendar_name']}")
             report_content.append(f"- **시간**: {time_str}")
             report_content.append(f"- **상태**: 완료")
             if ev['description']:
@@ -254,14 +314,14 @@ def main():
     
     # 아규먼트 파서 설정
     parser = argparse.ArgumentParser(description="Google Calendar 오늘 일정 기한 분석 및 리마인드 툴")
-    parser.add_argument("--calendar-id", type=str, help="캘린더 ID (기본값: primary)")
+    parser.add_argument("--calendar-id", type=str, help="캘린더 ID (기본값: calendar_config.json 설정 반영)")
     parser.add_argument("--lead-time", type=int, help="리마인드 사전 경고 시간(분 단위)")
     parser.add_argument("--report-dir", type=str, help="리포트 파일 저장 폴더")
     
     args = parser.parse_args()
     
     # 설정 우선순위: 1) 파라미터, 2) 환경변수, 3) 기본값
-    calendar_id = args.calendar_id or os.environ.get("CALENDAR_ID", "primary")
+    cli_calendar_id = args.calendar_id
     
     try:
         lead_time_minutes = int(args.lead_time or os.environ.get("REMINDER_LEAD_TIME", 30))
@@ -275,15 +335,26 @@ def main():
     print(" 📅 Google Calendar 일정 리마인드 모니터링 시작")
     print("-" * 60)
     print(f" 현재 시간: {now.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f" 모니터링 대상: {calendar_id}")
+    if cli_calendar_id:
+        print(f" 모니터링 대상 (CLI): {cli_calendar_id}")
+    else:
+        print(f" 모니터링 대상: calendar_config.json 설정 반영")
     print(f" 시작 경고 임계시간: 시작 {lead_time_minutes}분 전")
     print("=" * 60)
     
     try:
         service = get_calendar_service()
         
+        if cli_calendar_id:
+            enabled_calendars = [{"id": cli_calendar_id, "summary": cli_calendar_id, "enabled": True}]
+        else:
+            enabled_calendars = load_calendar_config(service)
+            
+        print(f" -> 총 {len(enabled_calendars)}개의 활성화된 캘린더를 감시합니다.")
+        for cal in enabled_calendars:
+            print(f"    - {cal['summary']} ({cal['id']})")
+        
         # 오늘 하루의 시간 범위 계산 (00:00:00 ~ 23:59:59)
-        # 로컬 시간 기준의 시작과 끝을 설정하고 구글 API에 태워 보낸다.
         local_today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         local_today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
         
@@ -291,16 +362,38 @@ def main():
         time_min = local_today_start.isoformat()
         time_max = local_today_end.isoformat()
         
-        # 일정 리스트 조회
-        events_result = service.events().list(
-            calendarId=calendar_id, 
-            timeMin=time_min, 
-            timeMax=time_max, 
-            singleEvents=True, 
-            orderBy='startTime'
-        ).execute()
+        # 복수 캘린더 일정 조회
+        events = []
+        for cal in enabled_calendars:
+            cal_id = cal["id"]
+            cal_summary = cal["summary"]
+            
+            try:
+                events_result = service.events().list(
+                    calendarId=cal_id, 
+                    timeMin=time_min, 
+                    timeMax=time_max, 
+                    singleEvents=True, 
+                    orderBy='startTime'
+                ).execute()
+                
+                cal_events = events_result.get('items', [])
+                for item in cal_events:
+                    item['calendar_name'] = cal_summary
+                events.extend(cal_events)
+                print(f"    [OK] '{cal_summary}': {len(cal_events)}개의 일정을 로드했습니다.")
+            except HttpError as error:
+                print(f"    [ERR] '{cal_summary}' 캘린더 조회 중 오류 발생: {error}", file=sys.stderr)
+            except Exception as e:
+                print(f"    [ERR] '{cal_summary}' 캘린더 예기치 못한 오류 발생: {e}", file=sys.stderr)
         
-        events = events_result.get('items', [])
+        # 시작 시간 기준으로 전체 일정 정렬
+        def get_event_start_time(ev):
+            start_raw = ev.get('start', {})
+            dt = parse_event_time(start_raw)
+            return dt if dt else datetime.datetime.max.astimezone()
+            
+        events.sort(key=get_event_start_time)
         
         if not events:
             print(f" -> 오늘({local_today_start.strftime('%Y-%m-%d')}) 예정된 일정이 캘린더에 존재하지 않습니다.")
@@ -309,7 +402,7 @@ def main():
         print(f" -> 총 {len(events)}개의 일정을 로드했습니다. 상태 분석을 시작합니다...")
         
         report_path, overdue, in_progress, scheduled, completed = generate_report(
-            events, now, lead_time_minutes, report_dir
+            events, now, lead_time_minutes, report_dir, enabled_calendars
         )
         
         # CLI 요약 출력 및 리마인드 통보
@@ -332,7 +425,7 @@ def main():
             for ev in overdue:
                 time_str = "종일" if ev['is_all_day'] else ev['end'].strftime('%H:%M')
                 overdue_duration = now - ev['end']
-                print(f"  - 🛑 {ev['summary']} (마감: {time_str} / 지연시간: {format_timedelta(overdue_duration)})")
+                print(f"  - 🛑 {ev['summary']} (캘린더: {ev['calendar_name']} / 마감: {time_str} / 지연시간: {format_timedelta(overdue_duration)})")
                 
         # 2. 곧 시작하거나 진행 중인 중요 리마인드
         lead_time = datetime.timedelta(minutes=lead_time_minutes)
@@ -346,10 +439,10 @@ def main():
             print("\n [⏰ 일정 리마인드]")
             for ev in in_progress:
                 rem_time = ev['end'] - now
-                print(f"  - ⚡ [진행중] {ev['summary']} (종료까지 {format_timedelta(rem_time)} 남음)")
+                print(f"  - ⚡ [진행중] {ev['summary']} (캘린더: {ev['calendar_name']} / 종료까지 {format_timedelta(rem_time)} 남음)")
             for ev in soon_events:
                 start_in = ev['start'] - now
-                print(f"  - 🔔 [곧시작] {ev['summary']} ({format_timedelta(start_in)} 후 시작)")
+                print(f"  - 🔔 [곧시작] {ev['summary']} (캘린더: {ev['calendar_name']} / {format_timedelta(start_in)} 후 시작)")
                 
         if not has_reminders:
             print("\n  🎉 리마인드가 필요한 긴급한 일정이 없습니다. 훌륭합니다!")

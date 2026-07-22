@@ -1,0 +1,26 @@
+{
+  "name": "workflow-electron",
+  "version": "1.0.0",
+  "description": "Workflow Issue Tracker Desktop App (Electron + Vite + React)",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite --port 3000",
+    "build:electron": "tsc electron/main.ts --outDir dist-electron --module CommonJS --target ES2020 --moduleResolution node --esModuleInterop --skipLibCheck",
+    "build": "npm run build:electron && tsc && vite build",
+    "electron:dev": "npm run build:electron && concurrently \"vite --port 3000\" \"electron .\""
+  },
+  "dependencies": {
+    "lucide-react": "^0.378.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  }
+}

@@ -1,69 +1,45 @@
-﻿# Agent Instructions
+﻿# 📌 AntiGravity Workflow System - Unified Agent Instructions
 
-> This file is mirrored across CLAUDE.md, AGENTS.md, and GEMINI.md so the same instructions load in any AI environment.
+## 1. Project Context & Structure
+이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**으로, 다음과 같은 3개의 주요 서브 디렉터리로 분리되어 구성되어 있습니다:
 
-You operate within a 3-layer architecture that separates concerns to maximize reliability. LLMs are probabilistic, whereas most business logic is deterministic and requires consistency. This system fixes that mismatch.
+- **`workflow_server/`**: Node.js + Express + TypeScript + Prisma ORM 기반의 백엔드 REST API 프로젝트
+- **`workflow_electron/`**: Electron + Vite + React + TypeScript 기반의 데스크톱 프론트엔드 프로젝트
+- **`python_archive/`**: 파이썬 데이터 수집 및 캘린더 워크플로우 자동화 스크립트 아카이브
 
-## The 3-Layer Architecture
+---
 
-**Layer 1: Directive (What to do)**
-- Basically just SOPs written in Markdown, live in `directives/`
-- Define the goals, inputs, tools/scripts to use, outputs, and edge cases
-- Natural language instructions, like you'd give a mid-level employee
+## 2. Backend Architecture & Coding Rules (`workflow_server/`)
 
-**Layer 2: Orchestration (Decision making)**
-- This is you. Your job: intelligent routing.
-- Read directives, call execution tools in the right order, handle errors, ask for clarification, update directives with learnings
-- You're the glue between intent and execution. E.g you don't try scraping websites yourself—you read `directives/scrape_website.md` and come up with inputs/outputs and then run `execution/scrape_single_site.py`
+### 2.1 3-Tier Layered Modular Architecture
+모든 백엔드 기능 개발 및 추가 시 반드시 다음 3계층 아키텍처 규칙을 엄격히 준수해야 합니다.
+- **Routes (`src/modules/{domain}/{domain}.routes.ts`)**: HTTP 라우팅 매핑 및 미들웨어 바인딩만 담당.
+- **Controllers (`src/modules/{domain}/{domain}.controller.ts`)**: HTTP Request 파싱, Response 반환, 에러 캡처만 담당.
+- **Sub-Services (`src/modules/{domain}/services/{action}.service.ts`)**: 단일 기능(Use-Case) 단위로 파일 분할(파일당 30~50줄). 순수 비즈니스 로직 및 Prisma DB 쿼리 전담 (Express 객체 사용 금지).
 
-**Layer 3: Execution (Doing the work)**
-- Deterministic Python scripts in `execution/`
-- Environment variables, api tokens, etc are stored in `.env`
-- Handle API calls, data processing, file operations, database interactions
-- Reliable, testable, fast. Use scripts instead of manual work. Commented well.
+### 2.2 Security & Authentication Standards
+- **Strict JWT Verification Only**: 사용자 신원은 오직 서버 암호 서명이 검증된 **JWT Access Token (`jwt.verify`)**의 payload.userId로만 인지해야 합니다. `req.body.userId` 등 임의의 입력 데이터 기반 유저 우회 인가 행위는 심각한 보안 취약점이므로 금지합니다.
+- **Path Alias**: 상대 경로 대신 `#lib/prisma.js` 형태의 Subpath Imports를 사용합니다.
 
-**Why this works:** if you do everything yourself, errors compound. 90% accuracy per step = 59% success over 5 steps. The solution is push complexity into deterministic code. That way you just focus on decision-making.
+---
 
-## Operating Principles
+## 3. Frontend Standards (`workflow_electron/`)
 
-**1. Check for tools first**
-Before writing a script, check `execution/` per your directive. Only create new scripts if none exist.
+- **Tech Stack**: Electron + Vite + React + TypeScript + Vanilla CSS
+- **Design Aesthetics**: Modern Dark Theme, Glassmorphism, Google Fonts (`Outfit` / `Inter`), Rich Hover Micro-animations
+- **API 연동**: `workflow_server` (`http://localhost:4000`) 백엔드 REST API와 통신하며, 로그인 시 발급받은 JWT 토큰을 `Authorization: Bearer <jwt_token>` 헤더로 전송합니다.
 
-**2. Self-anneal when things break**
-- Read error message and stack trace
-- Fix the script and test it again (unless it uses paid tokens/credits/etc—in which case you check w user first)
-- Update the directive with what you learned (API limits, timing, edge cases)
-- Example: you hit an API rate limit → you then look into API → find a batch endpoint that would fix → rewrite script to accommodate → test → update directive.
+---
 
-**3. Update directives as you learn**
-Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations—update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
+## 4. Language & File Encoding Standards
 
-## Self-annealing loop
+- **한국어 우선**: 모든 질의응답 및 설명, 마크다운 문서는 한국어로 진행합니다.
+- **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서 파일은 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다. (단, JSON 파일 및 CLI 패키지 파일은 파싱 호환성을 위해 Plain UTF-8 적용)
+- **Clickable File Links**: 대화 및 답변 시 파일 경로 언급할 때는 `[filename](file:///absolute/path/to/file)` 지침 준수.
 
-Errors are learning opportunities. When something breaks:
-1. Fix it
-2. Update the tool
-3. Test tool, make sure it works
-4. Update directive to include new flow
-5. System is now stronger
+---
 
-## File Organization
+## 5. Operating Principles
 
-**Deliverables vs Intermediates:**
-- **Deliverables**: Google Sheets, Google Slides, or other cloud-based outputs that the user can access
-- **Intermediates**: Temporary files needed during processing
-
-**Directory structure:**
-- `.tmp/` - All intermediate files (dossiers, scraped data, temp exports). Never commit, always regenerated.
-- `execution/` - Python scripts (the deterministic tools)
-- `directives/` - SOPs in Markdown (the instruction set)
-- `.env` - Environment variables and API keys
-- `credentials.json`, `token.json` - Google OAuth credentials (required files, in `.gitignore`)
-
-**Key principle:** Local files are only for processing. Deliverables live in cloud services (Google Sheets, Slides, etc.) where the user can access them. Everything in `.tmp/` can be deleted and regenerated.
-
-## Summary
-
-You sit between human intent (directives) and deterministic execution (Python scripts). Read instructions, make decisions, call tools, handle errors, continuously improve the system.
-
-Be pragmatic. Be reliable. Self-anneal.
+1. **Self-Annealing Loop**: 오류 및 컴파일 에러 발생 시 원인을 파악하여 자동 정정 테스트 후 보고합니다.
+2. **Modular Scalability**: 신규 기능 추가 시 거대한 단일 서비스 파일에 추가하지 않고, `services/{newAction}.service.ts` 전담 서비스 파일로 생성하여 확장합니다.

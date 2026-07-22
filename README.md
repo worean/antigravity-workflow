@@ -1,119 +1,129 @@
-# 🚀 Antigravity 자동화 워크플로우 시스템
+﻿# 📌 AntiGravity Workflow System
 
-이 프로젝트는 루리웹 RSS 피드 키워드 수집기와 Google Calendar 일정을 기한에 맞춰 감시하고 리마인드를 전송하는 3-Layer Architecture 기반의 자동화 워크플로우 모음입니다.
-
-모든 소스 코드와 문서 파일은 한글 호환성을 위해 **UTF-8 with BOM** 인코딩을 준수하여 작성되었습니다.
+**AntiGravity Workflow System**은 모던한 이슈 및 작업(Task) 관리, 프로젝트 트래킹, 스프린트 관리 및 작업 시간 기록(Worklog)을 지원하는 하이브리드 데스크톱 애플리케이션 및 REST API 서버 시스템입니다.
 
 ---
 
-## 📂 프로젝트 구성
+## 📂 프로젝트 구조 (Project Structure)
 
-```text
-antigravity-workflow/
-│
-├── directives/                        # Layer 1: 표준 운영 지침서 (SOP)
-│   ├── collect_ruliweb_rss.md         # 루리웹 수집기 SOP 지침
-│   └── google_calendar_reminder.md    # 구글 캘린더 리마인드 SOP 지침
-│
-├── execution/                         # Layer 3: 실행 스크립트
-│   ├── collect_ruliweb_rss.py         # 루리웹 수집기 파이썬 엔진
-│   └── google_calendar_reminder.py    # 구글 캘린더 리마인드 파이썬 엔진
-│
-├── .env                               # 환경 설정 파일
-├── run_ruliweb_collector.sh           # 루리웹 수집기 실행 쉘 스크립트
-└── README.md                          # 본 시스템 안내 문서
-```
+본 프로젝트는 모듈화된 멀티 패키지 구조로 구성되어 있으며, 세 가지 주요 디렉터리로 나뉘어 있습니다:
+
+- 🟢 **[workflow_server](file:///C:/Users/admin/antigravity-workflow/workflow_server)**: Node.js + Express + TypeScript + Prisma ORM 기반의 백엔드 REST API 서버
+- 🔵 **[workflow_electron](file:///C:/Users/admin/antigravity-workflow/workflow_electron)**: Electron + Vite + React + TypeScript 기반의 데스크톱 프론트엔드 애플리케이션
+- 🟡 **[workflow 자동화 스크립트](file:///C:/Users/admin/antigravity-workflow/workflow%20자동화%20스크립트)**: 파이썬 데이터 수집 및 캘린더/워크플로우 자동화 스크립트 아카이브
 
 ---
 
-## 🛠️ 사전 준비 사항
+## 🛠️ 기술 스택 (Tech Stack)
 
-### 1. 의존성 라이브러리 설치
-터미널 또는 PowerShell을 열어 필요한 외부 라이브러리들을 설치해 주십시오.
+### 백엔드 (`workflow_server`)
+- **Runtime & Framework**: Node.js, Express.js
+- **Language**: TypeScript
+- **Database & ORM**: SQLite, Prisma ORM (`schema.prisma`)
+- **Authentication**: JWT (JSON Web Token), Google OAuth 연동
+- **Development Tool**: `tsx` (TypeScript Execution)
 
-```powershell
-# 루리웹 수집기용 의존성
-pip install requests beautifulsoup4
-
-# 구글 캘린더 리마인드용 의존성
-pip install google-api-python-client google-auth-oauthlib google-auth-httplib2
-```
-
-### 2. 환경 변수 구성 (`.env`)
-프로젝트 루트 폴더에 `.env` 파일을 만들고 아래 내용을 맞추어 구성합니다:
-
-```env
-# ==========================================
-# 1. 루리웹 RSS 수집기 설정
-# ==========================================
-# 수집 대상 키워드 (쉼표로 구분)
-RSS_KEYWORDS=후방,후방주의,ㅎㅂ
-# 감시 주기 (초 단위, 기본 300초 = 5분)
-RSS_INTERVAL=300
-# 작동 시간 (시간 단위, 기본 24시간)
-RSS_DURATION=24
-# 메타데이터 누적 저장 파일
-RSS_OUTPUT_PATH=collected_posts.csv
-# 마크다운 리포트 저장 폴더
-RSS_ANALYSIS_DIR=ruli-analysis
-# 베스트 댓글로 수집할 추천수 기준
-RSS_LIKE_THRESHOLD=5
-
-# ==========================================
-# 2. Google Calendar 리마인더 설정
-# ==========================================
-# 조회할 구글 캘린더 ID
-CALENDAR_ID=primary
-# 알림 경고 기준 시간 (분)
-REMINDER_LEAD_TIME=30
-# 리마인드 보고서 저장 폴더
-CALENDAR_REPORT_DIR=calendar-reports
-```
+### 프론트엔드 (`workflow_electron`)
+- **Framework & Engine**: Electron, Vite, React 18
+- **Language**: TypeScript
+- **Styling**: Vanilla CSS (Modern Dark Theme, Glassmorphism, Responsive UI)
+- **Icons & Design**: Lucide React, Google Fonts (`Outfit` / `Inter`)
 
 ---
 
-## 🚀 실행 가이드
+## 🔥 주요 기능 (Key Features)
 
-### 1. 루리웹 RSS 수집기 실행
+1. **보안 인증 & 소셜 로그인**
+   - JWT Access Token 기반의 엄격한 서명 검증 및 사용자 인가
+   - Google 소셜 계정 연동 및 프로필 통합 관리
+2. **이슈 및 일감 관리 (Issue Tracking)**
+   - 이슈 상태(Todo, In Progress, Done 등), 우선순위, 이슈 타입별 세분화 관리
+   - 담당자 지정, 마감일, 설명 및 작업 히스토리 추적
+3. **프로젝트 & 마일스톤 & 스프린트**
+   - 프로젝트 단위 목표 설정 및 마일스톤 연동
+   - 애자일 스프린트 생명주기 관리
+4. **커스텀 필드 & 첨부파일 & 링크 미리보기**
+   - 동적 커스텀 필드 메타데이터 지원
+   - 파일 첨부 기능 및 웹 링크 미리보기 제공
+5. **작업로그 (Worklog) & 소통 기능**
+   - 작업 시간(경과 시간) 기록 및 통계
+   - 댓글 작성, 사용자 멘션(@) 및 리액션 지원
+6. **데스크톱 전용 UI/UX**
+   - Glassmorphism 기반의 세련된 다크 모드 인터페이스
+   - 풍부한 마이크로 애니메이션 및 직관적인 반응형 레이아웃
 
-#### Option A: 쉘 스크립트 사용 (Git Bash, WSL, Linux 등)
-루트 디렉터리에 포함된 `.sh` 스크립트를 사용하여 간단하게 구동할 수 있습니다.
+---
+
+## 🚀 설치 및 실행 방법 (Getting Started)
+
+### 사전 요구사항 (Prerequisites)
+- [Node.js](https://nodejs.org/) (v18.0.0 이상 권장)
+- npm (Node.js와 함께 설치됨)
+
+---
+
+### 1. 백엔드 서버 실행 (`workflow_server`)
+
 ```bash
-# 실행 권한 부여 (필요 시)
-chmod +x run_ruliweb_collector.sh
+# 백엔드 디렉터리로 이동
+cd workflow_server
 
-# 실행
-./run_ruliweb_collector.sh
+# 의존성 패키지 설치
+npm install
+
+# Prisma 데이터베이스 클라이언트 생성
+npx prisma generate
+
+# 개발 서버 실행 (기본 포트: http://localhost:4000)
+npm run dev
 ```
 
-#### Option B: Windows PowerShell (백그라운드 실행)
-윈도우 환경에서 터미널을 끄더라도 24시간 동안 백그라운드에서 상시 작동하도록 실행하려면 아래 명령을 사용합니다:
-```powershell
-Start-Process python -ArgumentList "execution/collect_ruliweb_rss.py" -WindowStyle Hidden
-```
-
-#### Option C: 일반 실행 (포그라운드)
-```powershell
-python execution/collect_ruliweb_rss.py
-```
+#### 주요 백엔드 스크립트
+- `npm run dev`: `tsx`를 통한 라이브 리로드 개발 서버 실행
+- `npm run build`: TypeScript 소스 코드 컴파일 (`dist/`)
+- `npm run start`: 프로덕션 빌드 실행 (`node dist/server.js`)
+- `npm run prisma:generate`: Prisma Schema 변경사항 적용 및 클라이언트 생성
 
 ---
 
-### 2. Google 캘린더 리마인더 실행
+### 2. 프론트엔드 데스크톱 앱 실행 (`workflow_electron`)
 
-구글 캘린더 연동을 위해서는 구글 API 콘솔에서 `credentials.json`을 발급받아 루트 디렉터리에 저장해야 합니다. 상세한 준비 과정은 [google_calendar_reminder.md](file:///c:/Users/admin/antigravity-workflow/directives/google_calendar_reminder.md) 지침서를 확인해 주세요.
+```bash
+# 프론트엔드 디렉터리로 이동
+cd workflow_electron
 
-#### 최초 실행 (웹 인증 진행)
-```powershell
-python execution/google_calendar_reminder.py
+# 의존성 패키지 설치
+npm install
+
+# Electron + Vite 개발 모드 동시 실행
+npm run electron:dev
 ```
-* 최초 실행 시 웹 브라우저가 열리며 Google 계정 로그인을 요청합니다. 권한 승인이 완료되면 `token.json`이 생성되고 이후부터는 무인으로 자동 실행됩니다.
 
-#### 주기적 감시 등록
-캘린더 내용 분석 및 기한 체크를 자동화하기 위해, 윈도우 작업 스케줄러 등을 사용하여 본 스크립트가 주기적으로(예: 30분 간격) 실행되도록 등록하여 사용하시는 것을 권장합니다.
+#### 주요 프론트엔드 스크립트
+- `npm run electron:dev`: Vite 개발 서버와 Electron 앱을 동시에 실행 (`concurrently`)
+- `npm run dev`: 웹 브라우저 단독 개발 서버 실행 (`http://localhost:5173`)
+- `npm run build`: Vite 및 TypeScript 프로덕션 빌드
 
 ---
 
-## 📊 결과물 확인
-- **루리웹 수집 글 목록**: `collected_posts.csv`에 누적 기록되며, 상세 이미지 및 글별 분석은 `ruli-analysis/` 폴더 하위 마크다운 리포트로 저장됩니다.
-- **구글 캘린더 리마인드**: 실행 시점마다 `calendar-reports/` 폴더 아래에 일일 일정 현황 및 지연/임박 경고 리포트가 작성됩니다.
+## 🏛️ 백엔드 아키텍처 규칙 (3-Tier Layered Architecture)
+
+`workflow_server`의 기능 개발 시 아래의 계층적 모듈 아키텍처 규칙을 엄격히 준수합니다:
+
+1. **Routes ([`src/modules/{domain}/{domain}.routes.ts`](file:///C:/Users/admin/antigravity-workflow/workflow_server/src/modules))**: HTTP 라우팅 매핑 및 미들웨어 바인딩만 담당.
+2. **Controllers ([`src/modules/{domain}/{domain}.controller.ts`](file:///C:/Users/admin/antigravity-workflow/workflow_server/src/modules))**: Request 파싱, Response 반환, 에러 캐치 담당.
+3. **Sub-Services ([`src/modules/{domain}/services/{action}.service.ts`](file:///C:/Users/admin/antigravity-workflow/workflow_server/src/modules))**: 단일 Use-Case 단위 파일 분할 (30~50줄 내외). 비즈니스 로직 및 Prisma DB 쿼리 전담.
+
+---
+
+## 📜 개발 및 소스 코드 인코딩 지침
+
+- **언어 기준**: 문서 및 소스 코드 제어 관련 소통은 **한국어**를 기본으로 작성합니다.
+- **파일 인코딩**: 모든 소스 코드 및 마크다운 파일은 **`UTF-8 with BOM` (`utf-8-sig`)**으로 저장합니다. (단, `package.json` 등 CLI 전용 JSON 파일 제외)
+- **Path Alias**: 상대 경로 대신 `#lib/prisma.js` 등의 Subpath Imports를 사용합니다.
+
+---
+
+## 📄 라이선스 (License)
+
+본 프로젝트는 비공개/자체 프로젝트로 무단 전재 및 배포를 금지합니다.

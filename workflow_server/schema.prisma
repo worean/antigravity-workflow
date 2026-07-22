@@ -1,0 +1,646 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 이슈 관련 메타데이터
+model IssueType {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  icon        String?
+  isSystem    Boolean @default(false)
+  issues      Issue[]
+}
+
+model IssuePriority {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  level    Int     @default(0)
+  color    String?
+  isSystem Boolean @default(false)
+  issues   Issue[]
+}
+
+model IssueStatus {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  category String  @default("TODO")
+  isSystem Boolean @default(false)
+  issues   Issue[]
+}
+
+// 프로젝트 관련 메타데이터
+model ProjectPriority {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  level    Int       @default(0)
+  color    String?
+  isSystem Boolean   @default(false)
+  projects Project[]
+}
+
+model ProjectStatus {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  category String    @default("TODO")
+  isSystem Boolean   @default(false)
+  projects Project[]
+}
+
+// 마일스톤 관련 메타데이터
+model MilestonePriority {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique
+  level      Int         @default(0)
+  color      String?
+  isSystem   Boolean     @default(false)
+  milestones Milestone[]
+}
+
+model MilestoneStatus {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique
+  category   String      @default("TODO")
+  isSystem   Boolean     @default(false)
+  milestones Milestone[]
+}
+
+// 테스트 관련 메타데이터
+model TestRunStatus {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  category String    @default("TODO")
+  isSystem Boolean   @default(false)
+  testRuns TestRun[]
+}
+
+model TestResultStatus {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  category    String       @default("PASS")
+  isSystem    Boolean      @default(false)
+  testResults TestResult[]
+}
+
+model TestStepType {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique // SETUP, PROCEDURE, TEARDOWN
+  isSystem Boolean    @default(false)
+  steps    TestStep[]
+}
+
+// 사용자 관리 (Social Accounts 연동)
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  name     String?
+  password String? // Nullable: 구글 소셜 연동 계정은 password가 null로 설정되어 통상 비밀번호 로그인 불가
+
+  pushToken String? // APNs/FCM 푸시 토큰
+
+  // 소셜 계정 연동 정보 (1:N)
+  socialAccounts SocialAccount[]
+
+  issues        Issue[]           @relation("AuthorIssues")
+  assigned      Issue[]           @relation("AssigneeIssues")
+  comments      Comment[]
+  projects      Project[]         @relation("ProjectOwner")
+  memberships   ProjectMember[]
+  testRuns      TestRun[]         @relation("TestExecutor")
+  notifications Notification[]
+  attachments   Attachment[]
+  histories     IssueHistory[]
+  revisions     IssueRevision[]
+  worklogs      Worklog[]
+  mentions      CommentMention[]
+  reactions     CommentReaction[]
+  watchedIssues IssueWatcher[]
+  likes         IssueLike[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 소셜 계정 연동 테이블 (Google, GitHub, Kakao 등 확장 가능)
+model SocialAccount {
+  id           Int       @id @default(autoincrement())
+  provider     String    @default("GOOGLE") // GOOGLE, GITHUB, KAKAO 등
+  providerId   String    // Google OAuth sub ID
+  email        String?
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerId])
+}
+
+// 프로젝트 관리
+model Project {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  key         String  @unique
+
+  ownerId Int
+  owner   User @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+  statusId Int           @default(1)
+  status   ProjectStatus @relation(fields: [statusId], references: [id], onDelete: SetDefault)
+
+  priorityId Int             @default(1)
+  priority   ProjectPriority @relation(fields: [priorityId], references: [id], onDelete: SetDefault)
+
+  plannedStartDate DateTime?
+  dueDate          DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+
+  syncStatus String @default("SYNCED")
+
+  members         ProjectMember[]
+  sprints         Sprint[]
+  issues          Issue[]
+  milestones      Milestone[]
+  testSuites      TestSuite[]
+  testCases       TestCase[]
+  testRuns        TestRun[]
+  customFieldDefs CustomFieldDefinition[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 프로젝트 멤버 및 권한 (RBAC)
+model ProjectMember {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // ADMIN, MEMBER, VIEWER
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+// 마일스톤 관리
+model Milestone {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  statusId Int             @default(1)
+  status   MilestoneStatus @relation(fields: [statusId], references: [id], onDelete: SetDefault)
+
+  priorityId Int               @default(1)
+  priority   MilestonePriority @relation(fields: [priorityId], references: [id], onDelete: SetDefault)
+
+  plannedStartDate DateTime?
+  dueDate          DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+
+  syncStatus String @default("SYNCED")
+
+  issues    Issue[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 아자일 스프린트 관리
+model Sprint {
+  id        Int       @id @default(autoincrement())
+  name      String
+  goal      String?
+  startDate DateTime?
+  endDate   DateTime?
+  status    String    @default("PLANNED") // PLANNED, ACTIVE, COMPLETED
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  issues    Issue[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 통합 일감/이슈 모델 (Task, Bug, Epic, Story 등)
+model Issue {
+  id          Int     @id @default(autoincrement())
+  issueNumber Int?    // 프로젝트 내 순번 (예: PRJ-101의 101)
+  title       String
+  description String? // Markdown 형식 지원 (이미지/동영상 인라인 링크, 유튜브 Embed 링크 등 포함)
+
+  typeId Int       @default(1)
+  type   IssueType @relation(fields: [typeId], references: [id], onDelete: SetDefault)
+
+  priorityId Int           @default(1)
+  priority   IssuePriority @relation(fields: [priorityId], references: [id], onDelete: SetDefault)
+
+  statusId Int         @default(1)
+  status   IssueStatus @relation(fields: [statusId], references: [id], onDelete: SetDefault)
+
+  // 일감/작업 관리 속성
+  progress       Int    @default(0) // 진척도 (0 ~ 100%)
+  estimatedHours Float?             // 추정 소요 시간
+  loggedHours    Float? @default(0) // 실제 투입 시간 누적
+
+  plannedStartDate DateTime?
+  dueDate          DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+
+  // 계층형 Custom Field (SQLite 호환을 위해 JSON string으로 저장)
+  customFields String?
+
+  // 계층 구조 지원 (상위-하위 일감)
+  parentId Int?
+  parent   Issue?  @relation("IssueHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Issue[] @relation("IssueHierarchy")
+
+  outboundLinks IssueLink[] @relation("SourceIssue")
+  inboundLinks  IssueLink[] @relation("TargetIssue")
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  sprintId Int?
+  sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  milestoneId Int?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  authorId Int
+  author   User @relation("AuthorIssues", fields: [authorId], references: [id])
+
+  assigneeId Int?
+  assignee   User? @relation("AssigneeIssues", fields: [assigneeId], references: [id])
+
+  labels        Label[]
+  testCases     TestCase[]
+  comments      Comment[]
+  reminders     Reminder[]
+  attachments   Attachment[]
+  histories     IssueHistory[]
+  revisions     IssueRevision[]
+  watchers      IssueWatcher[]
+  likes         IssueLike[]
+  worklogs      Worklog[]
+  calendarLinks IssueCalendarLink[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, issueNumber])
+}
+
+// 이슈 좋아요 (Like / Unlike)
+model IssueLike {
+  issueId   Int
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([issueId, userId])
+}
+
+// 이슈 간 연관 관계
+model IssueLink {
+  id            Int    @id @default(autoincrement())
+  sourceIssueId Int
+  sourceIssue   Issue  @relation("SourceIssue", fields: [sourceIssueId], references: [id], onDelete: Cascade)
+  targetIssueId Int
+  targetIssue   Issue  @relation("TargetIssue", fields: [targetIssueId], references: [id], onDelete: Cascade)
+  type          String // BLOCKS, IS_BLOCKED_BY, RELATES_TO, DUPLICATES
+}
+
+// 커스텀 필드 정의 (메타데이터)
+model CustomFieldDefinition {
+  id           Int      @id @default(autoincrement())
+  key          String   @unique
+  name         String
+  description  String?
+  fieldType    String   @default("JSON") // STRING, NUMBER, DATE, SELECT, JSON 등
+  schemaJson   String?  // validation 스키마 JSON string
+  defaultValue String?
+  isRequired   Boolean  @default(false)
+  isGlobal     Boolean  @default(true)
+
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 마크다운 및 커뮤니케이션 댓글
+model Comment {
+  id         Int     @id @default(autoincrement())
+  content    String  // Markdown 형식 지원
+  isInternal Boolean @default(false)
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+  issueId  Int
+  issue    Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  parentId Int?
+  parent   Comment?  @relation("CommentHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Comment[] @relation("CommentHierarchy")
+
+  mentions    CommentMention[]
+  reactions   CommentReaction[]
+  attachments Attachment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 댓글 내 언급 (@User Mention)
+model CommentMention {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+}
+
+// 댓글 이모지 반응
+model CommentReaction {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId, emoji])
+}
+
+// 라벨
+model Label {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  color  String  @default("#000000")
+  issues Issue[]
+}
+
+// 미디어 / 첨부파일 (마크다운 인라인 미디어 & 동영상/사진 지원)
+model Attachment {
+  id           Int     @id @default(autoincrement())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  thumbnailUrl String? // 이미지/동영상 썸네일 URL
+  mediaType    String  @default("FILE") // IMAGE, VIDEO, AUDIO, DOCUMENT, FILE
+  width        Int?    // 이미지/동영상 너비
+  height       Int?    // 이미지/동영상 높이
+  duration     Int?    // 동영상/음성 재생 시간(초)
+
+  issueId   Int?
+  issue     Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  commentId Int?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  uploaderId Int
+  uploader   User     @relation(fields: [uploaderId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+// 외부 미디어 & OEmbed / OpenGraph 캐싱 (YouTube, 외부 마크다운 링크 미리보기)
+model LinkPreview {
+  id          Int      @id @default(autoincrement())
+  url         String   @unique
+  title       String?
+  description String?
+  siteName    String?  // e.g. "YouTube", "GitHub"
+  mediaType   String?  // e.g. "video", "photo", "link"
+  imageUrl    String?  // 썸네일/OG 이미지
+  embedHtml   String?  // iframe embed HTML (유튜브 등)
+  fetchedAt   DateTime @default(now())
+}
+
+// 마크다운 본문 변경 이력 (Description Revision)
+model IssueRevision {
+  id          Int      @id @default(autoincrement())
+  issueId     Int
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorId    Int
+  author      User     @relation(fields: [authorId], references: [id])
+  title       String
+  description String?  // 변경 당시 마크다운 본문
+  reason      String?  // 수정 사유
+  createdAt   DateTime @default(now())
+}
+
+// 이슈 변경 감사 로그 (Audit History)
+model IssueHistory {
+  id        Int      @id @default(autoincrement())
+  issueId   Int
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  field     String
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+}
+
+// 이슈 관심 구독자 (Watchers)
+model IssueWatcher {
+  issueId   Int
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([issueId, userId])
+}
+
+// 작업 시간 기록 (Worklog)
+model Worklog {
+  id          Int      @id @default(autoincrement())
+  issueId     Int
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  timeSpent   Int      // 분 단위 (minutes)
+  startedAt   DateTime @default(now())
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+// 알림 시스템
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  title     String
+  content   String
+  type      String    // ISSUE_UPDATED, REMINDER, COMMENT_ADDED, MENTION 등
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// 미리알림 (Reminder)
+model Reminder {
+  id        Int      @id @default(autoincrement())
+  issueId   Int
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  remindAt  DateTime
+  isSent    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// QA / 테스트 관리 시스템 (Test Management)
+// ==========================================
+model TestSuite {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testCases TestCase[]
+  testRuns  TestRunTestSuite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TestCase {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testSuiteId Int?
+  testSuite   TestSuite? @relation(fields: [testSuiteId], references: [id])
+
+  steps    TestStep[]
+  testRuns TestRunTestCase[]
+  results  TestResult[]
+  issues   Issue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TestStep {
+  id         Int      @id @default(autoincrement())
+  testCaseId Int
+  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  typeId Int
+  type   TestStepType @relation(fields: [typeId], references: [id])
+
+  stepOrder      Int
+  description    String
+  expectedResult String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TestRun {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  statusId Int           @default(1)
+  status   TestRunStatus @relation(fields: [statusId], references: [id], onDelete: SetDefault)
+
+  executorId Int
+  executor   User @relation("TestExecutor", fields: [executorId], references: [id])
+
+  testSuites TestRunTestSuite[]
+  testCases  TestRunTestCase[]
+  results    TestResult[]
+
+  plannedStartDate DateTime?
+  plannedEndDate   DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TestRunTestSuite {
+  testRunId   Int
+  testRun     TestRun   @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testSuiteId Int
+  testSuite   TestSuite @relation(fields: [testSuiteId], references: [id], onDelete: Cascade)
+
+  @@id([testRunId, testSuiteId])
+}
+
+model TestRunTestCase {
+  testRunId      Int
+  testRun        TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCaseId     Int
+  testCase       TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  executionOrder Int      @default(0)
+
+  @@id([testRunId, testCaseId])
+}
+
+model TestResult {
+  id         Int      @id @default(autoincrement())
+  testRunId  Int
+  testRun    TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCaseId Int
+  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  statusId Int              @default(1)
+  status   TestResultStatus @relation(fields: [statusId], references: [id], onDelete: SetDefault)
+
+  actualResult String?
+  errorMessage String?
+  artifacts    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 구글 캘린더 연동
+model IssueCalendarLink {
+  id            Int      @id @default(autoincrement())
+  issueId       Int
+  issue         Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  calendarId    String
+  googleEventId String   @unique
+  syncStatus    String   @default("SYNCED")
+  lastSyncedAt  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
