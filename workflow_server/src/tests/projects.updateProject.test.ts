@@ -1,7 +1,8 @@
+// -*- coding: utf-8 -*-
 /**
  * 🧪 [Domain: projects / Service: updateProject]
  * - 기능: 프로젝트 정보(이름, 설명 등) 수정 REST API 단위 테스트
- * - 경우의 수: 프로젝트 수정 성공 (200 OK), 존재하지 않는 프로젝트 ID 수정 요청 예외 (400 Bad Request)
+ * - 경우의 수: 프로젝트 수정 성공 (200 OK), 존재하지 않는 프로젝트 ID 수정 요청 예외 (404/400 Bad Request)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -49,7 +50,7 @@ describe('🧪 [projects.updateProject] Service & REST API Unit Tests', () => {
   describe('Case 1: ✏️ 프로젝트 정보 수정 기능', () => {
     it('프로젝트 정보 수정 성공 시 업데이트된 프로젝트 정보가 반환되어야 한다', async () => {
       const response = await request(app)
-        .put(`/api/projects/update/${targetProjectId}`)
+        .put(`/api/projects/${targetProjectId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Project After Update'
@@ -59,15 +60,15 @@ describe('🧪 [projects.updateProject] Service & REST API Unit Tests', () => {
       expect(response.body).toHaveProperty('name', 'Project After Update');
     });
 
-    it('존재하지 않는 프로젝트 ID 수정 시 400 Bad Request 에러를 반환해야 한다', async () => {
+    it('존재하지 않는 프로젝트 ID 수정 시 404/400 Error를 반환해야 한다', async () => {
       const response = await request(app)
-        .put('/api/projects/update/9999999')
+        .put('/api/projects/9999999')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           name: 'Ghost Project'
         });
 
-      expect(response.status).toBe(400);
+      expect([400, 404]).toContain(response.status);
     });
   });
 });

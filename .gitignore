@@ -105,6 +105,9 @@ scratch/
 ehthumbs.db
 Thumbs.db
 
+#.gitignore에 certs/ 추가
+certs/
+
 # IDE Files
 .idea/
 .vscode/*

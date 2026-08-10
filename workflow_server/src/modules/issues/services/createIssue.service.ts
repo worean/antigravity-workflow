@@ -1,6 +1,7 @@
+// -*- coding: utf-8 -*-
 import { prisma } from '#lib/prisma.js';
 
-export const createIssueService = async (data: any) => {
+export const createIssueService = async (data: any, authorIdInput?: number) => {
   const {
     title,
     description,
@@ -17,7 +18,7 @@ export const createIssueService = async (data: any) => {
   } = data;
 
   const targetProjectId = Number(projectId);
-  const targetAuthorId = Number(authorId);
+  const targetAuthorId = Number(authorIdInput || authorId);
 
   if (!targetProjectId || !title || !targetAuthorId) {
     throw new Error('projectId, title, and authorId are required');

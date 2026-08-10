@@ -17,15 +17,15 @@ export const googleCallback = async (req: Request, res: Response) => {
   try {
     const code = req.query.code as string;
     if (!code) {
-      return res.redirect('http://localhost:3000/?error=no_code');
+      return res.redirect('http://localhost:5173/?error=no_code');
     }
     const result = await googleCallbackService(code);
-    const redirectTarget = `http://localhost:3000/?token=${encodeURIComponent(
+    const redirectTarget = `http://localhost:5173/?token=${encodeURIComponent(
       result.token
     )}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
     res.redirect(redirectTarget);
   } catch (error: any) {
-    res.redirect(`http://localhost:3000/?error=${encodeURIComponent(error.message)}`);
+    res.redirect(`http://localhost:5173/?error=${encodeURIComponent(error.message)}`);
   }
 };
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: issues / Service: getIssue]
  * - 기능: 단일 이슈 상세 정보 조회 REST API 단위 테스트
  * - 경우의 수: 존재하는 이슈 ID로 상세 정보 조회 성공 (200 OK), 존재하지 않는 이슈 ID 404 Not Found 예외
@@ -60,6 +60,11 @@ describe('🧪 [issues.getIssue] Service & REST API Unit Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('id', targetIssueId);
       expect(response.body).toHaveProperty('title', 'Single Test Issue');
+      expect(response.body).toHaveProperty('isLiked');
+      expect(response.body).toHaveProperty('likesCount');
+      expect(response.body).toHaveProperty('commentsCount');
+      expect(response.body).toHaveProperty('attachmentsCount');
+      expect(response.body).toHaveProperty('childrenCount');
     });
 
     it('존재하지 않는 이슈 ID로 조회 시 404 Not Found 에러를 반환해야 한다', async () => {

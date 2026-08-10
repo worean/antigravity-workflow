@@ -1,22 +1,29 @@
+// -*- coding: utf-8 -*-
 import { Router } from 'express';
 import * as issuesController from './issues.controller.js';
-import { requireAuth, optionalAuth } from '../../common/middlewares/authMiddleware.js';
+import { requireAuth, requireProjectMember, requireProjectPM } from '../../common/middlewares/authMiddleware.js';
 
 export const issueRouter = Router();
 
-// 공개/조회 엔드포인트 (optionalAuth를 적용해 토큰/사용자 정보가 제공되면 사용자 맞춤 데이터 isLiked 등 제공)
-issueRouter.get('/', optionalAuth, issuesController.getIssues);
-issueRouter.get('/list', optionalAuth, issuesController.getIssues);
-issueRouter.get('/get/:id', optionalAuth, issuesController.getIssue);
-issueRouter.get('/:id', optionalAuth, issuesController.getIssue);
+// 1. Issue 조회 (Project Member 권한 필요)
+issueRouter.get('/', requireAuth, requireProjectMember, issuesController.getIssues);
+issueRouter.get('/:id', requireAuth, requireProjectMember, issuesController.getIssue);
 
-// 인증/사용자 정보가 수신되는 CUD 및 액션 엔드포인트
-issueRouter.post('/create', requireAuth, issuesController.createIssue);
-issueRouter.put('/update/:id', requireAuth, issuesController.updateIssue);
-issueRouter.put('/update', requireAuth, issuesController.updateIssue);
-issueRouter.delete('/delete/:id', requireAuth, issuesController.deleteIssue);
-issueRouter.delete('/:id', requireAuth, issuesController.deleteIssue);
+// 2. Issue 생성 및 수정 (Project Member 권한 필요)
+issueRouter.post('/', requireAuth, requireProjectMember, issuesController.createIssue);
+issueRouter.put('/:id', requireAuth, requireProjectMember, issuesController.updateIssue);
 
-// 좋아요 & 좋아요 취소 (토큰 또는 Body의 auth/user/userId 수신)
+// 3. Issue 삭제 (오직 Project Manager(PM/Owner)만 가능)
+issueRouter.delete('/:id', requireAuth, requireProjectPM, issuesController.deleteIssue);
+
+// 4. 좋아요/반응 액션 (로그인 필요)
 issueRouter.post('/like', requireAuth, issuesController.likeIssue);
 issueRouter.post('/unlike', requireAuth, issuesController.unlikeIssue);
+issueRouter.post('/toggle-like', requireAuth, issuesController.toggleLikeIssue);
+
+// 레거시 지원 라우트
+issueRouter.get('/list', requireAuth, requireProjectMember, issuesController.getIssues);
+issueRouter.get('/get/:id', requireAuth, requireProjectMember, issuesController.getIssue);
+issueRouter.post('/create', requireAuth, requireProjectMember, issuesController.createIssue);
+issueRouter.put('/update/:id', requireAuth, requireProjectMember, issuesController.updateIssue);
+issueRouter.delete('/delete/:id', requireAuth, requireProjectPM, issuesController.deleteIssue);

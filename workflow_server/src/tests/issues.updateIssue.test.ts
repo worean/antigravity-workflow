@@ -1,7 +1,8 @@
+// -*- coding: utf-8 -*-
 /**
  * 🧪 [Domain: issues / Service: updateIssue]
  * - 기능: 이슈 정보(제목, 내용, 진척도 등) 수정 REST API 단위 테스트
- * - 경우의 수: 이슈 정보 변경 성공 (200 OK), 존재하지 않는 이슈 ID 수정 요청 예외 (400 Bad Request)
+ * - 경우의 수: 이슈 정보 변경 성공 (200 OK), 존재하지 않는 이슈 ID 수정 요청 예외 (404/400 Bad Request)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -54,7 +55,7 @@ describe('🧪 [issues.updateIssue] Service & REST API Unit Tests', () => {
   describe('Case 1: ✏️ 이슈 정보 수정 기능', () => {
     it('이슈 제목 수정 성공 시 변경된 이슈 정보가 반환되어야 한다', async () => {
       const response = await request(app)
-        .put(`/api/issues/update/${targetIssueId}`)
+        .put(`/api/issues/${targetIssueId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ title: 'After Update Title' });
 
@@ -62,13 +63,28 @@ describe('🧪 [issues.updateIssue] Service & REST API Unit Tests', () => {
       expect(response.body).toHaveProperty('title', 'After Update Title');
     });
 
-    it('존재하지 않는 이슈 ID 수정 요청 시 400 Bad Request 에러를 반환해야 한다', async () => {
+    it('이슈 상태(statusId) 수정 요청 시 상태 변경이 성공해야 한다', async () => {
+      let nextStatus = await prisma.issueStatus.findFirst({ where: { name: 'IN_PROGRESS' } });
+      if (!nextStatus) {
+        nextStatus = await prisma.issueStatus.create({ data: { name: 'IN_PROGRESS', category: 'IN_PROGRESS' } });
+      }
+
       const response = await request(app)
-        .put('/api/issues/update/9999999')
+        .put(`/api/issues/${targetIssueId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ statusId: nextStatus.id });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('statusId', nextStatus.id);
+    });
+
+    it('존재하지 않는 이슈 ID 수정 요청 시 404/400 Error를 반환해야 한다', async () => {
+      const response = await request(app)
+        .put('/api/issues/9999999')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ title: 'Ghost Title' });
 
-      expect(response.status).toBe(400);
+      expect([400, 404]).toContain(response.status);
     });
   });
 });

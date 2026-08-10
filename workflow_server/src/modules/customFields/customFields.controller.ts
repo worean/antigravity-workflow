@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { createCustomFieldService } from './services/createCustomField.service.js';
 import { getCustomFieldsService } from './services/getCustomFields.service.js';
+import { deleteCustomFieldService } from './services/deleteCustomField.service.js';
 
 export const createCustomField = async (req: Request, res: Response) => {
   try {
@@ -17,5 +18,14 @@ export const getCustomFields = async (req: Request, res: Response) => {
     res.json(fields);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteCustomField = async (req: Request, res: Response) => {
+  try {
+    const result = await deleteCustomFieldService(Number(req.params.id || req.body.id));
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
   }
 };

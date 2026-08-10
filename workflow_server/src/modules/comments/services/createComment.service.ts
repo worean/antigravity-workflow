@@ -11,6 +11,12 @@ export const createCommentService = async (data: any) => {
       content,
       parentId: parentId ? Number(parentId) : undefined,
       isInternal: Boolean(isInternal)
+    },
+    include: {
+      author: { select: { id: true, name: true, email: true } },
+      mentions: { include: { user: { select: { id: true, name: true } } } },
+      reactions: true,
+      attachments: true
     }
   });
 

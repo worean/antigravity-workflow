@@ -1,4 +1,6 @@
+// -*- coding: utf-8 -*-
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { prisma } from '#lib/prisma.js';
 
 export const emailLoginService = async (data: any) => {
@@ -21,7 +23,24 @@ export const emailLoginService = async (data: any) => {
     throw new Error('This account is linked with Google OAuth. Please log in using Google Login.');
   }
 
-  if (user.password !== password) {
+  // bcrypt 해시 비교 (평문 패스워드에 대한 하위 호환성 체크 포함)
+  let isMatch = false;
+  if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+    isMatch = await bcrypt.compare(password, user.password);
+  } else {
+    // 기존 평문 패스워드 호환 검사
+    isMatch = user.password === password;
+    // 로그인 성공 시 bcrypt 해시로 자동 재업데이트
+    if (isMatch) {
+      const newHash = await bcrypt.hash(password, 10);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: newHash }
+      });
+    }
+  }
+
+  if (!isMatch) {
     throw new Error('Invalid password');
   }
 

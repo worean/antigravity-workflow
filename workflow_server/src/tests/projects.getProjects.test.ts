@@ -1,3 +1,4 @@
+// -*- coding: utf-8 -*-
 /**
  * 🧪 [Domain: projects / Service: getProjects]
  * - 기능: 전체 프로젝트 목록 조회 REST API 단위 테스트
@@ -31,7 +32,7 @@ describe('🧪 [projects.getProjects] Service & REST API Unit Tests', () => {
   describe('Case 1: 📋 프로젝트 목록 조회 기능', () => {
     it('프로젝트 목록 요청 시 성공적으로 목록 배열이 반환되어야 한다', async () => {
       const response = await request(app)
-        .get('/api/projects/list')
+        .get('/api/projects')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);

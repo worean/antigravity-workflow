@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const getIssuesService = async (query: any, currentUserId?: number) => {
   const { projectId, sprintId, assigneeId, typeId, statusId, parentId, search } = query;
@@ -36,6 +36,10 @@ export const getIssuesService = async (query: any, currentUserId?: number) => {
   return issues.map(item => ({
     ...item,
     isLiked: currentUserId && Array.isArray(item.likes) ? item.likes.length > 0 : false,
+    likesCount: item._count?.likes ?? (Array.isArray(item.likes) ? item.likes.length : 0),
+    commentsCount: item._count?.comments ?? 0,
+    attachmentsCount: item._count?.attachments ?? 0,
+    childrenCount: item._count?.children ?? 0,
     customFields: item.customFields ? JSON.parse(item.customFields) : null
   }));
 };

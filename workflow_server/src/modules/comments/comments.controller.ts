@@ -6,7 +6,8 @@ import { deleteCommentService } from './services/deleteComment.service.js';
 
 export const createComment = async (req: Request, res: Response) => {
   try {
-    const comment = await createCommentService(req.body);
+    const authorId = req.body.authorId || (req.user ? req.user.id : undefined);
+    const comment = await createCommentService({ ...req.body, authorId });
     res.status(201).json(comment);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -25,7 +26,8 @@ export const getComments = async (req: Request, res: Response) => {
 export const addReaction = async (req: Request, res: Response) => {
   try {
     const commentId = Number(req.params.id || req.body.commentId);
-    const { userId, emoji } = req.body;
+    const userId = req.body.userId || (req.user ? req.user.id : undefined);
+    const { emoji } = req.body;
     const reaction = await addReactionService(commentId, Number(userId), emoji);
     res.status(201).json(reaction);
   } catch (error: any) {

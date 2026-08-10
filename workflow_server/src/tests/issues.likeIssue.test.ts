@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: issues / Service: likeIssue]
  * - 기능: 이슈 좋아요 / 토글 REST API 단위 테스트
  * - 경우의 수: 인증된 사용자의 이슈 좋아요 등록 성공 (201 Created), 존재하지 않는 이슈 ID 예외 (400 Bad Request)
@@ -60,6 +60,16 @@ describe('🧪 [issues.likeIssue] Service & REST API Unit Tests', () => {
         .send({ issueId: targetIssueId });
 
       expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('좋아요 등록 후 좋아요 취소(unlike) 시 정상 처리되어야 한다 (200 OK)', async () => {
+      const response = await request(app)
+        .post('/api/issues/unlike')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ issueId: targetIssueId });
+
+      expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('message');
     });
 

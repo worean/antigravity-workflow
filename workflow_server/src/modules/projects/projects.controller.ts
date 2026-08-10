@@ -5,14 +5,21 @@ import { getProjectService } from './services/getProject.service.js';
 import { updateProjectService } from './services/updateProject.service.js';
 import { deleteProjectService } from './services/deleteProject.service.js';
 import { addMemberService } from './services/addMember.service.js';
+import { ErrorCode } from '../../common/errors/errorCode.js';
 
 export const createProject = async (req: Request, res: Response) => {
   try {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required' });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
+    }
     const project = await createProjectService(req.body, req.user.id);
     res.status(201).json(project);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    const isDup = error.message?.includes('already exists') || error.code === 'P2002';
+    res.status(400).json({
+      error: error.message,
+      errorCode: isDup ? ErrorCode.PROJECT_ALREADY_EXISTS : ErrorCode.INVALID_INPUT,
+    });
   }
 };
 
@@ -21,7 +28,7 @@ export const getProjects = async (req: Request, res: Response) => {
     const projects = await getProjectsService();
     res.json(projects);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, errorCode: ErrorCode.INTERNAL_SERVER_ERROR });
   }
 };
 
@@ -30,7 +37,11 @@ export const getProject = async (req: Request, res: Response) => {
     const project = await getProjectService(Number(req.params.id || req.query.id));
     res.json(project);
   } catch (error: any) {
-    res.status(error.message.includes('not found') ? 404 : 400).json({ error: error.message });
+    const isNotFound = error.message.includes('not found');
+    res.status(isNotFound ? 404 : 400).json({
+      error: error.message,
+      errorCode: isNotFound ? ErrorCode.NOT_FOUND : ErrorCode.INVALID_INPUT,
+    });
   }
 };
 
@@ -39,7 +50,7 @@ export const updateProject = async (req: Request, res: Response) => {
     const updated = await updateProjectService(Number(req.params.id || req.body.id), req.body);
     res.json(updated);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
   }
 };
 
@@ -48,7 +59,7 @@ export const deleteProject = async (req: Request, res: Response) => {
     const result = await deleteProjectService(Number(req.params.id || req.body.id));
     res.json(result);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
   }
 };
 
@@ -58,6 +69,6 @@ export const addMember = async (req: Request, res: Response) => {
     const member = await addMemberService(Number(projectId || req.params.id), Number(userId), role);
     res.status(201).json(member);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
   }
 };
