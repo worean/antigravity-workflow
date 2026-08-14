@@ -1,5 +1,21 @@
-// -*- coding: utf-8 -*-
 import { prisma } from '#lib/prisma.js';
+import { getIssueService } from './getIssue.service.js';
+
+const parseDateOnly = (val: any): Date | null | undefined => {
+  if (val === undefined) return undefined;
+  if (!val || val === null || val === '') return null;
+  const str = String(val).trim();
+  const datePart = str.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return new Date(`${datePart}T00:00:00.000Z`);
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+};
 
 export const createIssueService = async (data: any, authorIdInput?: number) => {
   const {
@@ -14,7 +30,11 @@ export const createIssueService = async (data: any, authorIdInput?: number) => {
     sprintId,
     parentId,
     estimatedHours,
-    customFields
+    customFields,
+    plannedStartDate,
+    dueDate,
+    actualStartDate,
+    actualEndDate
   } = data;
 
   const targetProjectId = Number(projectId);
@@ -68,12 +88,31 @@ export const createIssueService = async (data: any, authorIdInput?: number) => {
       sprintId: sprintId ? Number(sprintId) : undefined,
       parentId: parentId ? Number(parentId) : undefined,
       estimatedHours: estimatedHours ? Number(estimatedHours) : undefined,
-      customFields: customFields ? JSON.stringify(customFields) : null
+      customFields: customFields ? JSON.stringify(customFields) : null,
+      plannedStartDate: parseDateOnly(plannedStartDate),
+      dueDate: parseDateOnly(dueDate),
+      actualStartDate: parseDateOnly(actualStartDate),
+      actualEndDate: parseDateOnly(actualEndDate)
     }
   });
 
-  return {
-    ...issue,
-    customFields: issue.customFields ? JSON.parse(issue.customFields) : null
-  };
+  // 비관계형 활동 로그 기록
+  try {
+    const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
+    await createActivityLogService({
+      action: 'CREATE',
+      entityType: 'ISSUE',
+      entityId: issue.id,
+      userId: targetAuthorId,
+      summary: `이슈 #${issue.id} ('${issue.title}') 생성`,
+      details: { title: issue.title, projectId: targetProjectId, typeId: issue.typeId, priorityId: issue.priorityId }
+    });
+  } catch {
+    // 로깅 오류 안전 무시
+  }
+
+  // GET / PUT 조회 시의 호환 가능한 완전한 포함(Include) 객체 양식으로 리턴
+  return await getIssueService(issue.id, targetAuthorId);
 };
+
+

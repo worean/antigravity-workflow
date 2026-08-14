@@ -8,7 +8,7 @@ const api = axios.create({
   },
 });
 
-// Authorization 인터셉터
+// Authorization 헤더 인터셉터
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('auth_token');
   if (token) {
@@ -22,14 +22,16 @@ export const checkHealth = async (): Promise<HealthStatus> => {
   return res.data;
 };
 
-// Auth
+// ==========================================
+// 🛡️ Auth & Users API
+// ==========================================
 export const loginEmail = async (email: string, password?: string) => {
   const res = await api.post('/auth/login', { email, password });
   return res.data; // { token, user }
 };
 
 export const registerUser = async (email: string, name: string, password?: string) => {
-  const res = await api.post('/users/create', { email, name, password });
+  const res = await api.post('/users', { email, name, password });
   return res.data;
 };
 
@@ -43,7 +45,18 @@ export const getUsers = async (): Promise<User[]> => {
   return Array.isArray(res.data) ? res.data : (res.data.users || []);
 };
 
-// Projects
+export const updateUser = async (id: number, data: Partial<User>): Promise<User> => {
+  const res = await api.put(`/users/${id}`, data);
+  return res.data;
+};
+
+export const deleteUser = async (id: number): Promise<void> => {
+  await api.delete(`/users/${id}`);
+};
+
+// ==========================================
+// 📁 Projects API
+// ==========================================
 export const getProjects = async (): Promise<Project[]> => {
   const res = await api.get('/projects');
   return Array.isArray(res.data) ? res.data : (res.data.projects || []);
@@ -55,7 +68,12 @@ export const getProject = async (id: number): Promise<Project> => {
 };
 
 export const createProject = async (data: { name: string; key: string; description?: string }): Promise<Project> => {
-  const res = await api.post('/projects/create', data);
+  const res = await api.post('/projects', data);
+  return res.data;
+};
+
+export const updateProject = async (id: number, data: { name?: string; description?: string; statusId?: number; priorityId?: number }): Promise<Project> => {
+  const res = await api.put(`/projects/${id}`, data);
   return res.data;
 };
 
@@ -63,9 +81,35 @@ export const deleteProject = async (id: number): Promise<void> => {
   await api.delete(`/projects/${id}`);
 };
 
-// Issues
+export const addProjectMember = async (projectId: number, userId: number, role: string = 'MEMBER') => {
+  const res = await api.post(`/projects/${projectId}/members`, { userId, role });
+  return res.data;
+};
+
+// ==========================================
+// 🏃 Sprints API
+// ==========================================
+export const getSprints = async (projectId?: number): Promise<Sprint[]> => {
+  const res = await api.get('/sprints', { params: projectId ? { projectId } : {} });
+  return Array.isArray(res.data) ? res.data : (res.data.sprints || []);
+};
+
+export const createSprint = async (data: { name: string; goal?: string; projectId: number; startDate?: string; endDate?: string }): Promise<Sprint> => {
+  const res = await api.post('/sprints', data);
+  return res.data;
+};
+
+export const updateSprint = async (id: number, data: { name?: string; goal?: string; status?: string }): Promise<Sprint> => {
+  const res = await api.put(`/sprints/${id}`, data);
+  return res.data;
+};
+
+// ==========================================
+// 🎯 Issues API
+// ==========================================
 export const getIssues = async (filters?: {
   projectId?: number;
+  sprintId?: number;
   assigneeId?: number;
   authorId?: number;
   search?: string;
@@ -74,6 +118,7 @@ export const getIssues = async (filters?: {
 }): Promise<Issue[]> => {
   const params: any = {};
   if (filters?.projectId) params.projectId = filters.projectId;
+  if (filters?.sprintId) params.sprintId = filters.sprintId;
   if (filters?.assigneeId) params.assigneeId = filters.assigneeId;
   if (filters?.authorId) params.authorId = filters.authorId;
   if (filters?.search) params.search = filters.search;
@@ -93,23 +138,24 @@ export const createIssue = async (data: {
   title: string;
   description?: string;
   projectId: number;
+  sprintId?: number;
   assigneeId?: number;
   priorityId?: number;
   statusId?: number;
   typeId?: number;
   customFields?: any;
 }): Promise<Issue> => {
-  const res = await api.post('/issues/create', data);
+  const res = await api.post('/issues', data);
   return res.data;
 };
 
 export const updateIssue = async (id: number, data: Partial<Issue>): Promise<Issue> => {
-  const res = await api.put(`/issues/update/${id}`, data);
+  const res = await api.put(`/issues/${id}`, data);
   return res.data;
 };
 
 export const deleteIssue = async (id: number): Promise<void> => {
-  await api.delete(`/issues/delete/${id}`);
+  await api.delete(`/issues/${id}`);
 };
 
 export const toggleLikeIssue = async (issueId: number): Promise<{ message: string; isLiked: boolean; likesCount: number }> => {
@@ -117,64 +163,71 @@ export const toggleLikeIssue = async (issueId: number): Promise<{ message: strin
   return res.data;
 };
 
-// Comments
+// ==========================================
+// 💬 Comments API
+// ==========================================
 export const getComments = async (issueId: number): Promise<Comment[]> => {
-  const res = await api.get(`/comments/list/${issueId}`);
+  const res = await api.get(`/comments/issue/${issueId}`);
   return Array.isArray(res.data) ? res.data : (res.data.comments || []);
 };
 
-export const createComment = async (issueId: number, content: string): Promise<Comment> => {
-  const res = await api.post('/comments/create', { issueId, content });
+export const createComment = async (issueId: number, content: string, parentId?: number): Promise<Comment> => {
+  const res = await api.post('/comments', { issueId, content, parentId });
   return res.data;
 };
 
 export const deleteComment = async (id: number): Promise<void> => {
-  await api.delete(`/comments/delete/${id}`);
+  await api.delete(`/comments/${id}`);
 };
 
-// Custom Fields
+export const addCommentReaction = async (commentId: number, emoji: string) => {
+  const res = await api.post(`/comments/${commentId}/reactions`, { emoji });
+  return res.data;
+};
+
+// ==========================================
+// ⏱️ Worklogs API
+// ==========================================
+export const getWorklogs = async (issueId?: number): Promise<Worklog[]> => {
+  const url = issueId ? `/worklogs?issueId=${issueId}` : '/worklogs';
+  const res = await api.get(url);
+  return Array.isArray(res.data) ? res.data : (res.data.worklogs || []);
+};
+
+export const createWorklog = async (data: {
+  issueId: number;
+  timeSpent?: number;
+  timeSpentHours?: number;
+  description?: string;
+  startedAt?: string;
+}): Promise<Worklog> => {
+  const res = await api.post('/worklogs', data);
+  return res.data;
+};
+
+// ==========================================
+// 🏷️ Custom Fields API
+// ==========================================
 export const getCustomFields = async (): Promise<CustomFieldDefinition[]> => {
   const res = await api.get('/custom-fields');
   return Array.isArray(res.data) ? res.data : [];
 };
 
 export const createCustomField = async (data: {
-  name: string;
   key: string;
+  name: string;
   fieldType: string;
   description?: string;
   defaultValue?: string;
   isRequired?: boolean;
   projectId?: number;
 }): Promise<CustomFieldDefinition> => {
-  const res = await api.post('/custom-fields/create', data);
+  const res = await api.post('/custom-fields', data);
   return res.data;
 };
 
 export const deleteCustomField = async (id: number): Promise<void> => {
   await api.delete(`/custom-fields/${id}`);
-};
-
-// Sprints
-export const getSprints = async (projectId?: number): Promise<Sprint[]> => {
-  const res = await api.get('/sprints', { params: projectId ? { projectId } : {} });
-  return Array.isArray(res.data) ? res.data : (res.data.sprints || []);
-};
-
-export const createSprint = async (data: { name: string; goal?: string; projectId: number }): Promise<Sprint> => {
-  const res = await api.post('/sprints/create', data);
-  return res.data;
-};
-
-// Worklogs
-export const getWorklogs = async (): Promise<Worklog[]> => {
-  const res = await api.get('/worklogs');
-  return Array.isArray(res.data) ? res.data : (res.data.worklogs || []);
-};
-
-export const createWorklog = async (data: { issueId: number; timeSpentMinutes: number; description?: string }): Promise<Worklog> => {
-  const res = await api.post('/worklogs/create', data);
-  return res.data;
 };
 
 export default api;

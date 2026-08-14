@@ -1,4 +1,21 @@
 import { prisma } from '#lib/prisma.js';
+import { getIssueService } from './getIssue.service.js';
+
+const parseDateOnly = (val: any): Date | null | undefined => {
+  if (val === undefined) return undefined;
+  if (!val || val === null || val === '') return null;
+  const str = String(val).trim();
+  const datePart = str.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return new Date(`${datePart}T00:00:00.000Z`);
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+};
 
 export const updateIssueService = async (issueId: number, data: any) => {
   const currentIssue = await prisma.issue.findUnique({
@@ -20,6 +37,10 @@ export const updateIssueService = async (issueId: number, data: any) => {
     loggedHours,
     sprintId,
     customFields,
+    plannedStartDate,
+    dueDate,
+    actualStartDate,
+    actualEndDate,
     userId
   } = data;
 
@@ -78,7 +99,7 @@ export const updateIssueService = async (issueId: number, data: any) => {
     }
   }
 
-  const updated = await prisma.issue.update({
+  await prisma.issue.update({
     where: { id: issueId },
     data: {
       title,
@@ -92,12 +113,30 @@ export const updateIssueService = async (issueId: number, data: any) => {
       estimatedHours: estimatedHours !== undefined ? Number(estimatedHours) : undefined,
       loggedHours: loggedHours !== undefined ? Number(loggedHours) : undefined,
       sprintId: sprintId !== undefined ? (sprintId ? Number(sprintId) : null) : undefined,
-      customFields: customFields !== undefined ? (typeof customFields === 'string' ? customFields : JSON.stringify(customFields)) : undefined
+      customFields: customFields !== undefined ? (typeof customFields === 'string' ? customFields : JSON.stringify(customFields)) : undefined,
+      plannedStartDate: parseDateOnly(plannedStartDate),
+      dueDate: parseDateOnly(dueDate),
+      actualStartDate: parseDateOnly(actualStartDate),
+      actualEndDate: parseDateOnly(actualEndDate)
     }
   });
 
-  return {
-    ...updated,
-    customFields: updated.customFields ? JSON.parse(updated.customFields) : null
-  };
+  // 비관계형 활동 로그 기록
+  try {
+    const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
+    await createActivityLogService({
+      action: 'UPDATE',
+      entityType: 'ISSUE',
+      entityId: issueId,
+      userId: userId ? Number(userId) : undefined,
+      summary: `이슈 #${issueId} ('${title || currentIssue.title}') 정보 수정`,
+      details: data
+    });
+  } catch {
+    // 로깅 오류 안전 무시
+  }
+
+  // GET 조회 시의 호환 가능한 완전한 포함(Include) 객체 양식으로 리턴
+  return await getIssueService(issueId, userId ? Number(userId) : undefined);
 };
+

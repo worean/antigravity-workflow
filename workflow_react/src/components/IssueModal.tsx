@@ -10,41 +10,94 @@ import {
   deleteComment,
   getCustomFields,
   toggleLikeIssue,
+  getWorklogs,
+  createWorklog,
 } from '../services/api';
+import type { Worklog } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { X, PlusCircle, MessageSquare, Send, Heart, Trash2, Edit3, Lock, Loader2 } from 'lucide-react';
+import {
+  X,
+  PlusCircle,
+  MessageSquare,
+  Send,
+  Heart,
+  Trash2,
+  Edit3,
+  Lock,
+  Loader2,
+  Reply,
+  Calendar,
+  Clock,
+  Plus,
+} from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { useActionFeedback } from '../hooks/useActionFeedback';
 import { ActionFeedbackModal } from './ActionFeedbackModal';
+import { useOverlayClickClose } from '../hooks/useOverlayClickClose';
+import { getProjectMembers } from '../utils/projectMembers';
+import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
+import {
+  StatusBadge,
+  PriorityBadge,
+  IssueTypeBadge,
+  UserBadge,
+  MarkdownViewer,
+  MarkdownEditor,
+  StatusSelect,
+  PrioritySelect,
+  IssueTypeSelect,
+} from './common';
+
+import { hoursToMinutes, formatWorklogTime } from '../utils/worklogUtils';
 
 interface IssueModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projects: Project[];
   selectedIssue?: Issue | null;
-  onSuccess: () => void;
+  projects?: Project[];
+  initialProjectId?: number;
+  onSuccess?: (savedIssue?: Issue) => void;
+  onIssueCreated?: () => void;
 }
+
 
 export const IssueModal: React.FC<IssueModalProps> = ({
   isOpen,
   onClose,
-  projects,
   selectedIssue,
+  projects = [],
+  initialProjectId,
   onSuccess,
+  onIssueCreated,
 }) => {
   const { user, isAuthenticated } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
+  const overlayProps = useOverlayClickClose(onClose);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [projectId, setProjectId] = useState<number>(projects[0]?.id || 1);
+  const [projectId, setProjectId] = useState<number>(initialProjectId || projects[0]?.id || 1);
+
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
   const [priorityId, setPriorityId] = useState<number>(1);
   const [statusId, setStatusId] = useState<number>(1);
   const [typeId, setTypeId] = useState<number>(1);
   const [progress, setProgress] = useState<number>(0);
   const [customFieldsData, setCustomFieldsData] = useState<Record<string, any>>({});
+
+  // 일정/기한 (Schedule Dates)
+  const [plannedStartDate, setPlannedStartDate] = useState<string>('');
+  const [dueDate, setDueDate] = useState<string>('');
+  const [actualStartDate, setActualStartDate] = useState<string>('');
+  const [actualEndDate, setActualEndDate] = useState<string>('');
+
+  // 작업로그 (Worklog & Time Tracking)
+  const [worklogs, setWorklogs] = useState<Worklog[]>([]);
+  const [worklogHoursInput, setWorklogHoursInput] = useState<string>('');
+  const [worklogDescInput, setWorklogDescInput] = useState<string>('');
+  const [isLoggingWork, setIsLoggingWork] = useState<boolean>(false);
+  const [showWorklogForm, setShowWorklogForm] = useState<boolean>(false);
 
   const [users, setUsers] = useState<User[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -55,6 +108,8 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   const [likesCount, setLikesCount] = useState<number>(0);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [replyTargetId, setReplyTargetId] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState<string>('');
 
   const selectedProj = projects.find((p) => p.id === (selectedIssue?.projectId || projectId));
   const canEditRestrictedFields =
@@ -65,6 +120,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           selectedIssue.authorId === user.id ||
           selectedIssue.author?.id === user.id)
     );
+
+  // 하위 댓글(대댓글)까지 모두 포함한 전체 댓글 수 계산
+  const totalCommentsCount = comments.reduce(
+    (acc, cur) => acc + 1 + (cur.children ? cur.children.length : 0),
+    0
+  );
+
 
   useEffect(() => {
     if (projects.length > 0 && !projectId) {
@@ -103,18 +165,32 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           ? JSON.parse(selectedIssue.customFields)
           : selectedIssue.customFields || {}
       );
+      setPlannedStartDate(formatDateOnly(selectedIssue.plannedStartDate));
+      setDueDate(formatDateOnly(selectedIssue.dueDate));
+      setActualStartDate(formatDateOnly(selectedIssue.actualStartDate));
+      setActualEndDate(formatDateOnly(selectedIssue.actualEndDate));
+
       setIsLiked(!!selectedIssue.isLiked);
       setLikesCount(selectedIssue.likesCount || 0);
 
-      const fetchCommentsData = async () => {
+      // 작업로그 폼 초기화
+      setWorklogHoursInput('');
+      setWorklogDescInput('');
+      setShowWorklogForm(false);
+
+      const fetchExtraData = async () => {
         try {
-          const cList = await getComments(selectedIssue.id);
+          const [cList, wList] = await Promise.all([
+            getComments(selectedIssue.id),
+            getWorklogs(selectedIssue.id),
+          ]);
           setComments(cList);
+          setWorklogs(wList);
         } catch (err) {
           console.error(err);
         }
       };
-      fetchCommentsData();
+      fetchExtraData();
     } else if (isOpen) {
       setIsEditing(true);
       setTitle('');
@@ -126,6 +202,14 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       setTypeId(1);
       setProgress(0);
       setCustomFieldsData({});
+      setPlannedStartDate('');
+      setDueDate('');
+      setActualStartDate('');
+      setActualEndDate('');
+      setWorklogs([]);
+      setWorklogHoursInput('');
+      setWorklogDescInput('');
+      setShowWorklogForm(false);
       setComments([]);
     }
   }, [selectedIssue, isOpen, projects]);
@@ -140,7 +224,8 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       const res = await toggleLikeIssue(selectedIssue.id);
       setIsLiked(res.isLiked);
       setLikesCount(res.likesCount);
-      onSuccess();
+      if (onSuccess) onSuccess();
+      if (onIssueCreated) onIssueCreated();
     } catch (err) {
       console.error(err);
     }
@@ -156,15 +241,24 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       {
         onSuccess: () => {
           setShowDeleteConfirm(false);
-          onSuccess();
+          if (onSuccess) onSuccess();
+          if (onIssueCreated) onIssueCreated();
           onClose();
         },
       }
     );
   };
 
+
   const handleSaveIssue = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const scheduleData = {
+      plannedStartDate: plannedStartDate ? plannedStartDate : null,
+      dueDate: dueDate ? dueDate : null,
+      actualStartDate: actualStartDate ? actualStartDate : null,
+      actualEndDate: actualEndDate ? actualEndDate : null,
+    };
 
     await executeAction(
       async () => {
@@ -179,6 +273,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             typeId: Number(typeId),
             progress: Number(progress),
             customFields: customFieldsData,
+            ...scheduleData,
           });
         } else {
           return await createIssue({
@@ -190,18 +285,58 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             statusId: Number(statusId),
             typeId: Number(typeId),
             customFields: customFieldsData,
+            ...scheduleData,
           });
         }
       },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
           setIsEditing(false);
-          onSuccess();
+          if (onSuccess) onSuccess(res);
+          if (onIssueCreated) onIssueCreated();
           if (!selectedIssue) onClose();
         },
+
       }
     );
   };
+
+  const handleAddWorklog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedIssue) return;
+    const hoursNum = parseFloat(worklogHoursInput);
+    if (isNaN(hoursNum) || hoursNum <= 0) {
+      alert('유효한 작업 시간(시간 단위, 예: 1.4 또는 5.5)을 입력해 주세요.');
+      return;
+    }
+
+    setIsLoggingWork(true);
+    try {
+      const calculatedMinutes = hoursToMinutes(hoursNum);
+      const newLog = await createWorklog({
+        issueId: selectedIssue.id,
+        timeSpent: calculatedMinutes,
+        timeSpentHours: hoursNum,
+        description: worklogDescInput.trim() || undefined,
+      });
+
+      setWorklogs((prev) => [newLog, ...prev]);
+      setWorklogHoursInput('');
+      setWorklogDescInput('');
+      setShowWorklogForm(false);
+      if (onSuccess) onSuccess();
+      if (onIssueCreated) onIssueCreated();
+    } catch (err: any) {
+
+      console.error(err);
+      alert(err.response?.data?.error || '작업 시간 기록에 실패했습니다.');
+    } finally {
+      setIsLoggingWork(false);
+    }
+  };
+
+
+  // Reply Handlers
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,7 +344,8 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
     try {
       const comment = await createComment(selectedIssue.id, newComment);
-      setComments((prev) => [...prev, comment]);
+      // Direct State Update
+      setComments((prev) => [...prev, { ...comment, children: comment.children || [] }]);
       setNewComment('');
     } catch (err: any) {
       console.error(err);
@@ -217,11 +353,41 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     }
   };
 
+  const handleAddReply = async (parentId: number, e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyContent.trim() || !selectedIssue) return;
+
+    try {
+      const childComment = await createComment(selectedIssue.id, replyContent, parentId);
+      // Direct State Update: 상위 댓글의 children 배열에 즉시 대댓글 추가
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === parentId
+            ? { ...c, children: [...(c.children || []), childComment] }
+            : c
+        )
+      );
+      setReplyContent('');
+      setReplyTargetId(null);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.error || '대댓글 작성 실패');
+    }
+  };
+
   const handleDeleteComment = async (commentId: number) => {
     if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
     try {
       await deleteComment(commentId);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      // Direct State Update: 상위/대댓글 모두 즉시 제거
+      setComments((prev) =>
+        prev
+          .filter((c) => c.id !== commentId)
+          .map((c) => ({
+            ...c,
+            children: c.children ? c.children.filter((sub) => sub.id !== commentId) : [],
+          }))
+      );
     } catch (err: any) {
       alert(err.response?.data?.error || '댓글 삭제 실패');
     }
@@ -233,91 +399,131 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-overlay" {...overlayProps}>
+        <div className="modal-content" style={{ maxWidth: '640px', padding: '14px 18px', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-bright)' }}>
               {selectedIssue ? (
                 <>
                   <span style={{ color: 'var(--primary)' }}>#{selectedIssue.id}</span>
-                  {isEditing ? '이슈 정보 수정 (Edit Issue)' : selectedIssue.title}
+                  {isEditing ? '이슈 정보 수정' : selectedIssue.title}
                 </>
               ) : (
                 <>
-                  <PlusCircle size={20} color="var(--primary)" /> 새 이슈 작성 (Create Issue)
+                  <PlusCircle size={15} color="var(--primary)" /> 새 이슈 작성
                 </>
               )}
-            </h2>
+            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {selectedIssue && !isEditing && (
                 <>
                   <button
                     onClick={handleToggleLike}
                     className="btn btn-secondary btn-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px', color: isLiked ? '#f43f5e' : 'var(--text-sub)' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '3px', color: isLiked ? '#f14c4c' : 'var(--text-sub)' }}
                   >
-                    <Heart size={16} fill={isLiked ? '#f43f5e' : 'none'} /> {likesCount}
+                    <Heart size={13} fill={isLiked ? '#f14c4c' : 'none'} /> {likesCount}
                   </button>
                   {isAuthenticated && (
                     <button onClick={() => setIsEditing(true)} className="btn btn-secondary btn-sm">
-                      <Edit3 size={14} /> 수정
+                      <Edit3 size={12} /> 수정
                     </button>
                   )}
                   {isAuthenticated && (
-                    <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-secondary btn-sm" style={{ color: '#f43f5e' }}>
-                      <Trash2 size={14} /> 삭제
+                    <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-secondary btn-sm" style={{ color: '#f14c4c' }}>
+                      <Trash2 size={12} /> 삭제
                     </button>
                   )}
                 </>
               )}
-              <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer' }}>
-                <X size={20} />
+              <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}>
+                <X size={16} />
               </button>
             </div>
           </div>
 
-          {isViewMode ? (
+          {isViewMode && selectedIssue ? (
             <div>
-              <div
-                style={{
-                  padding: '14px',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  borderRadius: 'var(--radius-sm)',
-                  marginBottom: '16px',
-                  fontSize: '0.95rem',
-                  color: 'var(--text-main)',
-                  minHeight: '70px',
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
-                {selectedIssue.description || '작성된 상세 설명이 없습니다.'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                <IssueTypeBadge type={selectedIssue.typeId || selectedIssue.type} size="sm" />
+                <StatusBadge status={selectedIssue.statusId || selectedIssue.status} size="sm" />
+                <PriorityBadge priority={selectedIssue.priorityId || selectedIssue.priority} size="sm" />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', fontSize: '0.82rem' }}>
+
+              <MarkdownViewer content={selectedIssue.description} placeholder="작성된 상세 설명이 없습니다." style={{ marginBottom: '10px' }} />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
+                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>프로젝트: </span>
                   <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{selectedProj?.name || `#${selectedIssue.projectId}`}</span>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', fontSize: '0.82rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>담당자: </span>
-                  <span style={{ fontWeight: 600 }}>{selectedIssue.assignee?.name || selectedIssue.assignee?.email || '미지정'}</span>
+                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>담당자: </span>
+                  <UserBadge user={selectedIssue.assignee} currentUserId={user?.id} size="sm" />
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px', fontSize: '0.82rem' }}>
+                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>진척도: </span>
-                  <span style={{ fontWeight: 600, color: '#10b981' }}>{selectedIssue.progress || 0}%</span>
+                  <span style={{ fontWeight: 600, color: '#4ec9b0' }}>{selectedIssue.progress || 0}%</span>
+                </div>
+              </div>
+
+              {/* Schedule & Due Date Panel */}
+              <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '0.78rem', color: 'var(--accent-cyan)', marginBottom: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Calendar size={13} /> 일정 및 기한
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.75rem' }}>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>시작 계획일: </span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{plannedStartDate || '미설정'}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>기한 (만료일): </span>
+                    <span style={{ fontWeight: 700, color: dueDate ? '#9cdcfe' : 'var(--text-sub)' }}>
+                      {dueDate || '미설정'}
+                    </span>
+                    {(() => {
+                      const dday = getDDayStatus(dueDate);
+                      if (!dday) return null;
+                      return (
+                        <span
+                          style={{
+                            marginLeft: '6px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: '2px',
+                            color: dday.color,
+                            background: dday.bg,
+                          }}
+                        >
+                          {dday.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>실제 시작일: </span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{actualStartDate || '미설정'}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-muted)' }}>실제 종료일: </span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{actualEndDate || '미설정'}</span>
+                  </div>
                 </div>
               </div>
 
               {Object.keys(customFieldsData).length > 0 && (
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-                  <h4 style={{ fontSize: '0.85rem', color: 'var(--text-sub)', marginBottom: '8px', fontWeight: 600 }}>
-                    ⚙️ 커스텀 필드 정보 (Custom Fields)
+                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+                  <h4 style={{ fontSize: '0.78rem', color: 'var(--text-sub)', marginBottom: '6px', fontWeight: 600 }}>
+                    ⚙️ 커스텀 필드
                   </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.82rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.75rem' }}>
                     {Object.entries(customFieldsData).map(([k, val]) => (
-                      <div key={k} style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 10px', borderRadius: '4px' }}>
+                      <div key={k} style={{ background: '#252526', border: '1px solid #383838', padding: '4px 6px', borderRadius: '2px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>{k}: </span>
                         <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{String(val)}</span>
                       </div>
@@ -326,66 +532,458 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                 </div>
               )}
 
-              <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <MessageSquare size={16} color="var(--primary)" /> 댓글 목록 ({comments.length})
-                </h3>
+              {/* Worklog & Time Tracking Panel */}
+              <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h4 style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
+                    <Clock size={13} /> 작업 로그 및 소요 시간
+                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#4ec9b0', background: 'rgba(78, 201, 176, 0.15)', padding: '1px 6px', borderRadius: '2px' }}>
+                      총: {((worklogs.reduce((acc, cur) => acc + (cur.timeSpent || 0), 0)) / 60).toFixed(1).replace(/\.0$/, '')}시간 ({worklogs.reduce((acc, cur) => acc + (cur.timeSpent || 0), 0)}분)
+                    </span>
+                    {isAuthenticated && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setShowWorklogForm(!showWorklogForm)}
+                        style={{ padding: '1px 6px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                      >
+                        <Plus size={11} /> {showWorklogForm ? '접기' : '작업 기록'}
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-                <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
-                  {comments.length === 0 ? (
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px' }}>
-                      등록된 댓글이 없습니다.
+
+                {/* Inline Worklog Form */}
+                {showWorklogForm && isAuthenticated && (
+                  <form
+                    onSubmit={handleAddWorklog}
+                    style={{
+                      background: 'rgba(6, 182, 212, 0.05)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '8px' }}>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '2px' }}>
+                          소요 시간 (시간)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          placeholder="예: 1.4 또는 5.5"
+                          className="input-field"
+                          value={worklogHoursInput}
+                          onChange={(e) => setWorklogHoursInput(e.target.value)}
+                          style={{ padding: '6px 8px', fontSize: '0.82rem' }}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '2px' }}>
+                          작업 내용 요약
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="예: API 엔드포인트 구현 및 테스트 진행"
+                          className="input-field"
+                          value={worklogDescInput}
+                          onChange={(e) => setWorklogDescInput(e.target.value)}
+                          style={{ padding: '6px 8px', fontSize: '0.82rem' }}
+                        />
+                      </div>
+                    </div>
+
+                    {worklogHoursInput && !isNaN(parseFloat(worklogHoursInput)) && parseFloat(worklogHoursInput) > 0 && (
+                      <div style={{ fontSize: '0.75rem', color: '#06b6d4' }}>
+                        💡 <strong>{worklogHoursInput}시간</strong> 입력 ➔ DB에 <strong>{hoursToMinutes(parseFloat(worklogHoursInput))}분</strong>으로 환산 저장됩니다.
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '2px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setShowWorklogForm(false)}
+                        style={{ padding: '3px 8px', fontSize: '0.75rem' }}
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary btn-sm"
+                        disabled={isLoggingWork}
+                        style={{ padding: '3px 12px', fontSize: '0.75rem' }}
+                      >
+                        {isLoggingWork ? '저장 중...' : '작업 시간 저장'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Worklogs List */}
+                <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {worklogs.length === 0 ? (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '8px' }}>
+                      기록된 작업 시간이 없습니다.
                     </div>
                   ) : (
-                    comments.map((c) => (
+                    worklogs.map((w) => (
                       <div
-                        key={c.id}
+                        key={w.id}
                         style={{
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          padding: '10px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: '0.85rem',
+                          background: 'rgba(0,0,0,0.2)',
+                          padding: '6px 10px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '0.8rem',
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', color: 'var(--text-sub)' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                          {c.author?.name || c.author?.email || (user?.id === c.authorId ? (user.name || user.email) : `유저 #${c.authorId}`)}
-                        </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '0.75rem' }}>{new Date(c.createdAt).toLocaleString('ko-KR')}</span>
-                            {isAuthenticated && (user?.id === c.authorId || user?.id === c.author?.id) && (
-                              <button
-                                onClick={() => handleDeleteComment(c.id)}
-                                style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer' }}
-                                title="댓글 삭제"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--secondary)' }}>
+                            {formatWorklogTime(w.timeSpent)}
+                          </span>
+                          <span style={{ color: 'var(--text-sub)' }}>
+                            {w.description ? `- ${w.description}` : ''}
+                          </span>
                         </div>
-                        <div>{c.content}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          <UserBadge user={w.user} currentUserId={user?.id} size="sm" />
+                          <span>{new Date(w.createdAt).toLocaleDateString('ko-KR')}</span>
+                        </div>
                       </div>
                     ))
                   )}
                 </div>
+              </div>
 
-                {isAuthenticated && (
-                  <form onSubmit={handleAddComment} style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      className="input-field"
-                      placeholder="댓글을 작성하세요..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                    />
-                    <button type="submit" className="btn btn-primary btn-sm">
-                      <Send size={16} />
-                    </button>
+              {/* Comments Section (YouTube Style Flat Thread) */}
+              <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '14px', marginTop: '12px' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MessageSquare size={14} color="var(--primary)" />
+                  <span>댓글 {totalCommentsCount}개</span>
+                </div>
+
+
+                {/* Top New Comment Input (YouTube style input with Avatar) */}
+                {isAuthenticated ? (
+                  <form onSubmit={handleAddComment} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '50%',
+                        background: 'var(--primary)',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <textarea
+                        className="input-field"
+                        rows={2}
+                        placeholder="댓글 추가... (Enter: 등록, Shift+Enter: 줄바꿈)"
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (e.nativeEvent.isComposing) return;
+                            if (e.shiftKey) {
+                              e.stopPropagation();
+                            } else {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAddComment(e);
+                            }
+                          }
+                        }}
+                        style={{
+                          resize: 'vertical',
+                          minHeight: '34px',
+                          background: '#1e1e1e',
+                          border: '1px solid #3c3c3c',
+                          borderRadius: 'var(--radius-xs)',
+                          padding: '5px 8px',
+                          fontSize: '0.78rem',
+                        }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
+                        {newComment.trim() && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setNewComment('')}
+                            style={{ height: '22px', fontSize: '0.7rem' }}
+                          >
+                            취소
+                          </button>
+                        )}
+                        <button
+                          type="submit"
+                          className="btn btn-primary btn-sm"
+                          disabled={!newComment.trim()}
+                          style={{ height: '22px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem' }}
+                        >
+                          <Send size={10} /> 댓글
+                        </button>
+                      </div>
+                    </div>
                   </form>
+                ) : (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                    댓글을 작성하려면 로그인하세요.
+                  </div>
                 )}
+
+                {/* Comment Thread List (Flat Text) */}
+                <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', paddingRight: '2px' }}>
+                  {comments.length === 0 ? (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                      등록된 댓글이 없습니다.
+                    </div>
+                  ) : (
+                    comments.map((c) => {
+                      const isMyComment = Boolean(user && (user.id === c.authorId || user.id === c.author?.id));
+                      const isReplying = replyTargetId === c.id;
+                      const authorName = c.author?.name || c.author?.email || (isMyComment ? (user?.name || user?.email) : `유저 #${c.authorId}`);
+
+                      return (
+                        <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          {/* Main Parent Comment Item (YouTube Style) */}
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                            <div
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                background: isMyComment ? 'var(--primary)' : '#3c3c3c',
+                                color: isMyComment ? '#ffffff' : '#cccccc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                flexShrink: 0,
+                                marginTop: '2px',
+                              }}
+                            >
+                              {((authorName || 'U').charAt(0)).toUpperCase()}
+                            </div>
+
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isMyComment ? '#9cdcfe' : 'var(--text-bright)' }}>
+                                    {authorName}
+                                  </span>
+                                  {isMyComment && (
+                                    <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#9cdcfe', background: 'rgba(0,122,204,0.15)', padding: '0 3px', borderRadius: '2px' }}>
+                                      작성자
+                                    </span>
+                                  )}
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                    {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+
+                                {isAuthenticated && isMyComment && (
+                                  <button
+                                    onClick={() => handleDeleteComment(c.id)}
+                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = '#f14c4c'}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                                    title="댓글 삭제"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                )}
+                              </div>
+
+                              <div style={{ fontSize: '0.78rem', lineHeight: '1.4', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>
+                                {c.content}
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                                {isAuthenticated && (
+                                  <button
+                                    onClick={() => {
+                                      if (isReplying) {
+                                        setReplyTargetId(null);
+                                      } else {
+                                        setReplyTargetId(c.id);
+                                        setReplyContent('');
+                                      }
+                                    }}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: isReplying ? 'var(--accent-cyan)' : 'var(--text-sub)',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                      fontSize: '0.7rem',
+                                      padding: '1px 0',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-bright)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = isReplying ? 'var(--accent-cyan)' : 'var(--text-sub)'}
+                                  >
+                                    <Reply size={10} /> 답글
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Inline Reply Form */}
+                          {isReplying && (
+                            <form
+                              onSubmit={(e) => handleAddReply(c.id, e)}
+                              style={{
+                                marginLeft: '32px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '3px',
+                                padding: '5px 6px',
+                                background: '#1e1e1e',
+                                borderRadius: 'var(--radius-xs)',
+                                border: '1px solid #3c3c3c',
+                              }}
+                            >
+                              <textarea
+                                className="input-field"
+                                rows={2}
+                                placeholder="답글 작성... (Enter: 등록, Shift+Enter: 줄바꿈)"
+                                value={replyContent}
+                                onChange={(e) => setReplyContent(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    if (e.nativeEvent.isComposing) return;
+                                    if (e.shiftKey) {
+                                      e.stopPropagation();
+                                    } else {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleAddReply(c.id, e);
+                                    }
+                                  }
+                                }}
+                                style={{ resize: 'vertical', minHeight: '30px', fontSize: '0.75rem', background: '#252526' }}
+                              />
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '3px' }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => setReplyTargetId(null)}
+                                  style={{ height: '20px', fontSize: '0.68rem', padding: '0 6px' }}
+                                >
+                                  취소
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="btn btn-primary btn-sm"
+                                  disabled={!replyContent.trim()}
+                                  style={{ height: '20px', fontSize: '0.68rem', padding: '0 6px' }}
+                                >
+                                  답글
+                                </button>
+                              </div>
+                            </form>
+                          )}
+
+                          {/* Nested Sub-Comments (YouTube Style Indented) */}
+                          {c.children && c.children.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '32px', marginTop: '3px' }}>
+                              {c.children.map((sub) => {
+                                const isMySub = Boolean(user && (user.id === sub.authorId || user.id === sub.author?.id));
+                                const subAuthorName = sub.author?.name || sub.author?.email || (isMySub ? (user?.name || user?.email) : `유저 #${sub.authorId}`);
+
+                                return (
+                                  <div key={sub.id} style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                                    <div
+                                      style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        background: isMySub ? 'var(--primary)' : '#3c3c3c',
+                                        color: isMySub ? '#ffffff' : '#cccccc',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        flexShrink: 0,
+                                        marginTop: '2px',
+                                      }}
+                                    >
+                                      {((subAuthorName || 'U').charAt(0)).toUpperCase()}
+                                    </div>
+
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: isMySub ? '#9cdcfe' : 'var(--text-bright)' }}>
+                                            {subAuthorName || '사용자'}
+                                          </span>
+
+                                          {isMySub && (
+                                            <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#9cdcfe', background: 'rgba(0,122,204,0.15)', padding: '0 2px', borderRadius: '2px' }}>
+                                              작성자
+                                            </span>
+                                          )}
+                                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>
+                                            {new Date(sub.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                          </span>
+                                        </div>
+
+                                        {isAuthenticated && isMySub && (
+                                          <button
+                                            onClick={() => handleDeleteComment(sub.id)}
+                                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '1px' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.color = '#f14c4c'}
+                                            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                                            title="대댓글 삭제"
+                                          >
+                                            <Trash2 size={10} />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      <div style={{ fontSize: '0.75rem', lineHeight: '1.35', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>
+                                        {sub.content}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
+
           ) : (
             <form onSubmit={handleSaveIssue}>
               <div className="form-group">
@@ -442,51 +1040,34 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     이슈 유형 {!canEditRestrictedFields && <Lock size={12} color="#f59e0b" />}
                   </label>
-                  <select
-                    className="input-field"
+                  <IssueTypeSelect
                     value={typeId}
-                    onChange={(e) => setTypeId(Number(e.target.value))}
+                    onChange={setTypeId}
                     disabled={!canEditRestrictedFields}
-                  >
-                    <option value={1}>작업 (Task)</option>
-                    <option value={2}>버그 (Bug)</option>
-                    <option value={3}>에픽 (Epic)</option>
-                    <option value={4}>스토리 (Story)</option>
-                  </select>
+                  />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     우선순위 {!canEditRestrictedFields && <Lock size={12} color="#f59e0b" />}
                   </label>
-                  <select
-                    className="input-field"
+                  <PrioritySelect
                     value={priorityId}
-                    onChange={(e) => setPriorityId(Number(e.target.value))}
+                    onChange={setPriorityId}
                     disabled={!canEditRestrictedFields}
-                  >
-                    <option value={1}>낮음 (Low)</option>
-                    <option value={2}>보통 (Medium)</option>
-                    <option value={3}>높음 (High)</option>
-                    <option value={4}>긴급 (Urgent)</option>
-                  </select>
+                  />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
                 <div className="form-group">
                   <label className="form-label">상태 (Status)</label>
-                  <select
-                    className="input-field"
+                  <StatusSelect
                     value={statusId}
-                    onChange={(e) => setStatusId(Number(e.target.value))}
-                  >
-                    <option value={1}>할 일 (TODO)</option>
-                    <option value={2}>진행 중 (IN_PROGRESS)</option>
-                    <option value={3}>검토 중 (IN_REVIEW)</option>
-                    <option value={4}>완료 (DONE)</option>
-                  </select>
+                    onChange={setStatusId}
+                  />
                 </div>
+
 
                 <div className="form-group">
                   <label className="form-label">담당자 (Assignee)</label>
@@ -496,11 +1077,15 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                     onChange={(e) => setAssigneeId(e.target.value ? Number(e.target.value) : undefined)}
                   >
                     <option value="">미지정 (Unassigned)</option>
-                    {users.map((u) => (
+                    {getProjectMembers(
+                      projects.find((p) => p.id === Number(projectId)),
+                      users
+                    ).map((u: User) => (
                       <option key={u.id} value={u.id}>
                         {u.name ? `${u.name} (${u.email})` : u.email}
                       </option>
                     ))}
+
                   </select>
                 </div>
 
@@ -519,15 +1104,139 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label className="form-label">상세 설명 (Description)</label>
-                <textarea
-                  className="input-field"
-                  rows={3}
-                  placeholder="해당 이슈의 작업 세부사항을 기술하세요..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
+                <label className="form-label">상세 설명 (Markdown Description)</label>
+                <MarkdownEditor value={description} onChange={setDescription} rows={5} minHeight="140px" />
               </div>
+
+              {/* Schedule Dates Inputs */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '8px', marginBottom: '16px', border: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '6px' }}>
+                  <h4 style={{ fontSize: '0.88rem', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                    <Calendar size={16} /> 일정 및 기한 설정 (Schedule & Due Date)
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    ※ 시, 분, 초는 기록하지 않고 일(YYYY-MM-DD) 단위로 관리됩니다.
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>시작 계획일 (Planned Start)</label>
+                    <input
+                      type="date"
+                      className="input-field"
+                      value={plannedStartDate}
+                      onChange={(e) => setPlannedStartDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', color: '#06b6d4', fontWeight: 700 }}>
+                      기한 / 계획 만료일 (Due Date)
+                    </label>
+                    <input
+                      type="date"
+                      className="input-field"
+                      style={{ border: '1px solid rgba(6, 182, 212, 0.5)', background: 'rgba(6, 182, 212, 0.05)' }}
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>실제 시작일 (Actual Start)</label>
+                    <input
+                      type="date"
+                      className="input-field"
+                      value={actualStartDate}
+                      onChange={(e) => setActualStartDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>실제 종료일 (Actual End)</label>
+                    <input
+                      type="date"
+                      className="input-field"
+                      value={actualEndDate}
+                      onChange={(e) => setActualEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Worklog Tracking in Edit Mode */}
+              {selectedIssue && (
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-light)', padding: '14px', borderRadius: '8px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h4 style={{ fontSize: '0.88rem', color: 'var(--accent-cyan)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <Clock size={15} /> 작업 로그 및 투입 시간 (Worklogs)
+                    </h4>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                      총 투입: {((worklogs.reduce((acc, cur) => acc + (cur.timeSpent || 0), 0)) / 60).toFixed(1).replace(/\.0$/, '')}시간 ({worklogs.reduce((acc, cur) => acc + (cur.timeSpent || 0), 0)}분)
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: 'rgba(6, 182, 212, 0.05)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      marginBottom: '10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr auto', gap: '8px', alignItems: 'flex-end' }}>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '2px' }}>
+                          소요 시간 (시간)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          placeholder="예: 1.4 또는 5.5"
+                          className="input-field"
+                          value={worklogHoursInput}
+                          onChange={(e) => setWorklogHoursInput(e.target.value)}
+                          style={{ padding: '6px 8px', fontSize: '0.82rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '2px' }}>
+                          작업 내용 요약
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="예: 디버깅 및 프론트엔드 연동 작업"
+                          className="input-field"
+                          value={worklogDescInput}
+                          onChange={(e) => setWorklogDescInput(e.target.value)}
+                          style={{ padding: '6px 8px', fontSize: '0.82rem' }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={isLoggingWork || !worklogHoursInput}
+                        onClick={handleAddWorklog}
+                        style={{ height: '36px', padding: '0 12px', fontSize: '0.78rem' }}
+                      >
+                        {isLoggingWork ? '저장 중...' : '시간 기록'}
+                      </button>
+                    </div>
+
+                    {worklogHoursInput && !isNaN(parseFloat(worklogHoursInput)) && parseFloat(worklogHoursInput) > 0 && (
+                      <div style={{ fontSize: '0.75rem', color: '#06b6d4' }}>
+                        💡 <strong>{worklogHoursInput}시간</strong> 입력 ➔ DB에 <strong>{hoursToMinutes(parseFloat(worklogHoursInput))}분</strong>으로 환산 저장됩니다.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {activeCustomDefs.length > 0 && (
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>

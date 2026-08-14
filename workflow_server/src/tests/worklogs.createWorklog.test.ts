@@ -71,6 +71,33 @@ describe('🧪 [worklogs.createWorklog] Service & REST API Unit Tests', () => {
       createdWorklogId = response.body.id;
     });
 
+    it('1.4시간 또는 5.5시간과 같은 소수점 시간(timeSpentHours) 제출 시 분 단위(84분, 330분)로 계산되어 DB에 저장되어야 한다', async () => {
+      const response = await request(app)
+        .post('/api/worklogs')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          issueId: testIssue.id,
+          timeSpentHours: 1.4,
+          description: '1.4 hours task work'
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.timeSpent).toBe(84); // 1.4 * 60 = 84분
+
+      const response2 = await request(app)
+        .post('/api/worklogs')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          issueId: testIssue.id,
+          timeSpentHours: 5.5,
+          description: '5.5 hours task work'
+        });
+
+      expect(response2.status).toBe(201);
+      expect(response2.body.timeSpent).toBe(330); // 5.5 * 60 = 330분
+    });
+
     it('필수 데이터(issueId 또는 timeSpent) 누락 시 400 Bad Request 에러를 반환해야 한다', async () => {
       const response = await request(app)
         .post('/api/worklogs/create')

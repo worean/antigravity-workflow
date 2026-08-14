@@ -61,5 +61,23 @@ export const createProjectService = async (data: any, ownerId?: number) => {
     }
   });
 
+  // 6. 비관계형 활동 로그 기록
+  try {
+    const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
+    await createActivityLogService({
+      action: 'CREATE',
+      entityType: 'PROJECT',
+      entityId: project.id,
+      userId: targetOwnerId,
+      userName: owner.name || undefined,
+      userEmail: owner.email,
+      summary: `프로젝트 '${project.name}' (${project.key}) 생성`,
+      details: { name: project.name, key: project.key, description: project.description }
+    });
+  } catch {
+    // 로깅 오류가 핵심 비즈니스 로직을 방해하지 않음
+  }
+
   return project;
 };
+

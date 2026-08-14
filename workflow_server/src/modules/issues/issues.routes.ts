@@ -5,11 +5,11 @@ import { requireAuth, requireProjectMember, requireProjectPM } from '../../commo
 
 export const issueRouter = Router();
 
-// 1. Issue 조회 (Project Member 권한 필요)
-issueRouter.get('/', requireAuth, requireProjectMember, issuesController.getIssues);
-issueRouter.get('/:id', requireAuth, requireProjectMember, issuesController.getIssue);
+// 1. Issue 조회 (로그인된 워크스페이스 사용자 조회 가능)
+issueRouter.get('/', requireAuth, issuesController.getIssues);
+issueRouter.get('/:id', requireAuth, issuesController.getIssue);
 
-// 2. Issue 생성 및 수정 (Project Member 권한 필요)
+// 2. Issue 생성 및 수정 (Project Member 또는 Project Owner 권한 필요)
 issueRouter.post('/', requireAuth, requireProjectMember, issuesController.createIssue);
 issueRouter.put('/:id', requireAuth, requireProjectMember, issuesController.updateIssue);
 
@@ -21,9 +21,9 @@ issueRouter.post('/like', requireAuth, issuesController.likeIssue);
 issueRouter.post('/unlike', requireAuth, issuesController.unlikeIssue);
 issueRouter.post('/toggle-like', requireAuth, issuesController.toggleLikeIssue);
 
-// 레거시 지원 라우트
-issueRouter.get('/list', requireAuth, requireProjectMember, issuesController.getIssues);
-issueRouter.get('/get/:id', requireAuth, requireProjectMember, issuesController.getIssue);
+// 레거시 지원 라우트 하위 호환성
+issueRouter.get('/list', requireAuth, issuesController.getIssues);
+issueRouter.get('/get/:id', requireAuth, issuesController.getIssue);
 issueRouter.post('/create', requireAuth, requireProjectMember, issuesController.createIssue);
 issueRouter.put('/update/:id', requireAuth, requireProjectMember, issuesController.updateIssue);
 issueRouter.delete('/delete/:id', requireAuth, requireProjectPM, issuesController.deleteIssue);

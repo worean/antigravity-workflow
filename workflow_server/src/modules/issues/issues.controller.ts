@@ -61,7 +61,7 @@ export const updateIssue = async (req: Request, res: Response) => {
 export const deleteIssue = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
-    const result = await deleteIssueService(Number(req.params.id || req.body.id));
+    const result = await deleteIssueService(Number(req.params.id || req.body.id), req.user.id);
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });

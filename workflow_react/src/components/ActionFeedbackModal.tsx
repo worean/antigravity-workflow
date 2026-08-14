@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertOctagon, X } from 'lucide-react';
 import type { ErrorModalState } from '../hooks/useActionFeedback';
+import { useOverlayClickClose } from '../hooks/useOverlayClickClose';
 
 interface ActionFeedbackModalProps {
   state?: ErrorModalState | null;
@@ -8,10 +9,12 @@ interface ActionFeedbackModalProps {
 }
 
 export const ActionFeedbackModal: React.FC<ActionFeedbackModalProps> = ({ state, onClose }) => {
+  const overlayProps = useOverlayClickClose(onClose);
+
   if (!state || !state.isOpen) return null;
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 9999 }} onClick={onClose}>
+    <div className="modal-overlay" style={{ zIndex: 9999 }} {...overlayProps}>
       <div
         className="modal-content"
         style={{

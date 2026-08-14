@@ -644,3 +644,23 @@ model IssueCalendarLink {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+// 작업/활동 로그 (관계형 외래키 제약 없이 독립적으로 기록되는 Audit Log)
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  action     String   // CREATE, UPDATE, DELETE, ASSIGN_MEMBER, REMOVE_MEMBER 등
+  entityType String   // ISSUE, PROJECT, PROJECT_MEMBER, COMMENT 등
+  entityId   Int?     // 대상 ID
+  userId     Int?     // 작업을 수행한 사용자 ID
+  userName   String?  // 당시 사용자 이름 (비관계형 스냅샷)
+  userEmail  String?  // 당시 사용자 이메일 (비관계형 스냅샷)
+  summary    String?  // 작업 요약
+  details    String?  // 변경 상세 내용 또는 JSON 문자열
+  ipAddress  String?  // 요청 클라이언트 IP
+  createdAt  DateTime @default(now()) // 작업 발생 시간
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+

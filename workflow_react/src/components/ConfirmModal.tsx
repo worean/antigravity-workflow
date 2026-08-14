@@ -1,5 +1,6 @@
 import React from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { ModalWrapper, Button } from './common';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -16,69 +17,53 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   title,
   message,
-  confirmText = '삭제하기',
+  confirmText = '삭제',
   cancelText = '취소',
   onConfirm,
   onClose,
   loading = false,
 }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-content"
-        style={{ maxWidth: '420px', padding: '24px' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: 'rgba(244, 63, 94, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#f43f5e',
-              }}
-            >
-              <AlertTriangle size={20} />
-            </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>{title}</h3>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer' }}>
-            <X size={18} />
-          </button>
+    <ModalWrapper
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="380px"
+      title={title}
+      icon={
+        <div
+          style={{
+            width: '24px',
+            height: '24px',
+            borderRadius: 'var(--radius-xs)',
+            background: 'rgba(241, 76, 76, 0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#f14c4c',
+          }}
+        >
+          <AlertTriangle size={14} />
         </div>
+      }
+    >
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-sub)', marginBottom: '14px', lineHeight: '1.4', whiteSpace: 'pre-line' }}>
+        {message}
+      </p>
 
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-sub)', marginBottom: '24px', lineHeight: '1.5', whiteSpace: 'pre-line' }}>
-          {message}
-        </p>
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading} style={{ flex: 1 }}>
-            {cancelText}
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={onConfirm}
-            disabled={loading}
-            style={{
-              flex: 1,
-              background: '#f43f5e',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 600,
-            }}
-          >
-            {loading ? '처리 중...' : confirmText}
-          </button>
-        </div>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <Button variant="secondary" size="sm" onClick={onClose} disabled={loading} style={{ flex: 1 }}>
+          {cancelText}
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={onConfirm}
+          isLoading={loading}
+          style={{ flex: 1 }}
+        >
+          {confirmText}
+        </Button>
       </div>
-    </div>
+    </ModalWrapper>
   );
 };

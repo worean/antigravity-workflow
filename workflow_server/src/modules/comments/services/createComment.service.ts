@@ -14,6 +14,11 @@ export const createCommentService = async (data: any) => {
     },
     include: {
       author: { select: { id: true, name: true, email: true } },
+      children: {
+        include: {
+          author: { select: { id: true, name: true, email: true } }
+        }
+      },
       mentions: { include: { user: { select: { id: true, name: true } } } },
       reactions: true,
       attachments: true
@@ -29,5 +34,8 @@ export const createCommentService = async (data: any) => {
     });
   }
 
-  return comment;
+  return {
+    ...comment,
+    children: comment.children || []
+  };
 };

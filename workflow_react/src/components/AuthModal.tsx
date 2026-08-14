@@ -1,6 +1,7 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { X, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
+import { ModalWrapper, Button } from './common';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,13 +11,11 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { login, signup } = useAuth();
   const [isLoginTab, setIsLoginTab] = useState<boolean>(true);
-  const [email, setEmail] = useState<string>('admin@antigravity.io');
+  const [email, setEmail] = useState<string>('worean@naver.com');
   const [password, setPassword] = useState<string>('password123');
   const [name, setName] = useState<string>('관리자');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,145 +38,126 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>
-            {isLoginTab ? '로그인 (Login)' : '회원가입 (Sign Up)'}
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-sub)',
-              cursor: 'pointer',
-              padding: '4px',
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Tab switcher */}
-        <div
+    <ModalWrapper
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isLoginTab ? '로그인 (Login)' : '회원가입 (Sign Up)'}
+      maxWidth="380px"
+    >
+      {/* Tab switcher */}
+      <div
+        style={{
+          display: 'flex',
+          background: '#252526',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-xs)',
+          padding: '2px',
+          marginBottom: '12px',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => { setIsLoginTab(true); setErrorMsg(''); }}
           style={{
-            display: 'flex',
-            background: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: 'var(--radius-sm)',
+            flex: 1,
             padding: '4px',
-            marginBottom: '20px',
+            border: 'none',
+            borderRadius: '2px',
+            background: isLoginTab ? '#37373d' : 'transparent',
+            color: isLoginTab ? '#ffffff' : 'var(--text-sub)',
+            fontWeight: 500,
+            fontSize: '0.78rem',
+            cursor: 'pointer',
           }}
         >
-          <button
-            onClick={() => { setIsLoginTab(true); setErrorMsg(''); }}
-            style={{
-              flex: 1,
-              padding: '8px',
-              border: 'none',
-              borderRadius: '6px',
-              background: isLoginTab ? 'var(--primary)' : 'transparent',
-              color: isLoginTab ? '#ffffff' : 'var(--text-sub)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            로그인
-          </button>
-          <button
-            onClick={() => { setIsLoginTab(false); setErrorMsg(''); }}
-            style={{
-              flex: 1,
-              padding: '8px',
-              border: 'none',
-              borderRadius: '6px',
-              background: !isLoginTab ? 'var(--primary)' : 'transparent',
-              color: !isLoginTab ? '#ffffff' : 'var(--text-sub)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            회원가입
-          </button>
-        </div>
+          로그인
+        </button>
+        <button
+          type="button"
+          onClick={() => { setIsLoginTab(false); setErrorMsg(''); }}
+          style={{
+            flex: 1,
+            padding: '4px',
+            border: 'none',
+            borderRadius: '2px',
+            background: !isLoginTab ? '#37373d' : 'transparent',
+            color: !isLoginTab ? '#ffffff' : 'var(--text-sub)',
+            fontWeight: 500,
+            fontSize: '0.78rem',
+            cursor: 'pointer',
+          }}
+        >
+          회원가입
+        </button>
+      </div>
 
-        {errorMsg && (
-          <div
-            style={{
-              padding: '10px 14px',
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              borderRadius: 'var(--radius-sm)',
-              color: '#f43f5e',
-              fontSize: '0.85rem',
-              marginBottom: '16px',
-            }}
-          >
-            {errorMsg}
+      {errorMsg && (
+        <div
+          style={{
+            padding: '6px 10px',
+            background: 'rgba(241, 76, 76, 0.15)',
+            border: '1px solid rgba(241, 76, 76, 0.3)',
+            borderRadius: 'var(--radius-xs)',
+            color: '#f14c4c',
+            fontSize: '0.75rem',
+            marginBottom: '10px',
+          }}
+        >
+          {errorMsg}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {!isLoginTab && (
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">이름</label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="홍길동"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          {!isLoginTab && (
-            <div className="form-group">
-              <label className="form-label">이름 (Name)</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="홍길동"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-          )}
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">이메일</label>
+          <input
+            type="email"
+            className="input-field"
+            placeholder="user@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
-          <div className="form-group">
-            <label className="form-label">이메일 (Email)</label>
-            <input
-              type="email"
-              className="input-field"
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">비밀번호</label>
+          <input
+            type="password"
+            className="input-field"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
 
-          <div className="form-group">
-            <label className="form-label">비밀번호 (Password)</label>
-            <input
-              type="password"
-              className="input-field"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={submitting}
-            style={{ width: '100%', marginTop: '12px', padding: '12px' }}
-          >
-            {isLoginTab ? (
-              <>
-                <LogIn size={18} /> {submitting ? '로그인 중...' : '로그인'}
-              </>
-            ) : (
-              <>
-                <UserPlus size={18} /> {submitting ? '가입 중...' : '회원가입하기'}
-              </>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          size="sm"
+          isLoading={submitting}
+          icon={isLoginTab ? <LogIn size={13} /> : <UserPlus size={13} />}
+          style={{ marginTop: '6px', height: '28px' }}
+        >
+          {isLoginTab ? '로그인' : '회원가입'}
+        </Button>
+      </form>
+    </ModalWrapper>
   );
 };

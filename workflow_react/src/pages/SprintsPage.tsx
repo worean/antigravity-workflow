@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Sprint, Project } from '../types';
 import { getSprints, getProjects, createSprint } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Target, Layers } from 'lucide-react';
+import { Plus, Target, Zap } from 'lucide-react';
+import { Button, Card, Spinner, StatusBadge, ProjectBadge } from '../components/common';
 
 export const SprintsPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -55,100 +56,141 @@ export const SprintsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>스프린트 관리 (Sprints)</h2>
-          <p style={{ color: 'var(--text-sub)', fontSize: '0.9rem' }}>
-            프로젝트 목표를 설정하고 이터레이션(Iteration) 단위 작업을 관리합니다.
-          </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Header Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '6px 10px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-xs)',
+          flexWrap: 'wrap',
+          gap: '8px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Zap size={14} color="#cca700" />
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+            스프린트 관리 ({sprints.length})
+          </span>
         </div>
 
         {isAuthenticated && (
-          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-            <Plus size={16} /> {showForm ? '닫기' : '새 스프린트 시작'}
-          </button>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus size={12} />}
+            onClick={() => setShowForm(!showForm)}
+          >
+            {showForm ? '닫기' : '스프린트 생성'}
+          </Button>
         )}
       </div>
 
       {showForm && (
-        <form
-          className="glass-panel"
-          style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}
-          onSubmit={handleCreateSprint}
+        <div
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-xs)',
+            padding: '10px 12px',
+          }}
         >
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>신규 스프린트 생성</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div className="form-group">
-              <label className="form-label">스프린트 이름</label>
+          <form
+            style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+            onSubmit={handleCreateSprint}
+          >
+            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+              새 스프린트 추가
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">스프린트 이름</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="예: Sprint 1 - Core API"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">대상 프로젝트</label>
+                <select
+                  className="input-field"
+                  value={projectId}
+                  onChange={(e) => setProjectId(Number(e.target.value))}
+                >
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.key})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">목표 (Goal)</label>
               <input
                 type="text"
                 className="input-field"
-                placeholder="예: Sprint 1 - Core Auth API"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
+                placeholder="예: 사용자 인증 및 이슈 관리 핵심 로직 배포"
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">대상 프로젝트</label>
-              <select
-                className="input-field"
-                value={projectId}
-                onChange={(e) => setProjectId(Number(e.target.value))}
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.key})
-                  </option>
-                ))}
-              </select>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setShowForm(false)}>
+                취소
+              </Button>
+              <Button type="submit" variant="primary" size="sm" isLoading={submitting}>
+                생성
+              </Button>
             </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">스프린트 목표 (Goal)</label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="예: 회원가입 및 JWT 토큰 기반 인가 시스템 구현 완료"
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-            />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowForm(false)}>
-              취소
-            </button>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
-              {submitting ? '생성 중...' : '스프린트 생성'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       )}
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          스프린트 데이터 불러오는 중...
-        </div>
+        <Spinner centered label="스프린트 불러오는 중..." />
       ) : sprints.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          등록된 활성 스프린트가 없습니다.
-        </div>
+        <Card variant="glass" padding="24px" style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+          등록된 스프린트가 없습니다.
+        </Card>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
           {sprints.map((s) => (
-            <div key={s.id} className="glass-panel" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span className="badge badge-in-progress">ACTIVE</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>#{s.id}</span>
+            <div
+              key={s.id}
+              style={{
+                background: '#252526',
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-xs)',
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-bright)' }}>
+                  {s.name}
+                </span>
+                <StatusBadge status={s.status} size="sm" />
               </div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '6px' }}>{s.name}</h3>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-sub)', marginBottom: '16px' }}>
-                <Target size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                목표: {s.goal || '설정된 목표가 없습니다.'}
-              </p>
-              <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                <Layers size={14} style={{ display: 'inline', marginRight: '4px' }} /> 프로젝트 ID: #{s.projectId}
+
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Target size={12} color="#cca700" />
+                <span>{s.goal || '설정된 목표 없음'}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-muted)', borderTop: '1px solid #383838', paddingTop: '4px', marginTop: '2px' }}>
+                <ProjectBadge project={s.project} projectId={s.projectId} size="sm" />
+                <span>{s._count?.issues ?? 0}개 이슈</span>
               </div>
             </div>
           ))}

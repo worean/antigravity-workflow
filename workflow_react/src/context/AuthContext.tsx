@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../types';
 import { getMe, loginEmail, registerUser } from '../services/api';
 
@@ -10,7 +10,9 @@ interface AuthContextType {
   login: (email: string, password?: string) => Promise<void>;
   signup: (email: string, name: string, password?: string) => Promise<void>;
   logout: () => void;
+  updateUserLocal: (updated: User) => void;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -59,6 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateUserLocal = (updated: User) => {
+    setUser(updated);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -69,11 +75,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
+        updateUserLocal,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
+
 };
 
 export const useAuth = () => {

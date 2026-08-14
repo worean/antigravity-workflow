@@ -12,6 +12,7 @@ import { customFieldRouter } from './modules/customFields/customFields.routes.js
 import { attachmentRouter } from './modules/attachments/attachments.routes.js';
 import { linkPreviewRouter } from './modules/linkPreviews/linkPreviews.routes.js';
 import { worklogRouter } from './modules/worklogs/worklogs.routes.js';
+import { activityLogRouter } from './modules/activityLogs/activityLogs.routes.js';
 
 dotenv.config();
 
@@ -44,3 +45,5 @@ app.use('/api/custom-fields', customFieldRouter);
 app.use('/api/attachments', attachmentRouter);
 app.use('/api/link-previews', linkPreviewRouter);
 app.use('/api/worklogs', worklogRouter);
+app.use('/api/activity-logs', activityLogRouter);
+
