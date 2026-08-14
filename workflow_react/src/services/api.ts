@@ -1,21 +1,36 @@
 import axios from 'axios';
 import type { User, Project, Issue, Comment, Sprint, Worklog, HealthStatus, CustomFieldDefinition, Group, GroupMember } from '../types';
 
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const customUrl = localStorage.getItem('pref_backend_api_url');
+    if (customUrl) return customUrl.replace(/\/$/, '') + '/api';
+
+    // Electron 환경 또는 file:/// 프로토콜일 때 백엔드 기본 포트 4000
+    if (window.electronAPI?.isElectron || window.location.protocol === 'file:') {
+      return (import.meta.env.VITE_API_URL || 'http://localhost:4000') + '/api';
+    }
+  }
+  return import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+};
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Authorization 헤더 인터셉터
+// 요청 시 최신 baseURL 및 토큰 동적 반영
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
   const token = localStorage.getItem('auth_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
 
 export const checkHealth = async (): Promise<HealthStatus> => {
   const res = await api.get<HealthStatus>('/health');

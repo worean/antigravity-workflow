@@ -1489,9 +1489,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                   </div>
 
                   <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>백엔드 API 서버 주소</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                      {localStorage.getItem('pref_backend_api_url') || 'http://localhost:4000 (기본 로컬 서버)'}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>시스템 버전</span>
                     <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-                      AntiGravity Workflow v2.4.0
+                      AntiGravity Workflow v2.4.0 (Desktop Edition)
                     </span>
                   </div>
 
@@ -1501,6 +1508,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                       JWT Bearer Token Signature Only
                     </span>
                   </div>
+
                 </div>
               )}
             </div>
