@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User as UserIcon, LogOut, LogIn, Mail, Settings } from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
 
 interface ProfileCardProps {
   onOpenAuth?: () => void;
@@ -9,6 +10,8 @@ interface ProfileCardProps {
 
 export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSettings }) => {
   const { user, isAuthenticated, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
+
 
   return (
     <div
@@ -168,7 +171,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={logout}
+              onClick={() => setShowLogoutConfirm(true)}
               style={{
                 padding: '2px 6px',
                 height: '22px',
@@ -197,6 +200,21 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
           </div>
         </div>
       )}
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="로그아웃 확인"
+        message="정말 로그아웃하시겠습니까?&#10;로그아웃 시 현재 세션이 종료됩니다."
+        confirmText="로그아웃"
+        cancelText="취소"
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          logout();
+        }}
+        onClose={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 };
+
