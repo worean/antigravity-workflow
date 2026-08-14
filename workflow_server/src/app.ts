@@ -13,6 +13,7 @@ import { attachmentRouter } from './modules/attachments/attachments.routes.js';
 import { linkPreviewRouter } from './modules/linkPreviews/linkPreviews.routes.js';
 import { worklogRouter } from './modules/worklogs/worklogs.routes.js';
 import { activityLogRouter } from './modules/activityLogs/activityLogs.routes.js';
+import { groupRouter } from './modules/groups/groups.routes.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.get('/api/health', (req, res) => {
 // Auth & Modular REST API Routers
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
+app.use('/api/groups', groupRouter);
 app.use('/api/projects', projectRouter);
 app.use('/api/issues', issueRouter);
 app.use('/api/comments', commentRouter);
@@ -46,4 +48,5 @@ app.use('/api/attachments', attachmentRouter);
 app.use('/api/link-previews', linkPreviewRouter);
 app.use('/api/worklogs', worklogRouter);
 app.use('/api/activity-logs', activityLogRouter);
+
 

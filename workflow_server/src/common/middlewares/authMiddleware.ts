@@ -162,3 +162,22 @@ export const requireProjectPM = async (req: Request, res: Response, next: NextFu
     res.status(500).json({ error: error.message });
   }
 };
+
+/**
+ * ⚡ 시스템 전체 관리자(ADMIN) 권한 검증 미들웨어
+ */
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return res.status(401).json({ error: 'Unauthorized: Login required' });
+
+    if (currentUser.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Forbidden: System Administrator (ADMIN) role required' });
+    }
+
+    next();
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

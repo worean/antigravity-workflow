@@ -2,10 +2,38 @@ export interface User {
   id: number;
   email: string;
   name?: string | null;
+  role?: 'ADMIN' | 'MEMBER' | string;
+  groupMemberships?: GroupMember[];
   createdAt?: string;
 }
 
+export interface GroupMember {
+  id: number;
+  groupId: number;
+  userId: number;
+  role: 'LEADER' | 'MEMBER' | string;
+  title?: string | null;
+  user?: User;
+  joinedAt?: string;
+}
+
+export interface Group {
+  id: number;
+  name: string;
+  code?: string | null;
+  description?: string | null;
+  parentId?: number | null;
+  order?: number;
+  parent?: { id: number; name: string; code?: string | null } | null;
+  children?: Group[];
+  childrenList?: Group[];
+  members?: GroupMember[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ProjectMember {
+
   id: number;
   projectId: number;
   userId: number;

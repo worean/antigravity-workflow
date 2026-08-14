@@ -100,31 +100,34 @@ model User {
   email    String  @unique
   name     String?
   password String? // Nullable: 구글 소셜 연동 계정은 password가 null로 설정되어 통상 비밀번호 로그인 불가
+  role     String  @default("MEMBER") // ADMIN (시스템 관리자), MEMBER (일반 사용자)
 
   pushToken String? // APNs/FCM 푸시 토큰
 
   // 소셜 계정 연동 정보 (1:N)
   socialAccounts SocialAccount[]
 
-  issues        Issue[]           @relation("AuthorIssues")
-  assigned      Issue[]           @relation("AssigneeIssues")
-  comments      Comment[]
-  projects      Project[]         @relation("ProjectOwner")
-  memberships   ProjectMember[]
-  testRuns      TestRun[]         @relation("TestExecutor")
-  notifications Notification[]
-  attachments   Attachment[]
-  histories     IssueHistory[]
-  revisions     IssueRevision[]
-  worklogs      Worklog[]
-  mentions      CommentMention[]
-  reactions     CommentReaction[]
-  watchedIssues IssueWatcher[]
-  likes         IssueLike[]
+  issues           Issue[]           @relation("AuthorIssues")
+  assigned         Issue[]           @relation("AssigneeIssues")
+  comments         Comment[]
+  projects         Project[]         @relation("ProjectOwner")
+  memberships      ProjectMember[]
+  groupMemberships GroupMember[]
+  testRuns         TestRun[]         @relation("TestExecutor")
+  notifications    Notification[]
+  attachments      Attachment[]
+  histories        IssueHistory[]
+  revisions        IssueRevision[]
+  worklogs         Worklog[]
+  mentions         CommentMention[]
+  reactions        CommentReaction[]
+  watchedIssues    IssueWatcher[]
+  likes            IssueLike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 
 // 소셜 계정 연동 테이블 (Google, GitHub, Kakao 등 확장 가능)
 model SocialAccount {
@@ -663,4 +666,37 @@ model ActivityLog {
   @@index([userId])
   @@index([createdAt])
 }
+
+// 조직도 및 그룹/서브그룹 계층 관리
+model Group {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String?  @unique
+  description String?
+  order       Int      @default(0)
+
+  parentId    Int?
+  parent      Group?   @relation("GroupHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Group[]  @relation("GroupHierarchy")
+
+  members     GroupMember[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 그룹 소속 멤버 및 역할 (LEADER, MEMBER 등)
+model GroupMember {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // LEADER (그룹장/관리자), MEMBER (일반 구성원)
+  title     String?  // 직책 (예: 팀장, 수석연구원, 개발자)
+  joinedAt  DateTime @default(now())
+
+  @@unique([groupId, userId])
+}
+
 

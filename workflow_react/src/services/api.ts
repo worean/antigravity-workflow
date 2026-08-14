@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { User, Project, Issue, Comment, Sprint, Worklog, HealthStatus, CustomFieldDefinition } from '../types';
+import type { User, Project, Issue, Comment, Sprint, Worklog, HealthStatus, CustomFieldDefinition, Group, GroupMember } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -230,4 +230,53 @@ export const deleteCustomField = async (id: number): Promise<void> => {
   await api.delete(`/custom-fields/${id}`);
 };
 
+// ==========================================
+// 🏢 Groups & Organization API
+// ==========================================
+export const getGroups = async (asTree: boolean = true): Promise<Group[]> => {
+  const res = await api.get(`/groups${asTree ? '?asTree=true' : ''}`);
+  return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getGroup = async (id: number): Promise<Group> => {
+  const res = await api.get(`/groups/${id}`);
+  return res.data;
+};
+
+export const createGroup = async (data: {
+  name: string;
+  code?: string;
+  description?: string;
+  parentId?: number | null;
+  order?: number;
+}): Promise<Group> => {
+  const res = await api.post('/groups', data);
+  return res.data;
+};
+
+export const updateGroup = async (id: number, data: Partial<Group>): Promise<Group> => {
+  const res = await api.put(`/groups/${id}`, data);
+  return res.data;
+};
+
+export const deleteGroup = async (id: number): Promise<{ message: string; id: number }> => {
+  const res = await api.delete(`/groups/${id}`);
+  return res.data;
+};
+
+export const addGroupMember = async (groupId: number, data: {
+  userId: number;
+  role?: string;
+  title?: string;
+}): Promise<GroupMember> => {
+  const res = await api.post(`/groups/${groupId}/members`, data);
+  return res.data;
+};
+
+export const removeGroupMember = async (groupId: number, userId: number): Promise<{ message: string }> => {
+  const res = await api.delete(`/groups/${groupId}/members/${userId}`);
+  return res.data;
+};
+
 export default api;
+
