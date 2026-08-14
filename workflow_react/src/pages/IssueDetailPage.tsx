@@ -53,8 +53,10 @@ import {
 
 import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
 import { hoursToMinutes, formatWorklogTime } from '../utils/worklogUtils';
+import { sendDesktopNotification } from '../utils/notificationUtils';
 
 interface IssueDetailPageProps {
+
   issueId: number | null;
   projectId?: number | null;
   mode?: 'view' | 'edit';
@@ -315,9 +317,13 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
         onSuccess: (updated) => {
           setIssue(updated);
           toggleEditing(false);
+          sendDesktopNotification({
+            title: '이슈 업데이트',
+            body: `#${updated.id} ${updated.title} 내용이 수정되었습니다.`,
+            priority: updated.priorityId || updated.priority,
+          });
           onIssueUpdated(updated);
         },
-
       }
     );
   };
@@ -366,6 +372,10 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
       // Direct State Update: GET 재조회 부하 없이 Response 객체로 로컬 갱신
       setComments((prev) => [...prev, { ...comment, children: comment.children || [] }]);
       setNewComment('');
+      sendDesktopNotification({
+        title: '새 댓글 등록',
+        body: `#${issue.id} 이슈에 새 댓글이 등록되었습니다.`,
+      });
       if (onIssueUpdated) onIssueUpdated();
     } catch (err: any) {
       console.error(err);

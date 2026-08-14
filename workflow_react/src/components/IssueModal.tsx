@@ -49,8 +49,10 @@ import {
 } from './common';
 
 import { hoursToMinutes, formatWorklogTime } from '../utils/worklogUtils';
+import { sendDesktopNotification } from '../utils/notificationUtils';
 
 interface IssueModalProps {
+
   isOpen: boolean;
   onClose: () => void;
   selectedIssue?: Issue | null;
@@ -292,12 +294,19 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       {
         onSuccess: (res) => {
           setIsEditing(false);
+          if (!selectedIssue && res) {
+            sendDesktopNotification({
+              title: '신규 이슈 등록',
+              body: `#${res.id} ${res.title}`,
+              priority: res.priorityId || res.priority,
+            });
+          }
           if (onSuccess) onSuccess(res);
           if (onIssueCreated) onIssueCreated();
           if (!selectedIssue) onClose();
         },
-
       }
+
     );
   };
 

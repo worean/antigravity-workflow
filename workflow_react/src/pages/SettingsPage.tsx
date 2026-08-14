@@ -11,14 +11,18 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  Sparkles,
   ShieldCheck,
   Activity,
+  Bell,
+  Monitor,
   Settings as SettingsIcon,
 } from 'lucide-react';
+
 import { Button, Spinner, PrioritySelect } from '../components/common';
 import { useActionFeedback } from '../hooks/useActionFeedback';
 import { ActionFeedbackModal } from '../components/ActionFeedbackModal';
+import { sendDesktopNotification, isNotificationEnabled, requestWebNotificationPermission } from '../utils/notificationUtils';
+
 
 
 type SettingsTab = 'profile' | 'customFields' | 'display' | 'system';
@@ -46,16 +50,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
   const [fieldDesc, setFieldDesc] = useState<string>('');
   const [fieldRequired, setFieldRequired] = useState<boolean>(false);
 
-  // 3. Display Preferences State
-  const [pulseCritical, setPulseCritical] = useState<boolean>(() => {
-    return localStorage.getItem('pref_pulse_critical') !== 'false';
-  });
+  // 3. Display & Notification Preferences State
   const [compactCards, setCompactCards] = useState<boolean>(() => {
     return localStorage.getItem('pref_compact_cards') === 'true';
   });
+
   const [defaultPriority, setDefaultPriority] = useState<number>(() => {
     return Number(localStorage.getItem('pref_default_priority')) || 2;
   });
+  const [desktopNotifications, setDesktopNotifications] = useState<boolean>(() => {
+    return isNotificationEnabled();
+  });
+  const [testNotificationSent, setTestNotificationSent] = useState<boolean>(false);
+
 
   // 4. System Health State
   const [health, setHealth] = useState<HealthStatus | null>(null);
@@ -161,20 +168,35 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
   };
 
   // Save Display Preferences
-  const handleTogglePulseCritical = (val: boolean) => {
-    setPulseCritical(val);
-    localStorage.setItem('pref_pulse_critical', String(val));
-  };
-
   const handleToggleCompactCards = (val: boolean) => {
     setCompactCards(val);
     localStorage.setItem('pref_compact_cards', String(val));
   };
 
+
   const handleChangeDefaultPriority = (val: number) => {
     setDefaultPriority(val);
     localStorage.setItem('pref_default_priority', String(val));
   };
+
+  const handleToggleDesktopNotifications = async (val: boolean) => {
+    setDesktopNotifications(val);
+    localStorage.setItem('pref_desktop_notifications', String(val));
+    if (val && !window.electronAPI?.isElectron) {
+      await requestWebNotificationPermission();
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    setTestNotificationSent(true);
+    await sendDesktopNotification({
+      title: 'AntiGravity 알림 테스트',
+      body: 'Electron 데스크톱 OS 네이티브 알림이 성공적으로 활성화되었습니다! 🚀',
+      priority: 'CRITICAL',
+    });
+    setTimeout(() => setTestNotificationSent(false), 2500);
+  };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', minHeight: 0 }}>
@@ -597,50 +619,67 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
             </div>
           )}
 
-          {/* ================= TAB 3: DISPLAY ================= */}
+          {/* ================= TAB 3: DISPLAY & NOTIFICATIONS ================= */}
           {activeSubTab === 'display' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px' }}>
               <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '10px' }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-                  디스플레이 및 시각 효과 설정
+                  디스플레이 및 데스크톱 알림 설정
                 </h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  이슈 칸반 보드 강조 애니메이션 및 개인화 표시 옵션을 설정합니다.
+                  이슈 칸반 보드 스타일 및 Electron 데스크톱 OS 네이티브 알림 설정을 관리합니다.
                 </p>
               </div>
 
-              {/* Critical Pulsing Animation Option */}
+              {/* Desktop OS Notification Option */}
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  flexDirection: 'column',
+                  gap: '10px',
                   padding: '12px',
                   background: '#2d2d2d',
                   border: '1px solid var(--border-light)',
                   borderRadius: 'var(--radius-xs)',
                 }}
               >
-                <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={14} color="#f14c4c" />
-                    긴급 (Critical) 이슈 테두리 점등 애니메이션
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Bell size={14} color="var(--primary)" />
+                      데스크톱 OS 네이티브 알림 (Desktop Notification)
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                      신규 이슈 등록, 댓글 작성, 중요 긴급 이슈 알림 시 윈도우 데스크톱 토스트 알림을 수신합니다.
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
-                    칸반 보드에서 우선순위가 긴급(Critical)인 카드의 빨간색 테두리 점멸 효과 활성화
-                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={desktopNotifications}
+                      onChange={(e) => handleToggleDesktopNotifications(e.target.checked)}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: desktopNotifications ? '#4ec9b0' : 'var(--text-muted)', fontWeight: 600 }}>
+                      {desktopNotifications ? 'ON' : 'OFF'}
+                    </span>
+                  </label>
                 </div>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={pulseCritical}
-                    onChange={(e) => handleTogglePulseCritical(e.target.checked)}
-                  />
-                  <span style={{ fontSize: '0.78rem', color: pulseCritical ? '#4ec9b0' : 'var(--text-muted)', fontWeight: 600 }}>
-                    {pulseCritical ? 'ON' : 'OFF'}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #3c3c3c', paddingTop: '8px' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-sub)' }}>
+                    실제 OS 데스크톱 토스트 알림이 오는지 테스트해보세요.
                   </span>
-                </label>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<Bell size={12} />}
+                    onClick={handleSendTestNotification}
+                    disabled={!desktopNotifications}
+                  >
+                    {testNotificationSent ? '알림 전송 완료! 🔔' : '테스트 알림 보내기'}
+                  </Button>
+                </div>
               </div>
 
               {/* Default Priority Option */}
@@ -712,7 +751,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                   시스템 상태 및 버전 정보
                 </h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  AntiGravity Workflow REST API 서버 및 DB 연결 상태를 확인합니다.
+                  AntiGravity Workflow REST API 서버 및 데스크톱 런타임 상태를 확인합니다.
                 </p>
               </div>
 
@@ -720,6 +759,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                 <Spinner centered label="서버 상태 진단 중..." />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>애플리케이션 런타임</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: window.electronAPI?.isElectron ? '#4ec9b0' : 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Monitor size={13} /> {window.electronAPI?.isElectron ? 'Electron Desktop Framework (Active)' : 'Web Browser Client (Active)'}
+                    </span>
+                  </div>
+
                   <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>서버 헬스체크 상태</span>
                     <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4ec9b0', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -751,6 +797,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
               )}
             </div>
           )}
+
         </div>
       </div>
 
