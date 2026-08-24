@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { Router } from 'express';
 import * as groupsController from './groups.controller.js';
 import { requireAuth, requireAdmin } from '../../common/middlewares/authMiddleware.js';
@@ -20,4 +20,6 @@ groupRouter.delete('/:id', requireAuth, groupsController.deleteGroup);
 
 // 그룹 멤버 관리 라우트
 groupRouter.post('/:id/members', requireAuth, groupsController.addGroupMember);
+groupRouter.put('/:id/members/:userId', requireAuth, groupsController.updateGroupMember);
 groupRouter.delete('/:id/members/:userId', requireAuth, groupsController.removeGroupMember);
+

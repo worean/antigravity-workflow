@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const createCommentService = async (data: any) => {
   const { issueId, authorId, content, parentId, isInternal, mentionedUserIds } = data;
@@ -13,13 +13,13 @@ export const createCommentService = async (data: any) => {
       isInternal: Boolean(isInternal)
     },
     include: {
-      author: { select: { id: true, name: true, email: true } },
+      author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
       children: {
         include: {
-          author: { select: { id: true, name: true, email: true } }
+          author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } }
         }
       },
-      mentions: { include: { user: { select: { id: true, name: true } } } },
+      mentions: { include: { user: { select: { id: true, name: true, avatar: true, avatarColor: true } } } },
       reactions: true,
       attachments: true
     }

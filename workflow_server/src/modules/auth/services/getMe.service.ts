@@ -1,9 +1,12 @@
 ﻿import { prisma } from '#lib/prisma.js';
 
-export const getUserService = async (id: number) => {
-  if (!id) throw new Error('User ID is required');
+export const getMeService = async (userId: number) => {
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
+
   const user = await prisma.user.findUnique({
-    where: { id },
+    where: { id: userId },
     select: {
       id: true,
       email: true,
@@ -11,6 +14,7 @@ export const getUserService = async (id: number) => {
       role: true,
       avatar: true,
       avatarColor: true,
+      pushToken: true,
       createdAt: true,
       updatedAt: true,
       groupMemberships: {
@@ -27,7 +31,10 @@ export const getUserService = async (id: number) => {
       }
     }
   });
-  if (!user) throw new Error('User not found');
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
   return user;
 };
-

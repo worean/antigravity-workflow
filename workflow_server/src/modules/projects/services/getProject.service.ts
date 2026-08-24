@@ -1,12 +1,12 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const getProjectService = async (id: number) => {
   if (!id) throw new Error('Project ID is required');
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      owner: { select: { id: true, name: true, email: true } },
-      members: { include: { user: { select: { id: true, name: true, email: true } } } },
+      owner: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
+      members: { include: { user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } } } },
       status: true,
       priority: true,
       sprints: true,

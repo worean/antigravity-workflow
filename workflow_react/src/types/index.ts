@@ -1,8 +1,10 @@
-export interface User {
+﻿export interface User {
   id: number;
   email: string;
   name?: string | null;
   role?: 'ADMIN' | 'MEMBER' | string;
+  avatar?: string | null;
+  avatarColor?: string | null;
   groupMemberships?: GroupMember[];
   createdAt?: string;
 }
@@ -14,6 +16,7 @@ export interface GroupMember {
   role: 'LEADER' | 'MEMBER' | string;
   title?: string | null;
   user?: User;
+  group?: Group;
   joinedAt?: string;
 }
 

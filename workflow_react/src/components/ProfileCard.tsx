@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User as UserIcon, LogOut, LogIn, Mail, Settings } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
+import { Avatar } from './common';
 
 interface ProfileCardProps {
   onOpenAuth?: () => void;
@@ -77,23 +78,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {/* Top Row: User Avatar & Name only (No '(나)' badge, no inline logout text) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: 'var(--radius-xs)',
-                background: 'var(--primary)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              {(user.name || user.email || 'U').charAt(0).toUpperCase()}
-            </div>
+            <Avatar user={user} size={28} shape="rounded" />
 
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
               <span

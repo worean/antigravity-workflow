@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Project, Issue } from '../types';
 import { getProjects, getIssues } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ import {
   CountBadge,
   StatusBadge,
   ProjectBadge,
+  Avatar,
 } from '../components/common';
 import { formatDateOnly } from '../utils/dateUtils';
 import { parseStatusCategory } from '../utils/statusUtils';
@@ -96,6 +97,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
             워크스페이스 요약 대시보드
           </span>
+          {user && <Avatar user={user} size={18} shape="rounded" showBorder={false} />}
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             ({user ? `${user.name || user.email} 로그인 중` : '게스트 모드'})
           </span>

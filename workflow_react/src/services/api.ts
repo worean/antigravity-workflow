@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import type { User, Project, Issue, Comment, Sprint, Worklog, HealthStatus, CustomFieldDefinition, Group, GroupMember } from '../types';
 
 export const getApiBaseUrl = (): string => {
@@ -288,10 +288,19 @@ export const addGroupMember = async (groupId: number, data: {
   return res.data;
 };
 
+export const updateGroupMember = async (groupId: number, userId: number, data: {
+  role?: string;
+  title?: string;
+}): Promise<GroupMember> => {
+  const res = await api.put(`/groups/${groupId}/members/${userId}`, data);
+  return res.data;
+};
+
 export const removeGroupMember = async (groupId: number, userId: number): Promise<{ message: string }> => {
   const res = await api.delete(`/groups/${groupId}/members/${userId}`);
   return res.data;
 };
 
 export default api;
+
 

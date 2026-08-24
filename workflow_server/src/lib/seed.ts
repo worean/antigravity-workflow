@@ -1,4 +1,4 @@
-import { prisma } from './prisma.js';
+﻿import { prisma } from './prisma.js';
 
 export async function seedDatabase() {
   console.log('🌱 Starting Database Initial Seeding...');
@@ -68,15 +68,18 @@ export async function seedDatabase() {
     { id: 2, name: 'Archived', category: 'DONE', isSystem: true },
   ];
 
-  for (const ps of projectStatuses) {
-    await prisma.projectStatus.upsert({
-      where: { id: ps.id },
-      update: ps,
-      create: ps,
-    });
-  }
+  // 3. System Admin Account Seeding (worean@naver.com)
+  await prisma.user.upsert({
+    where: { email: 'worean@naver.com' },
+    update: { role: 'ADMIN' },
+    create: {
+      email: 'worean@naver.com',
+      name: '시스템 최고 관리자',
+      role: 'ADMIN',
+    },
+  });
 
-  console.log('✅ Base Metadata Seed Completed Cleanly!');
+  console.log('✅ Base Metadata and Admin Account (worean@naver.com) Seed Completed Cleanly!');
 }
 
 if (process.argv[1] && process.argv[1].endsWith('seed.ts')) {

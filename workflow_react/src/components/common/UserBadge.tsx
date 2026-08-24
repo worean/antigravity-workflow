@@ -1,6 +1,6 @@
-import React from 'react';
-import { User as UserIcon } from 'lucide-react';
+﻿import React from 'react';
 import type { User } from '../../types';
+import { Avatar } from './Avatar';
 
 interface UserBadgeProps {
   user?: User | null;
@@ -27,8 +27,8 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
   const displayName = user.name || user.email;
 
   const sizeStyles = {
-    sm: { fontSize: '0.72rem', iconSize: 11, padding: '1px 5px' },
-    md: { fontSize: '0.76rem', iconSize: 12, padding: '2px 6px' },
+    sm: { fontSize: '0.72rem', avatarSize: 16, padding: '1px 6px 1px 3px' },
+    md: { fontSize: '0.76rem', avatarSize: 18, padding: '2px 7px 2px 4px' },
   }[size];
 
   return (
@@ -36,7 +36,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '3px',
+        gap: '5px',
         fontSize: sizeStyles.fontSize,
         fontWeight: isMe ? 600 : 400,
         color: isMe ? '#9cdcfe' : 'var(--text-main)',
@@ -47,13 +47,14 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
         userSelect: 'none',
       }}
     >
-      <UserIcon size={sizeStyles.iconSize} color={isMe ? '#9cdcfe' : 'var(--text-sub)'} />
-      {displayName}
+      <Avatar user={user} size={sizeStyles.avatarSize} shape="rounded" showBorder={false} />
+      <span>{displayName}</span>
       {isMe && (
-        <span style={{ fontSize: '0.65rem', fontWeight: 700, marginLeft: '2px', color: '#9cdcfe' }}>
+        <span style={{ fontSize: '0.65rem', fontWeight: 700, marginLeft: '1px', color: '#9cdcfe' }}>
           (나)
         </span>
       )}
     </span>
   );
 };
+

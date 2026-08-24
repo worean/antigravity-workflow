@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   updateUser,
@@ -11,7 +11,9 @@ import {
   createGroup,
   deleteGroup,
   addGroupMember,
+  updateGroupMember,
   removeGroupMember,
+  getMe,
 } from '../services/api';
 import type { CustomFieldDefinition, HealthStatus, Group, GroupMember, User as UserType } from '../types';
 import {
@@ -36,13 +38,23 @@ import {
   FolderPlus,
   Crown,
   Settings as SettingsIcon,
+  Briefcase,
+  ExternalLink,
+  RefreshCw,
+  Clock,
+  Layers,
+  Edit2,
+  Camera,
+  Dices,
 } from 'lucide-react';
 
 
-import { Button, Spinner, PrioritySelect } from '../components/common';
+import { Button, Spinner, PrioritySelect, Avatar, getRandomAvatarColor } from '../components/common';
+import { AvatarCropModal } from '../components/AvatarCropModal';
 import { useActionFeedback } from '../hooks/useActionFeedback';
 import { ActionFeedbackModal } from '../components/ActionFeedbackModal';
 import { sendDesktopNotification, isNotificationEnabled, requestWebNotificationPermission } from '../utils/notificationUtils';
+
 
 type SettingsTab = 'profile' | 'organization' | 'customFields' | 'display' | 'system';
 
@@ -58,7 +70,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
   // 1. Profile State
   const [name, setName] = useState<string>(user?.name || '');
   const [email, setEmail] = useState<string>(user?.email || '');
+  const [avatar, setAvatar] = useState<string | null>(user?.avatar || null);
+  const [avatarColor, setAvatarColor] = useState<string | null>(user?.avatarColor || null);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
+
+  // Avatar Crop Modal State
+  const [showCropModal, setShowCropModal] = useState<boolean>(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+
 
   // 2. Custom Fields State
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
@@ -109,7 +132,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
 
   // All Users for Roles & Assignment
   const [allUsers, setAllUsers] = useState<UserType[]>([]);
-  const [userRoleFilter, setUserRoleFilter] = useState<string>('');
 
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
 
@@ -117,6 +139,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
+      setAvatar(user.avatar || null);
+      setAvatarColor(user.avatarColor || null);
     }
   }, [user]);
 
@@ -174,12 +198,77 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
     }
   };
 
+  // Load profile with group memberships
+  const loadProfileData = async () => {
+    if (!isAuthenticated) return;
+    setLoadingProfile(true);
+    try {
+      const res = await getMe();
+      if (res.user) {
+        updateUserLocal(res.user);
+      }
+    } catch (err) {
+      console.error('Failed to load profile data:', err);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
   useEffect(() => {
+    if (activeSubTab === 'profile') loadProfileData();
     if (activeSubTab === 'organization') loadOrganizationData();
     if (activeSubTab === 'customFields') loadCustomFields();
     if (activeSubTab === 'system') loadHealth();
   }, [activeSubTab]);
 
+
+  // Handle Avatar File Selection (Max 2MB validation)
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 최대 2MB 크기 검사
+    if (file.size > 2 * 1024 * 1024) {
+      alert('⚠️ 아바타 이미지는 최대 2MB 이하의 파일만 업로드 가능합니다. (현재: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === 'string') {
+        setCropImageSrc(event.target.result);
+        setCropFileName(file.name);
+        setShowCropModal(true);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Handle Crop Complete (256x256 PNG Data URL)
+  const handleCropComplete = (croppedPngDataUrl: string) => {
+    setAvatar(croppedPngDataUrl);
+    setProfileSuccessMsg('아바타 이미지가 크롭되었습니다. [프로필 저장]을 눌러 서버에 반영하세요.');
+    setTimeout(() => setProfileSuccessMsg(null), 4000);
+  };
+
+  // Handle Random Avatar Color
+  const handleRandomAvatarColor = () => {
+    const nextColor = getRandomAvatarColor();
+    setAvatarColor(nextColor);
+    setProfileSuccessMsg('기본 아바타 배경색이 변경되었습니다. [프로필 저장]을 눌러 서버에 반영하세요.');
+    setTimeout(() => setProfileSuccessMsg(null), 3000);
+  };
+
+  // Handle Remove Avatar Image (Revert to initial avatar)
+  const handleRemoveAvatar = () => {
+    if (confirm('등록된 아바타 이미지를 삭제하고 기본 이니셜 아바타로 복원하시겠습니까?')) {
+      setAvatar(null);
+      setProfileSuccessMsg('아바타 이미지가 제거되었습니다. [프로필 저장]을 눌러 서버에 반영하세요.');
+      setTimeout(() => setProfileSuccessMsg(null), 3000);
+    }
+  };
 
   // Handle Profile Update
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -188,13 +277,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
 
     await executeAction(
       async () => {
-        const updated = await updateUser(user.id, { name: name.trim() });
+        const updated = await updateUser(user.id, {
+          name: name.trim(),
+          avatar,
+          avatarColor,
+        });
         updateUserLocal(updated);
         return updated;
       },
       {
         onSuccess: () => {
-          setProfileSuccessMsg('프로필 정보가 성공적으로 업데이트되었습니다.');
+          setProfileSuccessMsg('프로필 및 아바타 설정이 성공적으로 저장되었습니다.');
           setTimeout(() => setProfileSuccessMsg(null), 3000);
         },
       }
@@ -348,18 +441,29 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
     }
   };
 
-  const handleToggleUserAdminRole = async (targetUser: UserType) => {
-    const nextRole = targetUser.role === 'ADMIN' ? 'MEMBER' : 'ADMIN';
-    if (!confirm(`${targetUser.name || targetUser.email} 님의 시스템 권한을 [${nextRole}] (으)로 변경하시겠습니까?`)) return;
-
+  const handleUpdateGroupMemberRole = async (groupId: number, userId: number, role: string) => {
     try {
-      const updated = await updateUser(targetUser.id, { role: nextRole });
-      setAllUsers((prev) => prev.map((u) => (u.id === targetUser.id ? { ...u, role: updated.role } : u)));
-      if (user && user.id === targetUser.id) {
-        updateUserLocal(updated);
+      await updateGroupMember(groupId, userId, { role });
+      loadOrganizationData();
+      if (user && user.id === userId) {
+        loadProfileData();
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || '사용자 권한 변경에 실패했습니다.');
+      alert(err.response?.data?.error || '그룹 구성원 권한 변경에 실패했습니다.');
+    }
+  };
+
+  const handleUpdateGroupMemberTitle = async (groupId: number, userId: number, currentTitle?: string | null) => {
+    const newTitle = prompt('새 직책(Title)을 입력하세요:', currentTitle || '');
+    if (newTitle === null) return;
+    try {
+      await updateGroupMember(groupId, userId, { title: newTitle.trim() });
+      loadOrganizationData();
+      if (user && user.id === userId) {
+        loadProfileData();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || '직책 수정에 실패했습니다.');
     }
   };
 
@@ -525,20 +629,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
         >
           {/* ================= TAB 1: PROFILE ================= */}
           {activeSubTab === 'profile' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '520px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '640px' }}>
               <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '10px' }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-bright)' }}>
                   사용자 프로필 및 계정 관리
                 </h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  현재 워크스페이스에 표시되는 사용자 이름과 계정 세부정보를 수정합니다.
+                  현재 워크스페이스에 표시되는 사용자 이름, 계정 정보 및 소속 그룹을 확인하고 수정합니다.
                 </p>
               </div>
 
               {!isAuthenticated ? (
                 <div style={{ padding: '24px', textAlign: 'center', background: '#2d2d2d', borderRadius: 'var(--radius-xs)' }}>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-main)', marginBottom: '12px' }}>
-                    로그인되지 않은 게스트 상태입니다. 프로필을 변경하려면 먼저 로그인해 주세요.
+                    로그인되지 않은 게스트 상태입니다. 프로필을 확인하고 변경하려면 먼저 로그인해 주세요.
                   </p>
                   {onOpenAuth && (
                     <Button variant="primary" size="sm" onClick={onOpenAuth}>
@@ -547,7 +651,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                   )}
                 </div>
               ) : (
-                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {profileSuccessMsg && (
                     <div
                       style={{
@@ -567,67 +671,571 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                     </div>
                   )}
 
-                  {/* Avatar Preview */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#2d2d2d', borderRadius: 'var(--radius-xs)' }}>
+                  {/* Avatar & User Summary Card */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      background: '#252526',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-xs)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <Avatar
+                        user={user}
+                        name={name || user?.name || user?.email}
+                        size={48}
+                        shape="rounded"
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+                            {name || user?.name || '사용자'}
+                          </span>
+                          {user?.role === 'ADMIN' ? (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                padding: '2px 6px',
+                                background: 'rgba(230, 162, 60, 0.18)',
+                                border: '1px solid rgba(230, 162, 60, 0.4)',
+                                borderRadius: '10px',
+                                color: '#e6a23c',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontWeight: 600,
+                              }}
+                            >
+                              <Shield size={10} />
+                              시스템 관리자 (ADMIN)
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                padding: '2px 6px',
+                                background: '#333',
+                                borderRadius: '10px',
+                                color: 'var(--text-sub)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                              }}
+                            >
+                              <User size={10} />
+                              일반 사용자 (MEMBER)
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                          {user?.email} (User ID: #{user?.id})
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          color: 'var(--text-sub)',
+                          background: '#1e1e1e',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid #333',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <Building2 size={12} color="var(--primary)" />
+                        소속 그룹: <strong style={{ color: 'var(--text-bright)' }}>{user?.groupMemberships?.length || 0}</strong>개
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Profile Edit Form */}
+                  <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {/* Avatar Management Card */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#252526', padding: '14px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-light)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Camera size={14} color="var(--primary)" />
+                          사용자 아바타 (프로필 이미지) 설정
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          최대 2MB PNG 지원 (256x256 정사각형 최적화)
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        {/* Avatar Large Preview */}
+                        <div style={{ position: 'relative' }}>
+                          <Avatar
+                            avatar={avatar}
+                            avatarColor={avatarColor}
+                            name={name}
+                            email={email}
+                            size={76}
+                            shape="rounded"
+                            style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)' }}
+                          />
+                          {avatar && (
+                            <span
+                              style={{
+                                position: 'absolute',
+                                bottom: '-4px',
+                                right: '-4px',
+                                background: 'var(--primary)',
+                                color: '#fff',
+                                fontSize: '0.6rem',
+                                fontWeight: 700,
+                                padding: '1px 5px',
+                                borderRadius: '10px',
+                                border: '1px solid #1e1e1e',
+                              }}
+                            >
+                              PNG
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Avatar Info & Action Toolbar */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '220px' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)', lineHeight: 1.4 }}>
+                            {avatar ? (
+                              <span style={{ color: '#4ec9b0', fontWeight: 600 }}>
+                                ✓ 256x256 커스텀 PNG 아바타가 적용되어 있습니다.
+                              </span>
+                            ) : (
+                              <span>
+                                현재 기본 이니셜 아바타 모드입니다. 배경색은 랜덤 변경이 가능하며 이미지를 업로드할 수 있습니다.
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleAvatarFileSelect}
+                              accept="image/png, image/jpeg, image/webp, image/*"
+                              style={{ display: 'none' }}
+                            />
+
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => fileInputRef.current?.click()}
+                              style={{ fontSize: '0.72rem', padding: '4px 10px' }}
+                            >
+                              <Camera size={13} />
+                              아바타 이미지 변경 (크롭)
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={handleRandomAvatarColor}
+                              title="기본 아바타 배경 색상을 무작위로 변경합니다"
+                              style={{ fontSize: '0.72rem', padding: '4px 10px' }}
+                            >
+                              <Dices size={13} color="#f59e0b" />
+                              랜덤 배경색 변경
+                            </Button>
+
+                            {avatar && (
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleRemoveAvatar}
+                                style={{ fontSize: '0.72rem', padding: '4px 10px', color: '#f87171' }}
+                              >
+                                <Trash2 size={13} />
+                                이미지 삭제
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-sub)', borderBottom: '1px solid #333', paddingBottom: '4px', marginTop: '2px' }}>
+                      기본 정보 수정
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">이메일 계정 (로그인 식별자)</label>
+                      <input
+                        type="email"
+                        className="input-field"
+                        value={email}
+                        disabled={true}
+                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
+                      />
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                        * 이메일 주소는 고유 로그인 식별자로 변경할 수 없습니다.
+                      </span>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">사용자 이름 (Display Name)</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="이름 또는 닉네임을 입력하세요"
+                        required
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+                      <Button type="submit" variant="primary" size="sm" icon={<Save size={13} />} isLoading={isPending}>
+                        프로필 저장
+                      </Button>
+                    </div>
+                  </form>
+
+                  {/* ================= MY GROUPS SECTION ================= */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
                     <div
                       style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        background: 'var(--primary)',
-                        color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid #333',
+                        paddingBottom: '6px',
                       }}
                     >
-                      {(name || user?.name || user?.email || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-                        {name || user?.name || '사용자'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Building2 size={15} color="var(--primary)" />
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-sub)' }}>
+                          현재 소속된 조직 및 그룹 (My Groups & Teams)
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '1px 6px',
+                            background: 'var(--primary)',
+                            color: '#ffffff',
+                            borderRadius: '10px',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {user?.groupMemberships?.length || 0}
+                        </span>
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {user?.email} (User ID: #{user?.id})
-                      </div>
+
+                      <button
+                        type="button"
+                        onClick={loadProfileData}
+                        disabled={loadingProfile}
+                        title="소속 그룹 정보 새로고침"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.72rem',
+                          padding: '2px 6px',
+                          borderRadius: 'var(--radius-xs)',
+                        }}
+                      >
+                        <RefreshCw size={12} className={loadingProfile ? 'spin' : ''} />
+                        새로고침
+                      </button>
                     </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label className="form-label">이메일 계정 (로그인 식별자)</label>
-                    <input
-                      type="email"
-                      className="input-field"
-                      value={email}
-                      disabled={true}
-                      style={{ opacity: 0.7, cursor: 'not-allowed' }}
-                    />
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-                      * 이메일 주소는 보안 고유 식별자로 변경할 수 없습니다.
-                    </span>
-                  </div>
+                    {loadingProfile ? (
+                      <Spinner centered label="소속 그룹 정보 불러오는 중..." />
+                    ) : user?.groupMemberships && user.groupMemberships.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {user.groupMemberships.map((membership) => {
+                          const grp = membership.group;
+                          const isLeader = membership.role === 'LEADER';
+                          const hasParent = grp?.parent;
 
-                  <div className="form-group">
-                    <label className="form-label">사용자 이름 (Display Name)</label>
-                    <input
-                      type="text"
-                      className="input-field"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="이름 또는 닉네임을 입력하세요"
-                      required
-                    />
-                  </div>
+                          return (
+                            <div
+                              key={membership.id}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                padding: '12px 14px',
+                                background: '#252526',
+                                border: '1px solid var(--border-light)',
+                                borderRadius: 'var(--radius-xs)',
+                                transition: 'border-color 0.15s ease',
+                              }}
+                            >
+                              {/* 1st Row: Group Name, Code, and Role Badge */}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <Building2 size={15} color={isLeader ? '#e6a23c' : 'var(--primary)'} />
+                                  <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+                                    {grp?.name || `그룹 #${membership.groupId}`}
+                                  </span>
+                                  {grp?.code && (
+                                    <span
+                                      style={{
+                                        fontSize: '0.68rem',
+                                        padding: '1px 5px',
+                                        background: '#333',
+                                        color: 'var(--text-sub)',
+                                        borderRadius: '3px',
+                                        fontFamily: 'monospace',
+                                      }}
+                                    >
+                                      {grp.code}
+                                    </span>
+                                  )}
+                                </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
-                    <Button type="submit" variant="primary" size="sm" icon={<Save size={13} />} isLoading={isPending}>
-                      프로필 저장
-                    </Button>
-                  </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {(() => {
+                                    const roleUpper = (membership.role || 'MEMBER').toUpperCase();
+                                    if (roleUpper === 'ADMIN' || roleUpper === 'LEADER') {
+                                      return (
+                                        <span
+                                          style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: 600,
+                                            padding: '2px 7px',
+                                            background: 'rgba(230, 162, 60, 0.18)',
+                                            border: '1px solid rgba(230, 162, 60, 0.4)',
+                                            color: '#e6a23c',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                          }}
+                                        >
+                                          <Crown size={11} />
+                                          관리자 (PM)
+                                        </span>
+                                      );
+                                    } else if (roleUpper === 'VIEWER') {
+                                      return (
+                                        <span
+                                          style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: 500,
+                                            padding: '2px 7px',
+                                            background: 'rgba(167, 139, 250, 0.15)',
+                                            border: '1px solid rgba(167, 139, 250, 0.35)',
+                                            color: '#a78bfa',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                          }}
+                                        >
+                                          <Shield size={11} />
+                                          참석자 (리뷰어)
+                                        </span>
+                                      );
+                                    } else {
+                                      return (
+                                        <span
+                                          style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: 500,
+                                            padding: '2px 7px',
+                                            background: 'rgba(78, 201, 176, 0.15)',
+                                            border: '1px solid rgba(78, 201, 176, 0.35)',
+                                            color: '#4ec9b0',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                          }}
+                                        >
+                                          <User size={11} />
+                                          담당자 (개발자)
+                                        </span>
+                                      );
+                                    }
+                                  })()}
+                                </div>
+                              </div>
 
-                </form>
+                              {/* 2nd Row: Hierarchy Breadcrumb */}
+                              {hasParent && (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    fontSize: '0.72rem',
+                                    color: 'var(--text-muted)',
+                                    paddingLeft: '2px',
+                                  }}
+                                >
+                                  <Layers size={12} color="var(--text-muted)" />
+                                  <span>상위 조직:</span>
+                                  <span style={{ color: 'var(--text-sub)', fontWeight: 500 }}>
+                                    {grp.parent?.name}
+                                  </span>
+                                  <span>&gt;</span>
+                                  <span style={{ color: 'var(--text-bright)', fontWeight: 500 }}>
+                                    {grp.name}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* 3rd Row: Title (직책) & Description */}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  {membership.title ? (
+                                    <span
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        color: 'var(--text-main)',
+                                        background: '#1e1e1e',
+                                        padding: '2px 6px',
+                                        borderRadius: '3px',
+                                        border: '1px solid #3a3a3a',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                      }}
+                                    >
+                                      <Briefcase size={11} color="var(--primary)" />
+                                      직책: <strong>{membership.title}</strong>
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                      직책 미설정
+                                    </span>
+                                  )}
+
+                                  {grp?.description && (
+                                    <span
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        color: 'var(--text-muted)',
+                                        fontStyle: 'italic',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        maxWidth: '320px',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                      title={grp.description}
+                                    >
+                                      - {grp.description}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Link to Organization tab */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedGroupId(membership.groupId);
+                                    setActiveSubTab('organization');
+                                  }}
+                                  style={{
+                                    background: '#2d2d2d',
+                                    border: '1px solid #3e3e42',
+                                    borderRadius: 'var(--radius-xs)',
+                                    color: 'var(--text-main)',
+                                    padding: '3px 8px',
+                                    fontSize: '0.7rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#37373d';
+                                    e.currentTarget.style.color = '#ffffff';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '#2d2d2d';
+                                    e.currentTarget.style.color = 'var(--text-main)';
+                                  }}
+                                >
+                                  <span>조직도에서 확인</span>
+                                  <ExternalLink size={11} />
+                                </button>
+                              </div>
+
+                              {/* 4th Row: Joined Date */}
+                              {membership.joinedAt && (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '0.68rem',
+                                    color: 'var(--text-muted)',
+                                    borderTop: '1px solid #2d2d2d',
+                                    paddingTop: '6px',
+                                    marginTop: '2px',
+                                  }}
+                                >
+                                  <Clock size={10} />
+                                  <span>
+                                    소속 등록일:{' '}
+                                    {new Date(membership.joinedAt).toLocaleDateString('ko-KR', {
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric',
+                                    })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '24px 16px',
+                          background: '#252526',
+                          border: '1px dashed #3e3e42',
+                          borderRadius: 'var(--radius-xs)',
+                          textAlign: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <Building2 size={28} color="var(--text-muted)" />
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-sub)' }}>
+                          현재 소속된 조직 또는 그룹(부서/팀)이 없습니다.
+                        </div>
+                        <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', maxWidth: '380px', lineHeight: 1.4 }}>
+                          조직도 관리에서 새로운 그룹을 생성하여 본인을 추가하거나, 소속 그룹 관리자에게 멤버 등록을 요청하세요.
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={<Building2 size={12} />}
+                          onClick={() => setActiveSubTab('organization')}
+                          style={{ marginTop: '4px' }}
+                        >
+                          조직도 및 권한 관리 바로가기
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -861,158 +1469,166 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                           </div>
 
                           {/* Group Members List */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Users size={14} color="var(--primary)" />
-                              소속 구성원 목록 ({selectedGroup.members?.length || 0}명)
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Users size={14} color="var(--primary)" />
+                                소속 구성원 목록 ({selectedGroup.members?.length || 0}명)
+                              </div>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                * 그룹 내 권한: 관리자(PM) / 담당자(개발자) / 참석자(리뷰어)
+                              </span>
                             </div>
 
                             {(!selectedGroup.members || selectedGroup.members.length === 0) ? (
-                              <div style={{ padding: '20px', textAlign: 'center', background: '#252526', borderRadius: 'var(--radius-xs)', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                                이 그룹에 배정된 구성원이 없습니다. [팀원 배정] 버튼으로 구성원을 추가하세요.
+                              <div style={{ padding: '24px', textAlign: 'center', background: '#252526', borderRadius: 'var(--radius-xs)', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                                이 그룹에 배정된 구성원이 없습니다. [팀원 배정 / 직책 부여] 버튼으로 구성원을 추가하세요.
                               </div>
                             ) : (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px' }}>
-                                {selectedGroup.members.map((m: GroupMember) => (
-                                  <div
-                                    key={m.id}
-                                    style={{
-                                      padding: '10px 12px',
-                                      background: '#2d2d2d',
-                                      border: '1px solid var(--border-light)',
-                                      borderRadius: 'var(--radius-xs)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                    }}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <div
-                                        style={{
-                                          width: '28px',
-                                          height: '28px',
-                                          borderRadius: '50%',
-                                          background: m.role === 'LEADER' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(0, 122, 204, 0.2)',
-                                          border: `1px solid ${m.role === 'LEADER' ? '#f59e0b' : 'var(--primary)'}`,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          fontSize: '0.75rem',
-                                          fontWeight: 700,
-                                          color: m.role === 'LEADER' ? '#f59e0b' : 'var(--primary)',
-                                        }}
-                                      >
-                                        {m.user?.name?.[0]?.toUpperCase() || m.user?.email?.[0]?.toUpperCase() || 'U'}
-                                      </div>
-                                      <div>
-                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                          {m.user?.name || m.user?.email}
-                                          {m.role === 'LEADER' && (
-                                            <span style={{ fontSize: '0.65rem', padding: '1px 4px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', borderRadius: '3px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                              <Crown size={10} /> 그룹장
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                          {m.title || (m.role === 'LEADER' ? '팀장/리더' : '팀원')} • {m.user?.email}
-                                        </div>
-                                      </div>
-                                    </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {selectedGroup.members.map((m: GroupMember) => {
+                                  const roleUpper = (m.role || 'MEMBER').toUpperCase();
+                                  const currentRoleValue = (roleUpper === 'LEADER' || roleUpper === 'ADMIN') ? 'ADMIN' : (roleUpper === 'VIEWER' ? 'VIEWER' : 'MEMBER');
 
-                                    <button
-                                      title="그룹에서 제외"
-                                      onClick={() => handleRemoveMemberFromGroup(selectedGroup.id, m.userId)}
+                                  return (
+                                    <div
+                                      key={m.id}
                                       style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                        padding: '4px',
+                                        padding: '10px 14px',
+                                        background: '#2d2d2d',
+                                        border: '1px solid var(--border-light)',
+                                        borderRadius: 'var(--radius-xs)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px',
+                                        flexWrap: 'wrap',
                                       }}
                                     >
-                                      <Trash2 size={13} />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Global System Admin Roles Management */}
-                          <div style={{ marginTop: '14px', borderTop: '1px solid var(--border-light)', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <Shield size={15} color="#f59e0b" />
-                                  시스템 관리자 (ADMIN) 권한 설정
-                                </div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                  전체 시스템 유저의 최고 관리자(ADMIN) 권한을 부여하거나 일반 사용자로 변경합니다.
-                                </div>
-                              </div>
-                              <input
-                                type="text"
-                                className="input-field"
-                                style={{ width: '180px', fontSize: '0.75rem', padding: '4px 8px' }}
-                                placeholder="이름/이메일 검색..."
-                                value={userRoleFilter}
-                                onChange={(e) => setUserRoleFilter(e.target.value)}
-                              />
-                            </div>
-
-                            <div style={{ background: '#252526', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', overflow: 'hidden' }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px', padding: '8px 12px', background: '#2d2d2d', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-sub)', borderBottom: '1px solid var(--border-light)' }}>
-                                <span>사용자 이름</span>
-                                <span>이메일</span>
-                                <span>현재 권한</span>
-                                <span style={{ textAlign: 'right' }}>권한 변경 액션</span>
-                              </div>
-
-                              <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                                {allUsers
-                                  .filter((u) => !userRoleFilter || u.name?.toLowerCase().includes(userRoleFilter.toLowerCase()) || u.email.toLowerCase().includes(userRoleFilter.toLowerCase()))
-                                  .map((u) => {
-                                    const isAdmin = u.role === 'ADMIN';
-                                    return (
-                                      <div
-                                        key={u.id}
-                                        style={{
-                                          display: 'grid',
-                                          gridTemplateColumns: '1fr 1fr 100px 140px',
-                                          padding: '8px 12px',
-                                          fontSize: '0.75rem',
-                                          borderBottom: '1px solid #333',
-                                          alignItems: 'center',
-                                        }}
-                                      >
-                                        <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{u.name || '(이름 미지정)'}</span>
-                                        <span style={{ color: 'var(--text-sub)' }}>{u.email}</span>
-                                        <span>
-                                          {isAdmin ? (
-                                            <span style={{ fontSize: '0.68rem', padding: '2px 6px', background: 'rgba(241, 76, 76, 0.2)', color: '#f14c4c', border: '1px solid rgba(241, 76, 76, 0.4)', borderRadius: '3px', fontWeight: 700 }}>
-                                              👑 ADMIN
-                                            </span>
-                                          ) : (
-                                            <span style={{ fontSize: '0.68rem', padding: '2px 6px', background: 'rgba(78, 201, 176, 0.15)', color: '#4ec9b0', borderRadius: '3px' }}>
-                                              MEMBER
-                                            </span>
-                                          )}
-                                        </span>
-                                        <div style={{ textAlign: 'right' }}>
-                                          <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={() => handleToggleUserAdminRole(u)}
-                                            style={{ fontSize: '0.7rem', padding: '3px 8px' }}
-                                          >
-                                            {isAdmin ? '일반 유저로 변경' : '👑 관리자로 임명'}
-                                          </Button>
+                                      {/* User Info */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '200px' }}>
+                                        <Avatar
+                                          user={m.user}
+                                          size={32}
+                                          shape="rounded"
+                                          style={{
+                                            border: `2px solid ${
+                                              currentRoleValue === 'ADMIN'
+                                                ? '#f59e0b'
+                                                : (currentRoleValue === 'VIEWER' ? '#a78bfa' : 'var(--primary)')
+                                            }`,
+                                          }}
+                                        />
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+                                            {m.user?.name || '(이름 없음)'}
+                                          </div>
+                                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                            {m.user?.email}
+                                          </div>
                                         </div>
                                       </div>
-                                    );
-                                  })}
+
+                                      {/* Title & Edit */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span
+                                          style={{
+                                            fontSize: '0.72rem',
+                                            color: m.title ? 'var(--text-main)' : 'var(--text-muted)',
+                                            background: '#222',
+                                            padding: '3px 8px',
+                                            borderRadius: '3px',
+                                            border: '1px solid #3a3a3a',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                          }}
+                                        >
+                                          <Briefcase size={11} color="var(--primary)" />
+                                          {m.title || '직책 미설정'}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          title="직책 수정"
+                                          onClick={() => handleUpdateGroupMemberTitle(selectedGroup.id, m.userId, m.title)}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--text-sub)',
+                                            cursor: 'pointer',
+                                            padding: '3px',
+                                            borderRadius: '3px',
+                                            display: 'flex',
+                                          }}
+                                        >
+                                          <Edit2 size={12} />
+                                        </button>
+                                      </div>
+
+                                      {/* Group Role Selector & Actions */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <span style={{ fontSize: '0.72rem', color: 'var(--text-sub)' }}>그룹 권한:</span>
+                                          <select
+                                            className="input-field"
+                                            value={currentRoleValue}
+                                            onChange={(e) => handleUpdateGroupMemberRole(selectedGroup.id, m.userId, e.target.value)}
+                                            style={{
+                                              fontSize: '0.74rem',
+                                              padding: '3px 8px',
+                                              height: '28px',
+                                              width: '140px',
+                                              borderRadius: 'var(--radius-xs)',
+                                              background: currentRoleValue === 'ADMIN'
+                                                ? 'rgba(230, 162, 60, 0.15)'
+                                                : (currentRoleValue === 'VIEWER' ? 'rgba(167, 139, 250, 0.15)' : 'rgba(78, 201, 176, 0.15)'),
+                                              borderColor: currentRoleValue === 'ADMIN'
+                                                ? 'rgba(230, 162, 60, 0.4)'
+                                                : (currentRoleValue === 'VIEWER' ? 'rgba(167, 139, 250, 0.4)' : 'rgba(78, 201, 176, 0.4)'),
+                                              color: currentRoleValue === 'ADMIN'
+                                                ? '#e6a23c'
+                                                : (currentRoleValue === 'VIEWER' ? '#a78bfa' : '#4ec9b0'),
+                                              fontWeight: 600,
+                                              cursor: 'pointer',
+                                            }}
+                                          >
+                                            <option value="ADMIN" style={{ background: '#252526', color: '#e6a23c' }}>
+                                              👑 1. 관리자 (PM)
+                                            </option>
+                                            <option value="MEMBER" style={{ background: '#252526', color: '#4ec9b0' }}>
+                                              💻 2. 담당자 (개발자)
+                                            </option>
+                                            <option value="VIEWER" style={{ background: '#252526', color: '#a78bfa' }}>
+                                              👁️ 3. 참석자 (리뷰어)
+                                            </option>
+                                          </select>
+                                        </div>
+
+                                        <button
+                                          title="그룹에서 제외"
+                                          onClick={() => handleRemoveMemberFromGroup(selectedGroup.id, m.userId)}
+                                          style={{
+                                            background: '#382222',
+                                            border: '1px solid #5a2e2e',
+                                            color: '#f87171',
+                                            cursor: 'pointer',
+                                            padding: '4px 8px',
+                                            borderRadius: 'var(--radius-xs)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontSize: '0.7rem',
+                                          }}
+                                        >
+                                          <Trash2 size={12} />
+                                          제외
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -1091,7 +1707,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                 <div className="modal-overlay" style={{ zIndex: 1100 }}>
                   <div className="modal-container" style={{ maxWidth: '420px', background: 'var(--bg-card)', padding: '20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-main)' }}>
                     <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-bright)', marginBottom: '12px' }}>
-                      👤 팀원 배정 및 직책 부여
+                      👤 팀원 배정 및 직책/권한 설정
                     </h4>
 
                     <form onSubmit={handleAddMemberToGroup} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1113,14 +1729,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label">그룹 내 역할</label>
+                        <label className="form-label">그룹(조직) 내 권한 *</label>
                         <select
                           className="input-field"
                           value={newMemberRole}
                           onChange={(e) => setNewMemberRole(e.target.value)}
                         >
-                          <option value="MEMBER">👤 일반 팀원 (MEMBER)</option>
-                          <option value="LEADER">👑 그룹장 / 팀장 (LEADER)</option>
+                          <option value="ADMIN">👑 1. 관리자 (PM)</option>
+                          <option value="MEMBER">💻 2. 담당자 (개발자)</option>
+                          <option value="VIEWER">👁️ 3. 참석자 (리뷰어)</option>
                         </select>
                       </div>
 
@@ -1131,7 +1748,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                           className="input-field"
                           value={newMemberTitle}
                           onChange={(e) => setNewMemberTitle(e.target.value)}
-                          placeholder="예: 수석연구원, 프론트엔드 리드, 팀원"
+                          placeholder="예: 수석연구원, 테크리드, 개발자"
                         />
                       </div>
 
@@ -1516,6 +2133,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
 
         </div>
       </div>
+
+      <AvatarCropModal
+        isOpen={showCropModal}
+        imageSrc={cropImageSrc}
+        fileName={cropFileName}
+        onClose={() => {
+          setShowCropModal(false);
+          setCropImageSrc(null);
+        }}
+        onCropComplete={handleCropComplete}
+      />
 
       <ActionFeedbackModal
         state={errorState}

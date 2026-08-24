@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { prisma } from '#lib/prisma.js';
 
 export interface CreateGroupInput {
@@ -36,7 +36,7 @@ export const createGroupService = async (data: CreateGroupInput) => {
       members: {
         include: {
           user: {
-            select: { id: true, name: true, email: true, role: true },
+            select: { id: true, name: true, email: true, role: true, avatar: true, avatarColor: true },
           },
         },
       },

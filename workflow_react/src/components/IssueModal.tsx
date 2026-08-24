@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Project, User, Issue, CustomFieldDefinition, Comment } from '../types';
 import {
   createIssue,
@@ -41,6 +41,7 @@ import {
   PriorityBadge,
   IssueTypeBadge,
   UserBadge,
+  Avatar,
   MarkdownViewer,
   MarkdownEditor,
   StatusSelect,
@@ -464,7 +465,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
               <MarkdownViewer content={selectedIssue.description} placeholder="작성된 상세 설명이 없습니다." style={{ marginBottom: '10px' }} />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px', marginBottom: '10px' }}>
                 <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>프로젝트: </span>
                   <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{selectedProj?.name || `#${selectedIssue.projectId}`}</span>
@@ -472,6 +473,10 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                 <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>담당자: </span>
                   <UserBadge user={selectedIssue.assignee} currentUserId={user?.id} size="sm" />
+                </div>
+                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
+                  <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>작성자: </span>
+                  <UserBadge user={selectedIssue.author} currentUserId={user?.id} size="sm" fallbackText="작성자 정보 없음" />
                 </div>
                 <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>진척도: </span>
@@ -688,23 +693,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                 {/* Top New Comment Input (YouTube style input with Avatar) */}
                 {isAuthenticated ? (
                   <form onSubmit={handleAddComment} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <div
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '50%',
-                        background: 'var(--primary)',
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar user={user} size={26} shape="circle" style={{ marginTop: '2px' }} />
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <textarea
                         className="input-field"
@@ -724,15 +713,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                             }
                           }
                         }}
-                        style={{
-                          resize: 'vertical',
-                          minHeight: '34px',
-                          background: '#1e1e1e',
-                          border: '1px solid #3c3c3c',
-                          borderRadius: 'var(--radius-xs)',
-                          padding: '5px 8px',
-                          fontSize: '0.78rem',
-                        }}
+                        style={{ resize: 'vertical', minHeight: '32px', fontSize: '0.78rem', background: '#1e1e1e' }}
                       />
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
                         {newComment.trim() && (
@@ -749,7 +730,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                           type="submit"
                           className="btn btn-primary btn-sm"
                           disabled={!newComment.trim()}
-                          style={{ height: '22px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '22px', fontSize: '0.7rem' }}
                         >
                           <Send size={10} /> 댓글
                         </button>
@@ -757,7 +738,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                     </div>
                   </form>
                 ) : (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', padding: '4px 0', borderBottom: '1px solid #383838' }}>
                     댓글을 작성하려면 로그인하세요.
                   </div>
                 )}
@@ -778,24 +759,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                         <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                           {/* Main Parent Comment Item (YouTube Style) */}
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                            <div
-                              style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '50%',
-                                background: isMyComment ? 'var(--primary)' : '#3c3c3c',
-                                color: isMyComment ? '#ffffff' : '#cccccc',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                flexShrink: 0,
-                                marginTop: '2px',
-                              }}
-                            >
-                              {((authorName || 'U').charAt(0)).toUpperCase()}
-                            </div>
+                            <Avatar
+                              user={c.author || (isMyComment ? user : null)}
+                              name={authorName}
+                              size={24}
+                              shape="circle"
+                              style={{ marginTop: '2px' }}
+                            />
 
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -927,24 +897,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
                                 return (
                                   <div key={sub.id} style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
-                                    <div
-                                      style={{
-                                        width: '20px',
-                                        height: '20px',
-                                        borderRadius: '50%',
-                                        background: isMySub ? 'var(--primary)' : '#3c3c3c',
-                                        color: isMySub ? '#ffffff' : '#cccccc',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '0.62rem',
-                                        fontWeight: 700,
-                                        flexShrink: 0,
-                                        marginTop: '2px',
-                                      }}
-                                    >
-                                      {((subAuthorName || 'U').charAt(0)).toUpperCase()}
-                                    </div>
+                                    <Avatar
+                                      user={sub.author || (isMySub ? user : null)}
+                                      name={subAuthorName}
+                                      size={20}
+                                      shape="circle"
+                                      style={{ marginTop: '2px' }}
+                                    />
 
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

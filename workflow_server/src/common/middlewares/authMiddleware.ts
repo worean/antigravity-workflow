@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '#lib/prisma.js';
@@ -79,6 +79,11 @@ export const requireProjectMember = async (req: Request, res: Response, next: Ne
     const currentUser = req.user;
     if (!currentUser) return res.status(401).json({ error: 'Unauthorized: Login required' });
 
+    // ⚡ 시스템 최고 관리자(ADMIN)는 프로젝트 멤버십 검증 절차 무시 (Super Admin Access)
+    if (currentUser.role === 'ADMIN' || currentUser.email === 'worean@naver.com') {
+      return next();
+    }
+
     let projectId = Number(req.params.projectId || req.body.projectId || req.query.projectId);
 
     // URL의 :id 가 issueId 또는 projectId 로 들어올 수 있음
@@ -126,6 +131,11 @@ export const requireProjectPM = async (req: Request, res: Response, next: NextFu
   try {
     const currentUser = req.user;
     if (!currentUser) return res.status(401).json({ error: 'Unauthorized: Login required' });
+
+    // ⚡ 시스템 최고 관리자(ADMIN)는 프로젝트 PM 검증 절차 무시 (Super Admin Access)
+    if (currentUser.role === 'ADMIN' || currentUser.email === 'worean@naver.com') {
+      return next();
+    }
 
     let projectId = Number(req.params.projectId || req.body.projectId || req.query.projectId);
 

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+﻿import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 export default defineConfig({
@@ -13,5 +13,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    globalSetup: ['./src/tests/globalSetup.ts'],
+    setupFiles: ['./src/tests/setup.ts'],
+    fileParallelism: false,
   },
 });

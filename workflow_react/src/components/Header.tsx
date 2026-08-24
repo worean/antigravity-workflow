@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { checkHealth } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Server, User as UserIcon } from 'lucide-react';
-import { DotIndicator } from './common';
+import { DotIndicator, Avatar } from './common';
 
 export const Header: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -51,14 +51,19 @@ export const Header: React.FC = () => {
       {/* Right - User Status & Server Status Indicator */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {/* User Mini Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-sub)' }}>
-          <UserIcon size={12} color={isAuthenticated ? 'var(--accent-cyan)' : 'var(--text-muted)'} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-sub)' }}>
           {isAuthenticated && user ? (
-            <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
-              {user.name || user.email}
-            </span>
+            <>
+              <Avatar user={user} size={18} shape="rounded" showBorder={false} />
+              <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                {user.name || user.email}
+              </span>
+            </>
           ) : (
-            <span style={{ color: 'var(--text-muted)' }}>게스트 모드</span>
+            <>
+              <UserIcon size={12} color="var(--text-muted)" />
+              <span style={{ color: 'var(--text-muted)' }}>게스트 모드</span>
+            </>
           )}
         </div>
 

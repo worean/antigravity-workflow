@@ -1,20 +1,20 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const getCommentsService = async (issueId: number) => {
   if (!issueId) throw new Error('issueId is required');
   return await prisma.comment.findMany({
     where: { issueId, parentId: null },
     include: {
-      author: { select: { id: true, name: true, email: true } },
+      author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
       children: {
         include: {
-          author: { select: { id: true, name: true, email: true } },
-          mentions: { include: { user: { select: { id: true, name: true } } } },
+          author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
+          mentions: { include: { user: { select: { id: true, name: true, avatar: true, avatarColor: true } } } },
           reactions: true,
           attachments: true
         }
       },
-      mentions: { include: { user: { select: { id: true, name: true } } } },
+      mentions: { include: { user: { select: { id: true, name: true, avatar: true, avatarColor: true } } } },
       reactions: true,
       attachments: true
     },

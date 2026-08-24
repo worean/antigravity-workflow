@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const createWorklogService = async (issueId: number, data: any) => {
   const { userId, timeSpent, timeSpentHours, description, startedAt } = data;
@@ -25,7 +25,7 @@ export const createWorklogService = async (issueId: number, data: any) => {
       startedAt: startedAt ? new Date(startedAt) : undefined
     },
     include: {
-      user: { select: { id: true, name: true, email: true } }
+      user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } }
     }
   });
 

@@ -101,6 +101,8 @@ model User {
   name     String?
   password String? // Nullable: 구글 소셜 연동 계정은 password가 null로 설정되어 통상 비밀번호 로그인 불가
   role     String  @default("MEMBER") // ADMIN (시스템 관리자), MEMBER (일반 사용자)
+  avatar   String? // Base64 PNG data URL 또는 이미지 URL (최대 256x256)
+  avatarColor String? // 기본 아바타 랜덤/설정 배경색 (예: #3b82f6)
 
   pushToken String? // APNs/FCM 푸시 토큰
 

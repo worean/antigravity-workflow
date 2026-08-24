@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Project, User, Issue, CustomFieldDefinition, Comment, Worklog } from '../types';
 import {
   getIssue,
@@ -44,6 +44,7 @@ import {
   PriorityBadge,
   IssueTypeBadge,
   UserBadge,
+  Avatar,
   MarkdownViewer,
   MarkdownEditor,
   StatusSelect,
@@ -540,6 +541,13 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
                   <UserIcon size={11} style={{ display: 'inline', marginRight: '3px' }} /> 담당자
                 </span>
                 <UserBadge user={issue.assignee} currentUserId={user?.id} size="sm" />
+              </div>
+
+              <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                  <UserIcon size={11} style={{ display: 'inline', marginRight: '3px' }} /> 작성자 (보고자)
+                </span>
+                <UserBadge user={issue.author} currentUserId={user?.id} size="sm" fallbackText="작성자 정보 없음" />
               </div>
 
               <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
@@ -1085,23 +1093,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
         {/* Top New Comment Input (YouTube style input with Avatar) */}
         {isAuthenticated ? (
           <form onSubmit={handleAddComment} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '20px' }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                background: 'var(--primary)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
-            </div>
+            <Avatar user={user} size={28} shape="circle" style={{ marginTop: '2px' }} />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <textarea
                 className="input-field"
@@ -1176,24 +1168,13 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
                   {/* Main Parent Comment Item (YouTube Style) */}
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                     {/* Author Avatar (Circle) */}
-                    <div
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '50%',
-                        background: isMyComment ? 'var(--primary)' : '#3c3c3c',
-                        color: isMyComment ? '#ffffff' : '#cccccc',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        marginTop: '2px',
-                      }}
-                    >
-                      {((authorName || 'U').charAt(0)).toUpperCase()}
-                    </div>
+                    <Avatar
+                      user={c.author || (isMyComment ? user : null)}
+                      name={authorName}
+                      size={26}
+                      shape="circle"
+                      style={{ marginTop: '2px' }}
+                    />
 
                     {/* Comment Body & Header */}
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -1331,24 +1312,13 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
 
                         return (
                           <div key={sub.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                            <div
-                              style={{
-                                width: '22px',
-                                height: '22px',
-                                borderRadius: '50%',
-                                background: isMySub ? 'var(--primary)' : '#3c3c3c',
-                                color: isMySub ? '#ffffff' : '#cccccc',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.65rem',
-                                fontWeight: 700,
-                                flexShrink: 0,
-                                marginTop: '2px',
-                              }}
-                            >
-                              {((subAuthorName || 'U').charAt(0)).toUpperCase()}
-                            </div>
+                            <Avatar
+                              user={sub.author || (isMySub ? user : null)}
+                              name={subAuthorName}
+                              size={22}
+                              shape="circle"
+                              style={{ marginTop: '2px' }}
+                            />
 
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

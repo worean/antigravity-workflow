@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { prisma } from '#lib/prisma.js';
 
 export const getGroupService = async (id: number) => {
@@ -13,7 +13,7 @@ export const getGroupService = async (id: number) => {
           members: {
             include: {
               user: {
-                select: { id: true, name: true, email: true, role: true },
+                select: { id: true, name: true, email: true, role: true, avatar: true, avatarColor: true },
               },
             },
           },
@@ -22,7 +22,7 @@ export const getGroupService = async (id: number) => {
       members: {
         include: {
           user: {
-            select: { id: true, name: true, email: true, role: true },
+            select: { id: true, name: true, email: true, role: true, avatar: true, avatarColor: true },
           },
         },
       },

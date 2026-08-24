@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { Request, Response } from 'express';
 import { createGroupService } from './services/createGroup.service.js';
 import { getGroupsService } from './services/getGroups.service.js';
@@ -7,6 +7,7 @@ import { updateGroupService } from './services/updateGroup.service.js';
 import { deleteGroupService } from './services/deleteGroup.service.js';
 import { addGroupMemberService } from './services/addGroupMember.service.js';
 import { removeGroupMemberService } from './services/removeGroupMember.service.js';
+import { updateGroupMemberService } from './services/updateGroupMember.service.js';
 
 export const createGroup = async (req: Request, res: Response) => {
   try {
@@ -70,6 +71,18 @@ export const addGroupMember = async (req: Request, res: Response) => {
   }
 };
 
+export const updateGroupMember = async (req: Request, res: Response) => {
+  try {
+    const groupId = Number(req.params.id || req.body.groupId);
+    const userId = Number(req.params.userId || req.body.userId);
+    const { role, title } = req.body;
+    const membership = await updateGroupMemberService({ groupId, userId, role, title });
+    res.json(membership);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 export const removeGroupMember = async (req: Request, res: Response) => {
   try {
     const groupId = Number(req.params.id || req.params.groupId);
@@ -80,3 +93,4 @@ export const removeGroupMember = async (req: Request, res: Response) => {
     res.status(400).json({ error: error.message });
   }
 };
+

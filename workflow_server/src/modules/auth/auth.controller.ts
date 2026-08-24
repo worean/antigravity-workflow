@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { googleLoginService } from './services/googleLogin.service.js';
 import { googleCallbackService } from './services/googleCallback.service.js';
 import { emailLoginService } from './services/emailLogin.service.js';
+import { getMeService } from './services/getMe.service.js';
 
 export const googleLogin = async (req: Request, res: Response) => {
   try {
@@ -41,8 +42,10 @@ export const emailLogin = async (req: Request, res: Response) => {
 export const getMe = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    res.json({ user: req.user });
+    const user = await getMeService(req.user.id);
+    res.json({ user });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
+
