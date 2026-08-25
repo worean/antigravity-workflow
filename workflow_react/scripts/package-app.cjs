@@ -52,6 +52,13 @@ function copyFolderSync(from, to) {
 }
 copyFolderSync(electronDist, outputAppDir);
 
+// Remove default_app.asar from copied electron runtime so it doesn't conflict with our app
+const defaultAppAsar = path.join(outputAppDir, 'resources', 'default_app.asar');
+if (fs.existsSync(defaultAppAsar)) {
+  fs.unlinkSync(defaultAppAsar);
+  console.log('✔ Removed dummy default_app.asar from runtime.');
+}
+
 // 5. Rename Executable to AntiGravity-Workflow.exe
 const defaultExe = path.join(outputAppDir, 'electron.exe');
 const targetExe = path.join(outputAppDir, 'AntiGravity-Workflow.exe');
@@ -76,7 +83,6 @@ const appPkg = {
   name: 'antigravity-workflow-desktop',
   version: rootPkg.version || '2.5.0',
   main: 'electron/main.cjs',
-  type: 'module',
 };
 fs.writeFileSync(path.join(resourcesAppDir, 'package.json'), JSON.stringify(appPkg, null, 2), 'utf-8');
 
