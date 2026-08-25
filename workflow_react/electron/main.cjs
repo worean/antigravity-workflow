@@ -3,6 +3,14 @@ const { app, BrowserWindow, ipcMain, Notification, Menu, dialog, shell } = requi
 const path = require('path');
 const fs = require('fs');
 
+// GPU process crash 방지 및 모든 환경 호환성 보장
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('disable-gpu-rasterization');
+app.commandLine.appendSwitch('disable-software-rasterizer', 'false');
+app.commandLine.appendSwitch('no-sandbox');
+
 const logFile = path.join(app.getPath('userData'), 'electron-debug.log');
 function log(...args) {
   const msg = `[${new Date().toISOString()}] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`;
