@@ -1,6 +1,6 @@
 {
   "name": "antigravity-workflow-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Issue and Task Management System REST API Backend with Express and Prisma",
   "main": "dist/server.js",
   "scripts": {
