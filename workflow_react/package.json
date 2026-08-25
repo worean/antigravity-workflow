@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "antigravity-workflow-desktop",
   "private": true,
   "version": "2.5.0",
@@ -16,7 +16,6 @@
     "electron:pack": "node scripts/package-app.cjs",
     "electron:build": "node scripts/package-app.cjs"
   },
-
   "build": {
     "appId": "com.antigravity.workflow",
     "productName": "AntiGravity Workflow",

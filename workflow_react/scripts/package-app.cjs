@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
@@ -71,16 +71,39 @@ copyFolderSync(distDir, path.join(resourcesAppDir, 'dist'));
 copyFolderSync(electronDir, path.join(resourcesAppDir, 'electron'));
 
 // Create lightweight app package.json
+const rootPkg = require('../package.json');
 const appPkg = {
   name: 'antigravity-workflow-desktop',
-  version: '2.4.0',
+  version: rootPkg.version || '2.5.0',
   main: 'electron/main.cjs',
   type: 'module',
 };
 fs.writeFileSync(path.join(resourcesAppDir, 'package.json'), JSON.stringify(appPkg, null, 2), 'utf-8');
 
+// 7. Create Portable Zip Distribution Package
+console.log('\n🗜️ Step 6: Creating Portable Distribution Archive (ZIP)...');
+const zipFileName = `AntiGravity-Workflow-v${appPkg.version}-win-x64.zip`;
+const zipOutputPath = path.join(releaseDir, zipFileName);
+
+if (fs.existsSync(zipOutputPath)) {
+  fs.unlinkSync(zipOutputPath);
+}
+
+try {
+  execSync(`powershell -Command "Compress-Archive -Path '${outputAppDir}\\*' -DestinationPath '${zipOutputPath}' -Force"`, {
+    cwd: releaseDir,
+    stdio: 'inherit',
+  });
+  console.log(`✔ Created distribution package: ${zipFileName}`);
+} catch (err) {
+  console.warn('⚠️ Warning: Failed to create zip package with PowerShell Compress-Archive:', err.message);
+}
+
 console.log('\n==================================================');
 console.log('✨ [SUCCESS] AntiGravity Workflow Desktop Application Built!');
 console.log(`📁 Application Path: ${outputAppDir}`);
 console.log(`🚀 Executable File: ${targetExe}`);
+if (fs.existsSync(zipOutputPath)) {
+  console.log(`📦 Distribution Package: ${zipOutputPath}`);
+}
 console.log('==================================================\n');
