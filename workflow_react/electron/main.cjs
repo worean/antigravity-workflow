@@ -1,17 +1,32 @@
-const { app, BrowserWindow, ipcMain, Notification, Menu } = require('electron');
+﻿// -*- coding: utf-8 -*-
+const { app, BrowserWindow, ipcMain, Notification, Menu, dialog, shell } = require('electron');
 const path = require('path');
 
 let mainWindow = null;
 
+// Single Instance Lock (중복 실행 방지)
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 840,
-    minWidth: 1024,
-    minHeight: 680,
+    width: 1320,
+    height: 860,
+    minWidth: 1040,
+    minHeight: 700,
     title: 'AntiGravity Workflow System',
     backgroundColor: '#1e1e1e',
-    titleBarStyle: 'default',
+    frame: false, // Custom frameless titlebar
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -26,19 +41,68 @@ function createWindow() {
 
   if (devServerUrl) {
     mainWindow.loadURL(devServerUrl);
-    // mainWindow.webContents.openDevTools();
   } else {
     // 프로덕션 빌드 파일 로드
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch(() => {
-      // 빌드 파일이 없을 경우 기본 dev url 시도
       mainWindow.loadURL('http://localhost:5173');
     });
   }
+
+  // 윈도우 최대화 상태 변경 감지
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window-maximized-changed', true);
+  });
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window-maximized-changed', false);
+  });
+
+  // 외부 링크는 기본 브라우저로 오픈
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
+
+// ==========================================
+// 🪟 IPC Window Control Handlers
+// ==========================================
+ipcMain.handle('window-minimize', () => {
+  if (mainWindow) {
+    mainWindow.minimize();
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('window-maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+      return false;
+    } else {
+      mainWindow.maximize();
+      return true;
+    }
+  }
+  return false;
+});
+
+ipcMain.handle('window-close', () => {
+  if (mainWindow) {
+    mainWindow.close();
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('is-window-maximized', () => {
+  return mainWindow ? mainWindow.isMaximized() : false;
+});
 
 // ==========================================
 // 🔔 IPC Desktop Notification Handlers
@@ -73,14 +137,13 @@ ipcMain.handle('show-notification', async (_event, options = {}) => {
 ipcMain.handle('get-app-info', async () => {
   return {
     name: 'AntiGravity Workflow',
-    version: app.getVersion() || '2.4.0',
+    version: app.getVersion() || '2.5.0',
     isElectron: true,
     platform: process.platform,
   };
 });
 
 app.whenReady().then(() => {
-  // 기본 메뉴바 숨김 처리 (클린 다크 테마 유지)
   Menu.setApplicationMenu(null);
   createWindow();
 
