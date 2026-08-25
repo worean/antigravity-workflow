@@ -99,10 +99,28 @@ try {
   console.warn('⚠️ Warning: Failed to create zip package with PowerShell Compress-Archive:', err.message);
 }
 
+// 8. Create Windows NSIS Setup Installer (.exe)
+console.log('\n💿 Step 7: Building Windows NSIS Setup Installer (.exe)...');
+const installerName = `AntiGravity Workflow-${appPkg.version}-x64.exe`;
+const installerPath = path.join(releaseDir, installerName);
+
+try {
+  execSync(`npx electron-builder --win nsis --x64 --prepackaged "${outputAppDir}"`, {
+    cwd: projectRoot,
+    stdio: 'inherit',
+  });
+  console.log(`✔ Created Windows Setup Installer: ${installerName}`);
+} catch (err) {
+  console.warn('⚠️ Warning: Failed to build NSIS Installer:', err.message);
+}
+
 console.log('\n==================================================');
 console.log('✨ [SUCCESS] AntiGravity Workflow Desktop Application Built!');
 console.log(`📁 Application Path: ${outputAppDir}`);
 console.log(`🚀 Executable File: ${targetExe}`);
+if (fs.existsSync(installerPath)) {
+  console.log(`💿 Windows Setup Installer: ${installerPath}`);
+}
 if (fs.existsSync(zipOutputPath)) {
   console.log(`📦 Distribution Package: ${zipOutputPath}`);
 }
