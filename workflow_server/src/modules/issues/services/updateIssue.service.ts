@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 import { getIssueService } from './getIssue.service.js';
 
 const parseDateOnly = (val: any): Date | null | undefined => {
@@ -36,6 +36,7 @@ export const updateIssueService = async (issueId: number, data: any) => {
     estimatedHours,
     loggedHours,
     sprintId,
+    parentId,
     customFields,
     plannedStartDate,
     dueDate,
@@ -43,6 +44,10 @@ export const updateIssueService = async (issueId: number, data: any) => {
     actualEndDate,
     userId
   } = data;
+
+  if (parentId !== undefined && parentId !== null && Number(parentId) === issueId) {
+    throw new Error('Cannot set self as parent issue');
+  }
 
   // 권한 제어: projectId(프로젝트 이동), typeId(이슈 유형 변경), priorityId(우선순위 변경) 수정 권한 체크
   const isChangingProjectId = projectId !== undefined && Number(projectId) !== currentIssue.projectId;
@@ -113,6 +118,7 @@ export const updateIssueService = async (issueId: number, data: any) => {
       estimatedHours: estimatedHours !== undefined ? Number(estimatedHours) : undefined,
       loggedHours: loggedHours !== undefined ? Number(loggedHours) : undefined,
       sprintId: sprintId !== undefined ? (sprintId ? Number(sprintId) : null) : undefined,
+      parentId: parentId !== undefined ? (parentId ? Number(parentId) : null) : undefined,
       customFields: customFields !== undefined ? (typeof customFields === 'string' ? customFields : JSON.stringify(customFields)) : undefined,
       plannedStartDate: parseDateOnly(plannedStartDate),
       dueDate: parseDateOnly(dueDate),

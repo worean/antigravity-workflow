@@ -1,10 +1,15 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { createProjectService } from './services/createProject.service.js';
 import { getProjectsService } from './services/getProjects.service.js';
 import { getProjectService } from './services/getProject.service.js';
 import { updateProjectService } from './services/updateProject.service.js';
 import { deleteProjectService } from './services/deleteProject.service.js';
 import { addMemberService } from './services/addMember.service.js';
+import { removeMemberService } from './services/removeMember.service.js';
+import { updateMemberRoleService } from './services/updateMemberRole.service.js';
+import { addGroupService } from './services/addGroup.service.js';
+import { removeGroupService } from './services/removeGroup.service.js';
+import { updateGroupRoleService } from './services/updateGroupRole.service.js';
 import { ErrorCode } from '../../common/errors/errorCode.js';
 
 export const createProject = async (req: Request, res: Response) => {
@@ -66,8 +71,68 @@ export const deleteProject = async (req: Request, res: Response) => {
 export const addMember = async (req: Request, res: Response) => {
   try {
     const { projectId, userId, role } = req.body;
-    const member = await addMemberService(Number(projectId || req.params.id), Number(userId), role, req.user?.id);
+    const pId = Number(req.params.id || projectId);
+    const uId = Number(userId || req.body.memberId);
+    const member = await addMemberService(pId, uId, role, req.user?.id);
     res.status(201).json(member);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
+  }
+};
+
+export const removeMember = async (req: Request, res: Response) => {
+  try {
+    const pId = Number(req.params.id || req.body.projectId);
+    const uId = Number(req.params.userId || req.body.userId);
+    const result = await removeMemberService(pId, uId, req.user?.id);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
+  }
+};
+
+export const updateMemberRole = async (req: Request, res: Response) => {
+  try {
+    const pId = Number(req.params.id || req.body.projectId);
+    const uId = Number(req.params.userId || req.body.userId);
+    const { role } = req.body;
+    const member = await updateMemberRoleService(pId, uId, role, req.user?.id);
+    res.json(member);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
+  }
+};
+
+export const addGroup = async (req: Request, res: Response) => {
+  try {
+    const { projectId, groupId, role } = req.body;
+    const pId = Number(req.params.id || projectId);
+    const gId = Number(groupId);
+    const projectGroup = await addGroupService(pId, gId, role, req.user?.id);
+    res.status(201).json(projectGroup);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
+  }
+};
+
+export const removeGroup = async (req: Request, res: Response) => {
+  try {
+    const pId = Number(req.params.id || req.body.projectId);
+    const gId = Number(req.params.groupId || req.body.groupId);
+    const result = await removeGroupService(pId, gId, req.user?.id);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
+  }
+};
+
+export const updateGroupRole = async (req: Request, res: Response) => {
+  try {
+    const pId = Number(req.params.id || req.body.projectId);
+    const gId = Number(req.params.groupId || req.body.groupId);
+    const { role } = req.body;
+    const projectGroup = await updateGroupRoleService(pId, gId, role, req.user?.id);
+    res.json(projectGroup);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
   }

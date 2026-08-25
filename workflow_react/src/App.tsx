@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { Header } from './components/Header';
 
 import { Sidebar, type TabType } from './components/Sidebar';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
+import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { IssuesPage } from './pages/IssuesPage';
 import { IssueDetailPage } from './pages/IssueDetailPage';
 import { SprintsPage } from './pages/SprintsPage';
+import { WBSPage } from './pages/WBSPage';
 import { WorklogsPage } from './pages/WorklogsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AuthModal } from './components/AuthModal';
@@ -34,7 +36,7 @@ const AppContent: React.FC = () => {
       const hash = window.location.hash.replace(/^#/, '');
       if (hash) {
         const [rawTab, queryStr] = hash.split('?');
-        const validTabs: TabType[] = ['dashboard', 'projects', 'issues', 'sprints', 'worklogs', 'issue-detail', 'settings'];
+        const validTabs: TabType[] = ['dashboard', 'projects', 'project-detail', 'issues', 'sprints', 'wbs', 'worklogs', 'issue-detail', 'settings'];
         const tab = validTabs.includes(rawTab as TabType) ? (rawTab as TabType) : 'dashboard';
 
         const params = new URLSearchParams(queryStr || '');
@@ -53,8 +55,7 @@ const AppContent: React.FC = () => {
 
     const savedTab = localStorage.getItem('activeTab') as TabType;
     const savedProjectId = localStorage.getItem('selectedProjectId');
-    const validTabs: TabType[] = ['dashboard', 'projects', 'issues', 'sprints', 'worklogs', 'issue-detail', 'settings'];
-
+    const validTabs: TabType[] = ['dashboard', 'projects', 'project-detail', 'issues', 'sprints', 'wbs', 'worklogs', 'issue-detail', 'settings'];
 
     return {
       tab: validTabs.includes(savedTab) ? savedTab : 'dashboard',
@@ -98,32 +99,6 @@ const AppContent: React.FC = () => {
       localStorage.setItem('activeTab', tab);
       if (projId) {
         localStorage.setItem('selectedProjectId', String(projId));
-      } else {
-        localStorage.removeItem('selectedProjectId');
-      }
-
-      const curAssignee = extra?.assigneeId !== undefined ? extra.assigneeId : selectedAssigneeId;
-      const curSearch = extra?.search !== undefined ? extra.search : searchTerm;
-
-      let hashStr = `#${tab}`;
-      const queryParts: string[] = [];
-      if (projId) queryParts.push(`projectId=${projId}`);
-      if (curAssignee && curAssignee !== 'ALL') queryParts.push(`assigneeId=${curAssignee}`);
-      if (curSearch && curSearch.trim()) queryParts.push(`search=${encodeURIComponent(curSearch.trim())}`);
-      if (issueId) queryParts.push(`issueId=${issueId}`);
-      if (tab === 'issue-detail' && mode === 'edit') queryParts.push(`mode=edit`);
-
-      if (queryParts.length > 0) {
-        hashStr += `?${queryParts.join('&')}`;
-      }
-
-      if (window.location.hash !== hashStr) {
-        const stateObj = { tab, projectId: projId, assigneeId: curAssignee, search: curSearch, issueId, mode };
-        if (replace) {
-          window.history.replaceState(stateObj, '', hashStr);
-        } else {
-          window.history.pushState(stateObj, '', hashStr);
-        }
       }
 
       setActiveTabState(tab);
@@ -132,8 +107,25 @@ const AppContent: React.FC = () => {
       if (extra?.search !== undefined) setSearchTermState(extra.search);
       setSelectedIssueIdState(issueId);
       setIssueDetailModeState(mode);
+
+      // Build Hash URL
+      const params = new URLSearchParams();
+      if (projId) params.set('projectId', String(projId));
+      if (extra?.assigneeId && extra.assigneeId !== 'ALL') params.set('assigneeId', String(extra.assigneeId));
+      if (extra?.search) params.set('search', extra.search);
+      if (issueId) params.set('issueId', String(issueId));
+      if (mode === 'edit') params.set('mode', 'edit');
+
+      const queryString = params.toString();
+      const newHash = `#${tab}${queryString ? `?${queryString}` : ''}`;
+
+      if (replace) {
+        window.history.replaceState(null, '', newHash);
+      } else {
+        window.history.pushState(null, '', newHash);
+      }
     },
-    [selectedAssigneeId, searchTerm]
+    []
   );
 
   const setActiveTab = (tab: TabType) => {
@@ -183,8 +175,9 @@ const AppContent: React.FC = () => {
     navigate('issue-detail', projId, issue.id, 'view', false);
   };
 
+  // 프로젝트 클릭 시 프로젝트 상세/설정 페이지로 이동
   const handleSelectProject = (projectId: number) => {
-    navigate('issues', projectId, null, 'view', false);
+    navigate('project-detail', projectId, null, 'view', false);
   };
 
   const handleProjectCreated = (newProject: Project) => {
@@ -251,6 +244,32 @@ const AppContent: React.FC = () => {
             />
           )}
 
+          {activeTab === 'project-detail' && selectedProjectId && (
+            <ProjectDetailPage
+              projectId={selectedProjectId}
+              onBack={() => navigate('projects')}
+              onGoToBoard={(pId) => {
+                setSelectedProjectIdState(pId);
+                navigate('issues', pId);
+              }}
+              onGoToWBS={(pId) => {
+                setSelectedProjectIdState(pId);
+                navigate('wbs', pId);
+              }}
+              onGoToSprints={(pId) => {
+                setSelectedProjectIdState(pId);
+                navigate('sprints', pId);
+              }}
+              onProjectUpdated={(up) => {
+                setProjects((prev) => prev.map((p) => (p.id === up.id ? up : p)));
+              }}
+              onProjectDeleted={(delId) => {
+                setProjects((prev) => prev.filter((p) => p.id !== delId));
+                navigate('projects');
+              }}
+            />
+          )}
+
           {activeTab === 'issues' && (
             <IssuesPage
               onOpenCreateIssue={handleOpenCreateIssue}
@@ -277,7 +296,7 @@ const AppContent: React.FC = () => {
 
 
           {activeTab === 'sprints' && <SprintsPage />}
-
+          {activeTab === 'wbs' && <WBSPage onSelectIssue={handleSelectIssue} />}
           {activeTab === 'worklogs' && <WorklogsPage />}
 
           {activeTab === 'settings' && <SettingsPage onOpenAuth={() => setIsAuthModalOpen(true)} />}

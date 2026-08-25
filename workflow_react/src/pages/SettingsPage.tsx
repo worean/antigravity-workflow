@@ -101,6 +101,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
   const [defaultPriority, setDefaultPriority] = useState<number>(() => {
     return Number(localStorage.getItem('pref_default_priority')) || 2;
   });
+  const [prioritySavedFeedback, setPrioritySavedFeedback] = useState<boolean>(false);
+
+  const [isSundayStart, setIsSundayStart] = useState<boolean>(() => {
+    const saved = localStorage.getItem('pref_is_sunday_start');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [weekStartSavedFeedback, setWeekStartSavedFeedback] = useState<boolean>(false);
+
   const [desktopNotifications, setDesktopNotifications] = useState<boolean>(() => {
     return isNotificationEnabled();
   });
@@ -322,6 +330,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
     );
   };
 
+  // Save Preferences to LocalStorage & Backend User Record
+  const savePreferencesToServer = async (patch: Record<string, any>) => {
+    if (!user?.id) return;
+    try {
+      let currentPrefs: Record<string, any> = {};
+      if (user.preferences) {
+        try {
+          currentPrefs = typeof user.preferences === 'string' ? JSON.parse(user.preferences) : user.preferences;
+        } catch (e) {}
+      }
+      const updated = {
+        ...currentPrefs,
+        ...patch,
+      };
+      const updatedStr = JSON.stringify(updated);
+      const res = await updateUser(user.id, { preferences: updatedStr });
+      if (res && res.preferences) {
+        updateUserLocal({ ...user, preferences: res.preferences });
+      }
+    } catch (err) {
+      console.error('Failed to sync preferences to backend:', err);
+    }
+  };
+
   // Handle Delete Custom Field
   const handleDeleteCustomField = async (id: number) => {
     if (!confirm('이 커스텀 필드를 삭제하시겠습니까?')) return;
@@ -337,17 +369,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
   const handleToggleCompactCards = (val: boolean) => {
     setCompactCards(val);
     localStorage.setItem('pref_compact_cards', String(val));
+    savePreferencesToServer({ compactCards: val });
   };
 
 
   const handleChangeDefaultPriority = (val: number) => {
     setDefaultPriority(val);
     localStorage.setItem('pref_default_priority', String(val));
+    setPrioritySavedFeedback(true);
+    savePreferencesToServer({ defaultPriority: val });
+    setTimeout(() => setPrioritySavedFeedback(false), 2000);
+  };
+
+  const handleChangeWeekStart = (sundayStart: boolean) => {
+    setIsSundayStart(sundayStart);
+    localStorage.setItem('pref_is_sunday_start', String(sundayStart));
+    setWeekStartSavedFeedback(true);
+    savePreferencesToServer({ isSundayStart: sundayStart });
+    setTimeout(() => setWeekStartSavedFeedback(false), 2000);
   };
 
   const handleToggleDesktopNotifications = async (val: boolean) => {
     setDesktopNotifications(val);
     localStorage.setItem('pref_desktop_notifications', String(val));
+    savePreferencesToServer({ desktopNotifications: val });
     if (val && !window.electronAPI?.isElectron) {
       await requestWebNotificationPermission();
     }
@@ -2020,8 +2065,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-                    신규 이슈 기본 우선순위 (Default Priority)
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>신규 이슈 기본 우선순위 (Default Priority)</span>
+                    {prioritySavedFeedback && (
+                      <span style={{ fontSize: '0.68rem', color: '#4ec9b0', background: 'rgba(78, 201, 176, 0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>
+                        ✓ 저장됨
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
                     새 이슈 생성 창을 열었을 때 기본으로 선택될 우선순위
@@ -2030,6 +2080,68 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
 
                 <div style={{ width: '140px' }}>
                   <PrioritySelect value={defaultPriority} onChange={handleChangeDefaultPriority} />
+                </div>
+              </div>
+
+              {/* Week Start Day Option (일요일 시작 / 월요일 시작) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px',
+                  background: '#2d2d2d',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-xs)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>주 시작 요일 설정 (Week Start Day)</span>
+                    {weekStartSavedFeedback && (
+                      <span style={{ fontSize: '0.68rem', color: '#4ec9b0', background: 'rgba(78, 201, 176, 0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>
+                        ✓ 저장됨
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                    WBS 간트 차트 및 주차 계산 시 기준이 되는 주의 시작 요일 (일요일 / 월요일)
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '4px', background: '#1e1e1e', padding: '3px', borderRadius: '4px', border: '1px solid #3c3c3c' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleChangeWeekStart(true)}
+                    style={{
+                      background: isSundayStart ? 'var(--primary)' : 'transparent',
+                      color: isSundayStart ? '#fff' : 'var(--text-muted)',
+                      border: 'none',
+                      borderRadius: '3px',
+                      padding: '3px 9px',
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                      fontWeight: isSundayStart ? 600 : 400,
+                    }}
+                  >
+                    일요일 시작
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChangeWeekStart(false)}
+                    style={{
+                      background: !isSundayStart ? 'var(--primary)' : 'transparent',
+                      color: !isSundayStart ? '#fff' : 'var(--text-muted)',
+                      border: 'none',
+                      borderRadius: '3px',
+                      padding: '3px 9px',
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                      fontWeight: !isSundayStart ? 600 : 400,
+                    }}
+                  >
+                    월요일 시작
+                  </button>
                 </div>
               </div>
 

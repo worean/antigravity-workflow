@@ -1,4 +1,4 @@
-import { Circle, Clock, Eye, CheckCircle2, AlertCircle, ArrowUp, ArrowDown, Minus, CheckSquare, Bug, Sparkles, Wrench } from 'lucide-react';
+﻿import { Circle, Clock, Eye, CheckCircle2, AlertCircle, ArrowUp, ArrowDown, Minus, CheckSquare, Bug, Sparkles, Wrench } from 'lucide-react';
 
 /**
  * ============================================================================
@@ -95,14 +95,20 @@ export const parseStatusCategory = (input?: any): StatusCategory => {
     return 'TODO';
   }
   if (typeof input === 'object') {
-    if (input.category && input.category.toUpperCase() in STATUS_CONFIG) {
-      return input.category.toUpperCase() as StatusCategory;
-    }
-    if (input.name && input.name.toUpperCase() in STATUS_CONFIG) {
-      return input.name.toUpperCase() as StatusCategory;
-    }
     if (input.id && input.id in STATUS_ID_MAP) {
       return STATUS_ID_MAP[input.id].key;
+    }
+    if (typeof input.category === 'string') {
+      const catUpper = input.category.toUpperCase();
+      if (catUpper in STATUS_CONFIG) return catUpper as StatusCategory;
+    }
+    if (typeof input.name === 'string') {
+      const nameUpper = input.name.toUpperCase();
+      if (nameUpper in STATUS_CONFIG) return nameUpper as StatusCategory;
+    }
+    if (typeof input.key === 'string') {
+      const keyUpper = input.key.toUpperCase();
+      if (keyUpper in STATUS_CONFIG) return keyUpper as StatusCategory;
     }
   }
   return 'TODO';
@@ -179,7 +185,6 @@ export const PRIORITY_CONFIG: Record<PriorityLevel, PriorityMeta> = {
   },
 };
 
-
 export const PRIORITY_LIST: PriorityMeta[] = [
   PRIORITY_CONFIG.LOW,
   PRIORITY_CONFIG.MEDIUM,
@@ -209,14 +214,23 @@ export const parsePriorityLevel = (input?: any): PriorityLevel => {
     return 'MEDIUM';
   }
   if (typeof input === 'object') {
-    if (input.name && input.name.toUpperCase() in PRIORITY_CONFIG) {
-      return input.name.toUpperCase() as PriorityLevel;
-    }
-    if (input.level && input.level.toUpperCase() in PRIORITY_CONFIG) {
-      return input.level.toUpperCase() as PriorityLevel;
-    }
     if (input.id && input.id in PRIORITY_ID_MAP) {
       return PRIORITY_ID_MAP[input.id].key;
+    }
+    if (typeof input.level === 'number' && input.level in PRIORITY_ID_MAP) {
+      return PRIORITY_ID_MAP[input.level].key;
+    }
+    if (typeof input.level === 'string') {
+      const lvlUpper = input.level.toUpperCase();
+      if (lvlUpper in PRIORITY_CONFIG) return lvlUpper as PriorityLevel;
+    }
+    if (typeof input.name === 'string') {
+      const nameUpper = input.name.toUpperCase();
+      if (nameUpper in PRIORITY_CONFIG) return nameUpper as PriorityLevel;
+    }
+    if (typeof input.key === 'string') {
+      const keyUpper = input.key.toUpperCase();
+      if (keyUpper in PRIORITY_CONFIG) return keyUpper as PriorityLevel;
     }
   }
   return 'MEDIUM';
@@ -322,14 +336,16 @@ export const parseIssueTypeKey = (input?: any): IssueTypeKey => {
     return 'TASK';
   }
   if (typeof input === 'object') {
-    if (input.name && input.name.toUpperCase() in ISSUE_TYPE_CONFIG) {
-      return input.name.toUpperCase() as IssueTypeKey;
-    }
-    if (input.key && input.key.toUpperCase() in ISSUE_TYPE_CONFIG) {
-      return input.key.toUpperCase() as IssueTypeKey;
-    }
     if (input.id && input.id in ISSUE_TYPE_ID_MAP) {
       return ISSUE_TYPE_ID_MAP[input.id].key;
+    }
+    if (typeof input.key === 'string') {
+      const keyUpper = input.key.toUpperCase();
+      if (keyUpper in ISSUE_TYPE_CONFIG) return keyUpper as IssueTypeKey;
+    }
+    if (typeof input.name === 'string') {
+      const nameUpper = input.name.toUpperCase();
+      if (nameUpper in ISSUE_TYPE_CONFIG) return nameUpper as IssueTypeKey;
     }
   }
   return 'TASK';

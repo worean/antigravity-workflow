@@ -4,6 +4,15 @@ export const createCommentService = async (data: any) => {
   const { issueId, authorId, content, parentId, isInternal, mentionedUserIds } = data;
   if (!issueId || !authorId || !content) throw new Error('issueId, authorId, and content are required');
 
+  if (parentId) {
+    const parentComment = await prisma.comment.findUnique({
+      where: { id: Number(parentId) }
+    });
+    if (!parentComment) {
+      throw new Error('Parent comment not found or has been deleted');
+    }
+  }
+
   const comment = await prisma.comment.create({
     data: {
       issueId: Number(issueId),
@@ -14,11 +23,6 @@ export const createCommentService = async (data: any) => {
     },
     include: {
       author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
-      children: {
-        include: {
-          author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } }
-        }
-      },
       mentions: { include: { user: { select: { id: true, name: true, avatar: true, avatarColor: true } } } },
       reactions: true,
       attachments: true

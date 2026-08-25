@@ -1,10 +1,19 @@
-﻿export interface User {
+﻿export interface UserPreferences {
+  isSundayStart?: boolean;
+  defaultPriority?: number;
+  compactCards?: boolean;
+  desktopNotifications?: boolean;
+  [key: string]: any;
+}
+
+export interface User {
   id: number;
   email: string;
   name?: string | null;
   role?: 'ADMIN' | 'MEMBER' | string;
   avatar?: string | null;
   avatarColor?: string | null;
+  preferences?: string | null;
   groupMemberships?: GroupMember[];
   createdAt?: string;
 }
@@ -36,12 +45,21 @@ export interface Group {
 }
 
 export interface ProjectMember {
-
   id: number;
   projectId: number;
   userId: number;
-  role: string;
+  role: 'ADMIN' | 'MEMBER' | 'VIEWER' | string;
   user?: User;
+  createdAt?: string;
+}
+
+export interface ProjectGroup {
+  id: number;
+  projectId: number;
+  groupId: number;
+  role: 'ADMIN' | 'MEMBER' | 'VIEWER' | string;
+  group?: Group;
+  createdAt?: string;
 }
 
 export interface Project {
@@ -54,13 +72,21 @@ export interface Project {
   statusId?: number;
   status?: { id: number; name: string; category: string };
   priorityId?: number;
-  priority?: { id: number; name: string; color?: string };
+  priority?: { id: number; name: string; color?: string; level?: number };
+  plannedStartDate?: string | null;
+  dueDate?: string | null;
+  actualStartDate?: string | null;
+  actualEndDate?: string | null;
   members?: ProjectMember[];
+  groups?: ProjectGroup[];
+  sprints?: Sprint[];
   createdAt?: string;
   updatedAt?: string;
   _count?: {
     issues?: number;
-    memberships?: number;
+    sprints?: number;
+    members?: number;
+    groups?: number;
   };
 }
 
@@ -132,6 +158,10 @@ export interface Issue {
   dueDate?: string | null;
   actualStartDate?: string | null;
   actualEndDate?: string | null;
+  parentId?: number | null;
+  parent?: Issue | null;
+  children?: Issue[];
+  childrenCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -148,9 +178,10 @@ export interface Comment {
   content: string;
   issueId: number;
   authorId: number;
-  author?: User;
-  user?: User;
+  author?: User | null;
+  user?: User | null;
   parentId?: number | null;
+  isDeletedParent?: boolean;
   children?: Comment[];
   reactions?: CommentReaction[];
   createdAt: string;
@@ -159,16 +190,18 @@ export interface Comment {
 export interface Sprint {
   id: number;
   name: string;
-  goal?: string;
-  startDate?: string;
-  endDate?: string;
-  status: string; // PLANNED, ACTIVE, COMPLETED
+  goal?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | string;
   projectId: number;
   project?: Project;
   issues?: Issue[];
   _count?: {
     issues?: number;
   };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 

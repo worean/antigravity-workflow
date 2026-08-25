@@ -11,6 +11,7 @@ export const getUserService = async (id: number) => {
       role: true,
       avatar: true,
       avatarColor: true,
+      preferences: true,
       createdAt: true,
       updatedAt: true,
       groupMemberships: {

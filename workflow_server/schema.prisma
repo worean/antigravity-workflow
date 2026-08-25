@@ -104,7 +104,8 @@ model User {
   avatar   String? // Base64 PNG data URL 또는 이미지 URL (최대 256x256)
   avatarColor String? // 기본 아바타 랜덤/설정 배경색 (예: #3b82f6)
 
-  pushToken String? // APNs/FCM 푸시 토큰
+  pushToken   String? // APNs/FCM 푸시 토큰
+  preferences String? @default("{}") // 사용자별 환경 설정 JSON 문자열 (isSundayStart, defaultPriority, compactCards 등)
 
   // 소셜 계정 연동 정보 (1:N)
   socialAccounts SocialAccount[]
@@ -174,6 +175,7 @@ model Project {
   syncStatus String @default("SYNCED")
 
   members         ProjectMember[]
+  groups          ProjectGroup[]
   sprints         Sprint[]
   issues          Issue[]
   milestones      Milestone[]
@@ -186,7 +188,7 @@ model Project {
   updatedAt DateTime @updatedAt
 }
 
-// 프로젝트 멤버 및 권한 (RBAC)
+// 프로젝트 멤버 및 권한 (RBAC - Individual)
 model ProjectMember {
   id        Int      @id @default(autoincrement())
   projectId Int
@@ -197,6 +199,19 @@ model ProjectMember {
   createdAt DateTime @default(now())
 
   @@unique([projectId, userId])
+}
+
+// 프로젝트 참여 그룹 및 권한 (RBAC - Group)
+model ProjectGroup {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  groupId   Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // ADMIN, MEMBER, VIEWER
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, groupId])
 }
 
 // 마일스톤 관리
@@ -365,8 +380,6 @@ model Comment {
   issue    Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
   parentId Int?
-  parent   Comment?  @relation("CommentHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children Comment[] @relation("CommentHierarchy")
 
   mentions    CommentMention[]
   reactions   CommentReaction[]
@@ -681,7 +694,8 @@ model Group {
   parent      Group?   @relation("GroupHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children    Group[]  @relation("GroupHierarchy")
 
-  members     GroupMember[]
+  members       GroupMember[]
+  projectGroups ProjectGroup[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

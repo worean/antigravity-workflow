@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Project } from '../types';
 import { getProjects, deleteProject } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -239,7 +239,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                     <Layers size={11} /> {proj._count?.issues ?? 0} 이슈
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Users size={11} /> {proj._count?.memberships ?? 1} 멤버
+                    <Users size={11} /> {proj._count?.members ?? (proj.members?.length ?? 1)} 멤버
                   </span>
                 </div>
 

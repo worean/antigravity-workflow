@@ -4,6 +4,7 @@ import {
   getIssue,
   updateIssue,
   deleteIssue,
+  getIssues,
   getUsers,
   getComments,
   createComment,
@@ -34,11 +35,16 @@ import {
   Clock,
   Plus,
   Columns,
+  GitBranch,
+  CornerDownRight,
+  ChevronRight,
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { IssueModal } from '../components/IssueModal';
 import { useActionFeedback } from '../hooks/useActionFeedback';
 import { ActionFeedbackModal } from '../components/ActionFeedbackModal';
 import { getProjectMembers } from '../utils/projectMembers';
+import { organizeComments, countComments } from '../utils/commentTree';
 import {
   StatusBadge,
   PriorityBadge,
@@ -105,6 +111,9 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [projectId, setProjectId] = useState<number>(1);
+  const [parentId, setParentId] = useState<number | null>(null);
+  const [candidateParentIssues, setCandidateParentIssues] = useState<Issue[]>([]);
+  const [showCreateSubTaskModal, setShowCreateSubTaskModal] = useState<boolean>(false);
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
   const [priorityId, setPriorityId] = useState<number>(1);
   const [statusId, setStatusId] = useState<number>(1);
@@ -149,13 +158,14 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
       }
       setIssue(issueData);
 
-      // 2. 메타 데이터 및 댓글, 작업로그 데이터 안전 병렬 조회
-      const [pRes, uRes, cfRes, cRes, wRes] = await Promise.allSettled([
+      // 2. 메타 데이터 및 댓글, 작업로그, 프로젝트 이슈 목록 병렬 조회
+      const [pRes, uRes, cfRes, cRes, wRes, allProjIssuesRes] = await Promise.allSettled([
         getProjects(),
         getUsers(),
         getCustomFields(),
         getComments(issueId),
         getWorklogs(issueId),
+        getIssues({ projectId: issueData.projectId }),
       ]);
 
       const pList = pRes.status === 'fulfilled' && Array.isArray(pRes.value) ? pRes.value : [];
@@ -163,17 +173,24 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
       const cfList = cfRes.status === 'fulfilled' && Array.isArray(cfRes.value) ? cfRes.value : [];
       const cList = cRes.status === 'fulfilled' && Array.isArray(cRes.value) ? cRes.value : [];
       const wList = wRes.status === 'fulfilled' && Array.isArray(wRes.value) ? wRes.value : [];
+      const allProjIssues = allProjIssuesRes.status === 'fulfilled' && Array.isArray(allProjIssuesRes.value) ? allProjIssuesRes.value : [];
+
+      // Filter out self and current children from candidate parents
+      const currentChildIds = new Set((issueData.children || []).map((c: any) => c.id));
+      const validParents = allProjIssues.filter((i) => i.id !== issueData.id && !currentChildIds.has(i.id));
+      setCandidateParentIssues(validParents);
 
       setProjects(pList);
       setUsers(uList);
       setCustomDefs(cfList);
-      setComments(cList);
+      setComments(organizeComments(cList));
       setWorklogs(wList);
 
       // Bind form state safely
       setTitle(issueData.title || '');
       setDescription(issueData.description || '');
       setProjectId(issueData.projectId || (pList[0] ? pList[0].id : 1));
+      setParentId(issueData.parentId ?? null);
       setAssigneeId(issueData.assigneeId || issueData.assignee?.id || undefined);
       setPriorityId(issueData.priorityId || issueData.priority?.id || 1);
       setStatusId(issueData.statusId || issueData.status?.id || 1);
@@ -302,6 +319,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
           title,
           description,
           projectId: Number(projectId),
+          parentId: parentId ? Number(parentId) : null,
           assigneeId: assigneeId ? Number(assigneeId) : undefined,
           priorityId: Number(priorityId),
           statusId: Number(statusId),
@@ -370,8 +388,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
 
     try {
       const comment = await createComment(issue.id, newComment);
-      // Direct State Update: GET 재조회 부하 없이 Response 객체로 로컬 갱신
-      setComments((prev) => [...prev, { ...comment, children: comment.children || [] }]);
+      setComments((prev) => organizeComments([...prev, comment]));
       setNewComment('');
       sendDesktopNotification({
         title: '새 댓글 등록',
@@ -390,14 +407,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
 
     try {
       const childComment = await createComment(issue.id, replyContent, parentId);
-      // Direct State Update: 상위 댓글의 children 배열에 즉시 대댓글 추가
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === parentId
-            ? { ...c, children: [...(c.children || []), childComment] }
-            : c
-        )
-      );
+      setComments((prev) => organizeComments([...prev, childComment]));
       setReplyContent('');
       setReplyTargetId(null);
       if (onIssueUpdated) onIssueUpdated();
@@ -411,15 +421,10 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
     if (!confirm('정말 이 댓글을 삭제하시겠습니까?')) return;
     try {
       await deleteComment(commentId);
-      // Direct State Update: 로컬 state에서 부모/대댓글 모두 즉시 제거
-      setComments((prev) =>
-        prev
-          .filter((c) => c.id !== commentId)
-          .map((c) => ({
-            ...c,
-            children: c.children ? c.children.filter((sub) => sub.id !== commentId) : [],
-          }))
-      );
+      if (issue) {
+        const cList = await getComments(issue.id);
+        setComments(organizeComments(cList));
+      }
       if (onIssueUpdated) onIssueUpdated();
     } catch (err: any) {
       console.error(err);
@@ -431,11 +436,8 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
     (def) => !def.projectId || def.projectId === Number(projectId)
   );
 
-  // 하위 댓글(대댓글)까지 모두 포함한 전체 댓글 수 계산
-  const totalCommentsCount = comments.reduce(
-    (acc, cur) => acc + 1 + (cur.children ? cur.children.length : 0),
-    0
-  );
+  // 하위 댓글(대댓글)까지 모두 포함한 유효 댓글 수 계산 (삭제된 가상 부모 제외)
+  const totalCommentsCount = countComments(comments);
 
 
   return (
@@ -559,6 +561,27 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
 
               <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                  <GitBranch size={11} style={{ display: 'inline', marginRight: '3px' }} /> 상위 이슈
+                </span>
+                {issue.parent ? (
+                  <span
+                    onClick={() => {
+                      if (issue.parent?.id) {
+                        window.location.hash = `#issue-detail?projectId=${issue.projectId}&issueId=${issue.parent.id}`;
+                      }
+                    }}
+                    style={{ fontWeight: 600, color: 'var(--accent-cyan)', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                    title="상위 이슈로 이동"
+                  >
+                    #{issue.parent.id} {issue.parent.title}
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>최상위 일감</span>
+                )}
+              </div>
+
+              <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
                   <CheckCircle2 size={11} style={{ display: 'inline', marginRight: '3px' }} /> 진척도
                 </span>
                 <span style={{ fontWeight: 600, color: '#4ec9b0', fontSize: '0.78rem' }}>{issue.progress || 0}%</span>
@@ -617,6 +640,81 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
                 상세 내용
               </div>
               <MarkdownViewer content={issue.description} placeholder="등록된 상세 설명이 없습니다." />
+            </div>
+
+            {/* Sub-tasks / Children Section */}
+            <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '10px 12px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CornerDownRight size={14} color="var(--accent-cyan)" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+                    하위 이슈 (Sub-tasks)
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    ({(issue.children || []).length}개)
+                  </span>
+                </div>
+
+                {isAuthenticated && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowCreateSubTaskModal(true)}
+                    style={{ fontSize: '0.7rem', height: '22px', padding: '0 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    title="이 이슈를 상위 이슈로 하는 새로운 하위 이슈를 등록합니다."
+                  >
+                    <Plus size={11} /> 하위 이슈 추가
+                  </button>
+                )}
+              </div>
+
+              {(!issue.children || issue.children.length === 0) ? (
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                  등록된 하위 이슈가 없습니다. 상단의 <strong>[+ 하위 이슈 추가]</strong> 버튼을 눌러 하위 일감을 생성해 보세요.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {issue.children.map((sub: any) => (
+                    <div
+                      key={sub.id}
+                      onClick={() => {
+                        window.location.hash = `#issue-detail?projectId=${issue.projectId}&issueId=${sub.id}`;
+                      }}
+                      style={{
+                        background: '#252526',
+                        border: '1px solid #383838',
+                        borderRadius: '2px',
+                        padding: '6px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#323233')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#252526')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          #{sub.id}
+                        </span>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--text-bright)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sub.title}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <StatusBadge status={sub.status} size="sm" />
+                        <PriorityBadge priority={sub.priority} size="sm" />
+                        {sub.assignee && (
+                          <Avatar user={sub.assignee} name={sub.assignee.name || ''} size={16} shape="circle" />
+                        )}
+                        <ChevronRight size={12} color="var(--text-muted)" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Custom Fields Summary */}
@@ -894,6 +992,30 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
               </div>
             </div>
 
+            {/* Parent Issue Selector (상위 이슈 변경) */}
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <GitBranch size={12} color="var(--accent-cyan)" /> 상위 이슈 (Parent Issue / 계층 구조)
+              </label>
+              <select
+                className="input-field"
+                value={parentId ? String(parentId) : ''}
+                onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">[상위 이슈 없음 (최상위 일감)]</option>
+                {candidateParentIssues.map((pIss) => (
+                  <option key={pIss.id} value={pIss.id}>
+                    #{pIss.id} {pIss.title} ({pIss.status?.name || 'TODO'})
+                  </option>
+                ))}
+              </select>
+              {parentId && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginTop: '3px' }}>
+                  💡 이 이슈는 #{parentId}의 하위 이슈(Sub-task)로 배속됩니다.
+                </div>
+              )}
+            </div>
+
             <div className="form-group">
               <label className="form-label">상세 설명 (Markdown Description)</label>
               <MarkdownEditor value={description} onChange={setDescription} rows={8} minHeight="180px" />
@@ -1154,48 +1276,76 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
         {/* Comment Thread List (Flat Text) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {comments.length === 0 ? (
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
-              등록된 댓글이 없습니다.
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
+              등록된 댓글이 없습니다. 첫 번째 댓글을 남겨보세요!
             </div>
           ) : (
             comments.map((c) => {
-              const isMyComment = Boolean(user && (user.id === c.authorId || user.id === c.author?.id));
+              const isMyComment = !c.isDeletedParent && Boolean(user && (user.id === c.authorId || user.id === c.author?.id));
               const isReplying = replyTargetId === c.id;
-              const authorName = c.author?.name || c.author?.email || (isMyComment ? (user?.name || user?.email) : `유저 #${c.authorId}`);
+              const authorName = c.isDeletedParent
+                ? '사라진 댓글'
+                : c.author?.name || c.author?.email || (isMyComment ? (user?.name || user?.email) : `유저 #${c.authorId}`);
 
               return (
-                <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div key={`comment-${c.id}-${c.isDeletedParent ? 'deleted' : 'active'}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {/* Main Parent Comment Item (YouTube Style) */}
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', opacity: c.isDeletedParent ? 0.8 : 1 }}>
                     {/* Author Avatar (Circle) */}
-                    <Avatar
-                      user={c.author || (isMyComment ? user : null)}
-                      name={authorName}
-                      size={26}
-                      shape="circle"
-                      style={{ marginTop: '2px' }}
-                    />
+                    {c.isDeletedParent ? (
+                      <div
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: '50%',
+                          backgroundColor: '#383838',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.7rem',
+                          marginTop: '2px',
+                          flexShrink: 0
+                        }}
+                      >
+                        ✕
+                      </div>
+                    ) : (
+                      <Avatar
+                        user={c.author || (isMyComment ? user : null)}
+                        name={authorName}
+                        size={26}
+                        shape="circle"
+                        style={{ marginTop: '2px' }}
+                      />
+                    )}
 
                     {/* Comment Body & Header */}
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isMyComment ? '#9cdcfe' : 'var(--text-bright)' }}>
-                            {authorName || '사용자'}
-
+                          <span style={{
+                            fontSize: '0.78rem',
+                            fontWeight: c.isDeletedParent ? 400 : 600,
+                            color: c.isDeletedParent ? 'var(--text-muted)' : isMyComment ? '#9cdcfe' : 'var(--text-bright)',
+                            fontStyle: c.isDeletedParent ? 'italic' : 'normal'
+                          }}>
+                            {authorName}
                           </span>
-                          {isMyComment && (
+                          {isMyComment && !c.isDeletedParent && (
                             <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#9cdcfe', background: 'rgba(0,122,204,0.15)', padding: '0 4px', borderRadius: '2px' }}>
                               작성자
                             </span>
                           )}
-                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                            {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          {!c.isDeletedParent && c.createdAt && (
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                              {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
                         </div>
 
                         {/* Action buttons (Delete) */}
-                        {isAuthenticated && isMyComment && (
+                        {isAuthenticated && isMyComment && !c.isDeletedParent && (
                           <button
                             onClick={() => handleDeleteComment(c.id)}
                             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
@@ -1209,13 +1359,19 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
                       </div>
 
                       {/* Plain Text Content */}
-                      <div style={{ fontSize: '0.8rem', lineHeight: '1.45', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>
-                        {c.content}
+                      <div style={{
+                        fontSize: '0.8rem',
+                        lineHeight: '1.45',
+                        color: c.isDeletedParent ? 'var(--text-muted)' : 'var(--text-main)',
+                        fontStyle: c.isDeletedParent ? 'italic' : 'normal',
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {c.isDeletedParent ? '삭제된 댓글입니다.' : c.content}
                       </div>
 
-                      {/* Reply Button Action */}
+                      {/* Reply Button Action (삭제된 댓글에는 대댓글 작성 불가) */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                        {isAuthenticated && (
+                        {isAuthenticated && !c.isDeletedParent && (
                           <button
                             onClick={() => {
                               if (isReplying) {
@@ -1376,6 +1532,25 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
         onConfirm={handleConfirmDeleteIssue}
         onClose={() => setShowDeleteConfirm(false)}
         loading={isPending}
+      />
+
+      {/* Sub-Task Creation Modal (하위 이슈 생성 모달) */}
+      <IssueModal
+        isOpen={showCreateSubTaskModal}
+        onClose={() => setShowCreateSubTaskModal(false)}
+        projects={projects}
+        initialProjectId={issue.projectId}
+        initialParentId={issue.id}
+        onSuccess={() => {
+          setShowCreateSubTaskModal(false);
+          loadIssueData();
+          if (onIssueUpdated) onIssueUpdated();
+        }}
+        onIssueCreated={() => {
+          setShowCreateSubTaskModal(false);
+          loadIssueData();
+          if (onIssueUpdated) onIssueUpdated();
+        }}
       />
 
       <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />

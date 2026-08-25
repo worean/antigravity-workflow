@@ -15,6 +15,7 @@ export const getMeService = async (userId: number) => {
       avatar: true,
       avatarColor: true,
       pushToken: true,
+      preferences: true,
       createdAt: true,
       updatedAt: true,
       groupMemberships: {

@@ -9,6 +9,7 @@ export interface UpdateUserInput {
   avatar?: string | null;
   avatarColor?: string | null;
   pushToken?: string | null;
+  preferences?: string | null;
 }
 
 export const updateUserService = async (id: number, data: UpdateUserInput) => {
@@ -24,6 +25,7 @@ export const updateUserService = async (id: number, data: UpdateUserInput) => {
       avatar: true,
       avatarColor: true,
       pushToken: true,
+      preferences: true,
       createdAt: true,
       updatedAt: true,
     },

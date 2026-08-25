@@ -4,6 +4,7 @@ import {
   createIssue,
   updateIssue,
   deleteIssue,
+  getIssues,
   getUsers,
   getComments,
   createComment,
@@ -29,6 +30,7 @@ import {
   Calendar,
   Clock,
   Plus,
+  GitBranch,
 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { useActionFeedback } from '../hooks/useActionFeedback';
@@ -36,6 +38,7 @@ import { ActionFeedbackModal } from './ActionFeedbackModal';
 import { useOverlayClickClose } from '../hooks/useOverlayClickClose';
 import { getProjectMembers } from '../utils/projectMembers';
 import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
+import { organizeComments, countComments } from '../utils/commentTree';
 import {
   StatusBadge,
   PriorityBadge,
@@ -53,16 +56,27 @@ import { hoursToMinutes, formatWorklogTime } from '../utils/worklogUtils';
 import { sendDesktopNotification } from '../utils/notificationUtils';
 
 interface IssueModalProps {
-
   isOpen: boolean;
   onClose: () => void;
   selectedIssue?: Issue | null;
   projects?: Project[];
   initialProjectId?: number;
+  initialParentId?: number | null;
   onSuccess?: (savedIssue?: Issue) => void;
   onIssueCreated?: () => void;
 }
 
+const getDefaultPriority = (): number => {
+  try {
+    const saved = localStorage.getItem('pref_default_priority');
+    if (saved && !isNaN(Number(saved)) && Number(saved) > 0) {
+      return Number(saved);
+    }
+  } catch {
+    // ignore
+  }
+  return 2; // Default to Medium (2)
+};
 
 export const IssueModal: React.FC<IssueModalProps> = ({
   isOpen,
@@ -70,6 +84,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   selectedIssue,
   projects = [],
   initialProjectId,
+  initialParentId,
   onSuccess,
   onIssueCreated,
 }) => {
@@ -81,9 +96,11 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [projectId, setProjectId] = useState<number>(initialProjectId || projects[0]?.id || 1);
+  const [parentId, setParentId] = useState<number | null>(initialParentId ?? selectedIssue?.parentId ?? null);
+  const [candidateParentIssues, setCandidateParentIssues] = useState<Issue[]>([]);
 
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
-  const [priorityId, setPriorityId] = useState<number>(1);
+  const [priorityId, setPriorityId] = useState<number>(() => getDefaultPriority());
   const [statusId, setStatusId] = useState<number>(1);
   const [typeId, setTypeId] = useState<number>(1);
   const [progress, setProgress] = useState<number>(0);
@@ -124,11 +141,8 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           selectedIssue.author?.id === user.id)
     );
 
-  // 하위 댓글(대댓글)까지 모두 포함한 전체 댓글 수 계산
-  const totalCommentsCount = comments.reduce(
-    (acc, cur) => acc + 1 + (cur.children ? cur.children.length : 0),
-    0
-  );
+  // 하위 댓글(대댓글)까지 모두 포함한 유효 댓글 수 계산 (삭제된 가상 부모 제외)
+  const totalCommentsCount = countComments(comments);
 
 
   useEffect(() => {
@@ -187,7 +201,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             getComments(selectedIssue.id),
             getWorklogs(selectedIssue.id),
           ]);
-          setComments(cList);
+          setComments(organizeComments(cList));
           setWorklogs(wList);
         } catch (err) {
           console.error(err);
@@ -200,7 +214,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       setDescription('');
       setProjectId(projects[0]?.id || 1);
       setAssigneeId(undefined);
-      setPriorityId(1);
+      setPriorityId(getDefaultPriority());
       setStatusId(1);
       setTypeId(1);
       setProgress(0);
@@ -212,10 +226,26 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       setWorklogs([]);
       setWorklogHoursInput('');
       setWorklogDescInput('');
-      setShowWorklogForm(false);
       setComments([]);
+      setParentId(initialParentId ?? null);
     }
-  }, [selectedIssue, isOpen, projects]);
+  }, [selectedIssue, isOpen, projects, initialParentId]);
+
+  // Load candidate parent issues in the current project
+  useEffect(() => {
+    if (!isOpen || !projectId) return;
+    const fetchCandidateParents = async () => {
+      try {
+        const pIssues = await getIssues({ projectId });
+        // Exclude current issue if editing
+        const filtered = pIssues.filter((i) => !selectedIssue || i.id !== selectedIssue.id);
+        setCandidateParentIssues(filtered);
+      } catch (err) {
+        console.error('Failed to load candidate parent issues:', err);
+      }
+    };
+    fetchCandidateParents();
+  }, [projectId, isOpen, selectedIssue]);
 
   if (!isOpen) return null;
 
@@ -270,6 +300,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             title,
             description,
             projectId: Number(projectId),
+            parentId: parentId ? Number(parentId) : null,
             assigneeId: assigneeId ? Number(assigneeId) : undefined,
             priorityId: Number(priorityId),
             statusId: Number(statusId),
@@ -283,6 +314,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             title,
             description,
             projectId: Number(projectId),
+            parentId: parentId ? Number(parentId) : null,
             assigneeId: assigneeId ? Number(assigneeId) : undefined,
             priorityId: Number(priorityId),
             statusId: Number(statusId),
@@ -354,8 +386,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
     try {
       const comment = await createComment(selectedIssue.id, newComment);
-      // Direct State Update
-      setComments((prev) => [...prev, { ...comment, children: comment.children || [] }]);
+      setComments((prev) => organizeComments([...prev, comment]));
       setNewComment('');
     } catch (err: any) {
       console.error(err);
@@ -369,14 +400,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
     try {
       const childComment = await createComment(selectedIssue.id, replyContent, parentId);
-      // Direct State Update: 상위 댓글의 children 배열에 즉시 대댓글 추가
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === parentId
-            ? { ...c, children: [...(c.children || []), childComment] }
-            : c
-        )
-      );
+      setComments((prev) => organizeComments([...prev, childComment]));
       setReplyContent('');
       setReplyTargetId(null);
     } catch (err: any) {
@@ -389,15 +413,10 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
     try {
       await deleteComment(commentId);
-      // Direct State Update: 상위/대댓글 모두 즉시 제거
-      setComments((prev) =>
-        prev
-          .filter((c) => c.id !== commentId)
-          .map((c) => ({
-            ...c,
-            children: c.children ? c.children.filter((sub) => sub.id !== commentId) : [],
-          }))
-      );
+      if (selectedIssue) {
+        const cList = await getComments(selectedIssue.id);
+        setComments(organizeComments(cList));
+      }
     } catch (err: any) {
       alert(err.response?.data?.error || '댓글 삭제 실패');
     }
@@ -751,39 +770,68 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                     </div>
                   ) : (
                     comments.map((c) => {
-                      const isMyComment = Boolean(user && (user.id === c.authorId || user.id === c.author?.id));
+                      const isMyComment = !c.isDeletedParent && Boolean(user && (user.id === c.authorId || user.id === c.author?.id));
                       const isReplying = replyTargetId === c.id;
-                      const authorName = c.author?.name || c.author?.email || (isMyComment ? (user?.name || user?.email) : `유저 #${c.authorId}`);
+                      const authorName = c.isDeletedParent
+                        ? '사라진 댓글'
+                        : c.author?.name || c.author?.email || (isMyComment ? (user?.name || user?.email) : `유저 #${c.authorId}`);
 
                       return (
-                        <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <div key={`comment-${c.id}-${c.isDeletedParent ? 'deleted' : 'active'}`} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                           {/* Main Parent Comment Item (YouTube Style) */}
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                            <Avatar
-                              user={c.author || (isMyComment ? user : null)}
-                              name={authorName}
-                              size={24}
-                              shape="circle"
-                              style={{ marginTop: '2px' }}
-                            />
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', opacity: c.isDeletedParent ? 0.8 : 1 }}>
+                            {c.isDeletedParent ? (
+                              <div
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#383838',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'var(--text-muted)',
+                                  fontSize: '0.65rem',
+                                  marginTop: '2px',
+                                  flexShrink: 0
+                                }}
+                              >
+                                ✕
+                              </div>
+                            ) : (
+                              <Avatar
+                                user={c.author || (isMyComment ? user : null)}
+                                name={authorName}
+                                size={24}
+                                shape="circle"
+                                style={{ marginTop: '2px' }}
+                              />
+                            )}
 
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isMyComment ? '#9cdcfe' : 'var(--text-bright)' }}>
+                                  <span style={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: c.isDeletedParent ? 400 : 600,
+                                    color: c.isDeletedParent ? 'var(--text-muted)' : isMyComment ? '#9cdcfe' : 'var(--text-bright)',
+                                    fontStyle: c.isDeletedParent ? 'italic' : 'normal'
+                                  }}>
                                     {authorName}
                                   </span>
-                                  {isMyComment && (
+                                  {isMyComment && !c.isDeletedParent && (
                                     <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#9cdcfe', background: 'rgba(0,122,204,0.15)', padding: '0 3px', borderRadius: '2px' }}>
                                       작성자
                                     </span>
                                   )}
-                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                                    {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                  </span>
+                                  {!c.isDeletedParent && c.createdAt && (
+                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                      {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  )}
                                 </div>
 
-                                {isAuthenticated && isMyComment && (
+                                {isAuthenticated && isMyComment && !c.isDeletedParent && (
                                   <button
                                     onClick={() => handleDeleteComment(c.id)}
                                     style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
@@ -796,12 +844,19 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                                 )}
                               </div>
 
-                              <div style={{ fontSize: '0.78rem', lineHeight: '1.4', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>
-                                {c.content}
+                              <div style={{
+                                fontSize: '0.78rem',
+                                lineHeight: '1.4',
+                                color: c.isDeletedParent ? 'var(--text-muted)' : 'var(--text-main)',
+                                fontStyle: c.isDeletedParent ? 'italic' : 'normal',
+                                whiteSpace: 'pre-wrap'
+                              }}>
+                                {c.isDeletedParent ? '삭제된 댓글입니다.' : c.content}
                               </div>
 
+                              {/* Reply Button Action (삭제된 댓글에는 대댓글 작성 불가) */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                                {isAuthenticated && (
+                                {isAuthenticated && !c.isDeletedParent && (
                                   <button
                                     onClick={() => {
                                       if (isReplying) {
@@ -1069,6 +1124,30 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                     style={{ width: '100%', marginTop: '6px' }}
                   />
                 </div>
+              </div>
+
+              {/* Parent Issue Selector (상위 이슈 지정) */}
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <GitBranch size={12} color="var(--accent-cyan)" /> 상위 이슈 (Parent Issue / 계층 구조)
+                </label>
+                <select
+                  className="input-field"
+                  value={parentId ? String(parentId) : ''}
+                  onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">[상위 이슈 없음 (최상위 일감)]</option>
+                  {candidateParentIssues.map((pIss) => (
+                    <option key={pIss.id} value={pIss.id}>
+                      #{pIss.id} {pIss.title} ({pIss.status?.name || 'TODO'})
+                    </option>
+                  ))}
+                </select>
+                {parentId && (
+                  <div style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', marginTop: '3px' }}>
+                    💡 이 이슈는 #{parentId}의 하위 이슈(Sub-task)로 등록/배속됩니다.
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

@@ -87,7 +87,20 @@ export const createProject = async (data: { name: string; key: string; descripti
   return res.data;
 };
 
-export const updateProject = async (id: number, data: { name?: string; description?: string; statusId?: number; priorityId?: number }): Promise<Project> => {
+export const updateProject = async (
+  id: number,
+  data: {
+    name?: string;
+    description?: string | null;
+    key?: string;
+    statusId?: number;
+    priorityId?: number;
+    plannedStartDate?: string | null;
+    dueDate?: string | null;
+    actualStartDate?: string | null;
+    actualEndDate?: string | null;
+  }
+): Promise<Project> => {
   const res = await api.put(`/projects/${id}`, data);
   return res.data;
 };
@@ -101,6 +114,31 @@ export const addProjectMember = async (projectId: number, userId: number, role: 
   return res.data;
 };
 
+export const removeProjectMember = async (projectId: number, userId: number) => {
+  const res = await api.delete(`/projects/${projectId}/members/${userId}`);
+  return res.data;
+};
+
+export const updateProjectMemberRole = async (projectId: number, userId: number, role: string) => {
+  const res = await api.put(`/projects/${projectId}/members/${userId}`, { role });
+  return res.data;
+};
+
+export const addProjectGroup = async (projectId: number, groupId: number, role: string = 'MEMBER') => {
+  const res = await api.post(`/projects/${projectId}/groups`, { groupId, role });
+  return res.data;
+};
+
+export const removeProjectGroup = async (projectId: number, groupId: number) => {
+  const res = await api.delete(`/projects/${projectId}/groups/${groupId}`);
+  return res.data;
+};
+
+export const updateProjectGroupRole = async (projectId: number, groupId: number, role: string) => {
+  const res = await api.put(`/projects/${projectId}/groups/${groupId}`, { role });
+  return res.data;
+};
+
 // ==========================================
 // 🏃 Sprints API
 // ==========================================
@@ -109,13 +147,55 @@ export const getSprints = async (projectId?: number): Promise<Sprint[]> => {
   return Array.isArray(res.data) ? res.data : (res.data.sprints || []);
 };
 
-export const createSprint = async (data: { name: string; goal?: string; projectId: number; startDate?: string; endDate?: string }): Promise<Sprint> => {
+export const getSprint = async (id: number): Promise<Sprint> => {
+  const res = await api.get(`/sprints/${id}`);
+  return res.data;
+};
+
+export const createSprint = async (data: {
+  name: string;
+  goal?: string;
+  projectId: number;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  issueIds?: number[];
+  autoCalculateDates?: boolean;
+}): Promise<Sprint> => {
   const res = await api.post('/sprints', data);
   return res.data;
 };
 
-export const updateSprint = async (id: number, data: { name?: string; goal?: string; status?: string }): Promise<Sprint> => {
+export const updateSprint = async (
+  id: number,
+  data: {
+    name?: string;
+    goal?: string;
+    status?: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    autoCalculateDates?: boolean;
+  }
+): Promise<Sprint> => {
   const res = await api.put(`/sprints/${id}`, data);
+  return res.data;
+};
+
+export const deleteSprint = async (id: number): Promise<{ message: string }> => {
+  const res = await api.delete(`/sprints/${id}`);
+  return res.data;
+};
+
+export const assignIssuesToSprint = async (
+  sprintId: number,
+  data: {
+    issueIds?: number[];
+    addIssueIds?: number[];
+    removeIssueIds?: number[];
+    autoCalculateDates?: boolean;
+  }
+): Promise<Sprint> => {
+  const res = await api.post(`/sprints/${sprintId}/issues`, data);
   return res.data;
 };
 
@@ -154,10 +234,13 @@ export const createIssue = async (data: {
   description?: string;
   projectId: number;
   sprintId?: number;
+  parentId?: number | null;
   assigneeId?: number;
   priorityId?: number;
   statusId?: number;
   typeId?: number;
+  plannedStartDate?: string | null;
+  dueDate?: string | null;
   customFields?: any;
 }): Promise<Issue> => {
   const res = await api.post('/issues', data);

@@ -7,6 +7,20 @@ export const getProjectService = async (id: number) => {
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
       members: { include: { user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } } } },
+      groups: {
+        include: {
+          group: {
+            include: {
+              parent: { select: { id: true, name: true, code: true } },
+              members: {
+                include: {
+                  user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
+                },
+              },
+            },
+          },
+        },
+      },
       status: true,
       priority: true,
       sprints: true,

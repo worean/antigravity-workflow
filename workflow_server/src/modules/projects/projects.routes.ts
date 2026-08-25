@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { Router } from 'express';
 import * as projectsController from './projects.controller.js';
 import { requireAuth, requireProjectPM, requireProjectMember } from '../../common/middlewares/authMiddleware.js';
@@ -12,9 +12,16 @@ projectRouter.post('/', requireAuth, projectsController.createProject); // 누�
 projectRouter.put('/:id', requireAuth, requireProjectPM, projectsController.updateProject); // PM만 수정 가능
 projectRouter.delete('/:id', requireAuth, requireProjectPM, projectsController.deleteProject); // PM만 삭제 가능
 
-// Member 초대 (오직 PM만 초대 가능)
+// Member 관리 (오직 PM만 수정 가능)
 projectRouter.post('/:id/members', requireAuth, requireProjectPM, projectsController.addMember);
+projectRouter.put('/:id/members/:userId', requireAuth, requireProjectPM, projectsController.updateMemberRole);
+projectRouter.delete('/:id/members/:userId', requireAuth, requireProjectPM, projectsController.removeMember);
 projectRouter.post('/addMember', requireAuth, requireProjectPM, projectsController.addMember);
+
+// Group 관리 (오직 PM만 수정 가능)
+projectRouter.post('/:id/groups', requireAuth, requireProjectPM, projectsController.addGroup);
+projectRouter.put('/:id/groups/:groupId', requireAuth, requireProjectPM, projectsController.updateGroupRole);
+projectRouter.delete('/:id/groups/:groupId', requireAuth, requireProjectPM, projectsController.removeGroup);
 
 // 레거시 지원 라우트
 projectRouter.get('/list', requireAuth, projectsController.getProjects);
