@@ -65,4 +65,117 @@ describe('🧪 [issues.getIssues] Service & REST API Unit Tests', () => {
       expect(response.status).toBe(401);
     });
   });
+
+  describe('Case 3: ⚡ 개수 제한(limit/take), 건너뛰기(skip/offset) 및 정렬(sortBy/order)', () => {
+    let testProject: any;
+    let createdIssueIds: number[] = [];
+
+    beforeAll(async () => {
+      testProject = await prisma.project.create({
+        data: {
+          name: 'Issues Pagination Test Project',
+          key: 'IPT',
+          ownerId: testUser.id,
+        }
+      });
+
+      // 테스트용 이슈 3개 생성 (각기 다른 제목, 작성자/담당자)
+      for (let i = 1; i <= 3; i++) {
+        const issue = await prisma.issue.create({
+          data: {
+            title: `Pagination Issue ${i}`,
+            issueNumber: i,
+            projectId: testProject.id,
+            authorId: testUser.id,
+            assigneeId: i === 1 ? testUser.id : null,
+          }
+        });
+        createdIssueIds.push(issue.id);
+      }
+    });
+
+    afterAll(async () => {
+      await prisma.issue.deleteMany({ where: { id: { in: createdIssueIds } } }).catch(() => {});
+      if (testProject) {
+        await prisma.project.delete({ where: { id: testProject.id } }).catch(() => {});
+      }
+    });
+
+    it('limit 파라미터 적용 시 지정된 개수 이하로 반환되어야 한다', async () => {
+      const response = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&limit=2`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBe(2);
+    });
+
+    it('skip 및 limit 파라미터로 페이지네이션이 동작해야 한다', async () => {
+      const resPage1 = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&limit=1&skip=0&sortBy=id&order=asc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      const resPage2 = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&limit=1&skip=1&sortBy=id&order=asc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(resPage1.status).toBe(200);
+      expect(resPage2.status).toBe(200);
+      expect(resPage1.body.length).toBe(1);
+      expect(resPage2.body.length).toBe(1);
+      expect(resPage1.body[0].id).not.toBe(resPage2.body[0].id);
+    });
+
+    it('assigneeId=my 파라미터 적용 시 현재 로그인 사용자에게 할당된 이슈만 필터링되어야 한다', async () => {
+      const response = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&assigneeId=my`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBe(1);
+      expect(response.body[0].assigneeId).toBe(testUser.id);
+    });
+
+    it('sortBy 및 order 파라미터로 정렬 방향이 적용되어야 한다', async () => {
+      const resDesc = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&sortBy=id&order=desc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      const resAsc = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&sortBy=id&order=asc`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(resDesc.status).toBe(200);
+      expect(resAsc.status).toBe(200);
+      expect(resDesc.body[0].id).toBeGreaterThan(resAsc.body[0].id);
+    });
+
+    it('X-Total-Count 등 페이지네이션 헤더가 정상적으로 반환되어야 한다', async () => {
+      const response = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&limit=2&page=1`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['x-total-count']).toBe('3');
+      expect(response.headers['x-page']).toBe('1');
+      expect(response.headers['x-limit']).toBe('2');
+      expect(response.headers['x-total-pages']).toBe('2');
+    });
+
+    it('withMeta=true 파라미터 요청 시 { items, total, page, limit, totalPages } 구조로 반환되어야 한다', async () => {
+      const response = await request(app)
+        .get(`/api/issues?projectId=${testProject.id}&limit=2&page=1&withMeta=true`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('items');
+      expect(response.body).toHaveProperty('total', 3);
+      expect(response.body).toHaveProperty('page', 1);
+      expect(response.body).toHaveProperty('limit', 2);
+      expect(response.body).toHaveProperty('totalPages', 2);
+      expect(response.body.items.length).toBe(2);
+    });
+  });
 });

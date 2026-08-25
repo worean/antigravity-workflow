@@ -1,22 +1,25 @@
-﻿// -*- coding: utf-8 -*-
+// -*- coding: utf-8 -*-
 const { app, BrowserWindow, ipcMain, Notification, Menu, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 // GPU process crash 방지 및 모든 환경 호환성 보장
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-gpu-compositing');
-app.commandLine.appendSwitch('disable-gpu-rasterization');
-app.commandLine.appendSwitch('disable-software-rasterizer', 'false');
+// app.disableHardwareAcceleration();
+// app.commandLine.appendSwitch('disable-gpu');
+// app.commandLine.appendSwitch('disable-gpu-compositing');
+// app.commandLine.appendSwitch('disable-gpu-rasterization');
+// app.commandLine.appendSwitch('disable-software-rasterizer', 'false');
 app.commandLine.appendSwitch('no-sandbox');
+// 로컬 자체 서명 SSL 인증서(HTTPS) 통신 허용
+app.commandLine.appendSwitch('ignore-certificate-errors');
+app.commandLine.appendSwitch('allow-insecure-localhost', 'true');
 
 const logFile = path.join(app.getPath('userData'), 'electron-debug.log');
 function log(...args) {
   const msg = `[${new Date().toISOString()}] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}\n`;
   try {
     fs.appendFileSync(logFile, msg, 'utf-8');
-  } catch {}
+  } catch { }
   console.log(...args);
 }
 
@@ -196,6 +199,40 @@ ipcMain.handle('show-notification', async (_event, options = {}) => {
   }
 });
 
+const configFile = path.join(app.getPath('userData'), 'app-config.json');
+
+function loadConfig() {
+  try {
+    if (fs.existsSync(configFile)) {
+      return JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+    }
+  } catch (err) {
+    log('Failed to load app-config.json:', err.message);
+  }
+  return {};
+}
+
+function saveConfig(config) {
+  try {
+    const current = loadConfig();
+    const updated = { ...current, ...config };
+    fs.writeFileSync(configFile, JSON.stringify(updated, null, 2), 'utf-8');
+    log('Saved app-config.json:', updated);
+    return updated;
+  } catch (err) {
+    log('Failed to save app-config.json:', err.message);
+    return null;
+  }
+}
+
+ipcMain.handle('get-backend-config', async () => {
+  return loadConfig();
+});
+
+ipcMain.handle('set-backend-config', async (_event, config) => {
+  return saveConfig(config);
+});
+
 ipcMain.handle('get-app-info', async () => {
   return {
     name: 'AntiGravity Workflow',
@@ -218,6 +255,41 @@ app.whenReady()
   .catch((err) => {
     log('app.whenReady rejected:', err.stack || err);
   });
+
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  const config = loadConfig();
+  const customBackendUrl = (config.backendApiUrl || '').replace(/\/$/, '');
+
+  const isLocalOrPrivate =
+    url.startsWith('https://localhost') ||
+    url.startsWith('https://127.0.0.1') ||
+    url.startsWith('https://10.') ||
+    url.startsWith('https://192.168.') ||
+    url.startsWith('https://172.16.') ||
+    url.startsWith('https://172.17.') ||
+    url.startsWith('https://172.18.') ||
+    url.startsWith('https://172.19.') ||
+    url.startsWith('https://172.20.') ||
+    url.startsWith('https://172.21.') ||
+    url.startsWith('https://172.22.') ||
+    url.startsWith('https://172.23.') ||
+    url.startsWith('https://172.24.') ||
+    url.startsWith('https://172.25.') ||
+    url.startsWith('https://172.26.') ||
+    url.startsWith('https://172.27.') ||
+    url.startsWith('https://172.28.') ||
+    url.startsWith('https://172.29.') ||
+    url.startsWith('https://172.30.') ||
+    url.startsWith('https://172.31.') ||
+    (customBackendUrl && url.startsWith(customBackendUrl));
+
+  if (isLocalOrPrivate) {
+    event.preventDefault();
+    callback(true);
+  } else {
+    callback(false);
+  }
+});
 
 app.on('window-all-closed', () => {
   log('window-all-closed event fired.');

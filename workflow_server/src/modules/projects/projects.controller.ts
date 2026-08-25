@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { createProjectService } from './services/createProject.service.js';
 import { getProjectsService } from './services/getProjects.service.js';
 import { getProjectService } from './services/getProject.service.js';
@@ -30,7 +30,8 @@ export const createProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: Request, res: Response) => {
   try {
-    const projects = await getProjectsService();
+    const currentUserId = req.user ? req.user.id : undefined;
+    const projects = await getProjectsService(req.query, currentUserId);
     res.json(projects);
   } catch (error: any) {
     res.status(500).json({ error: error.message, errorCode: ErrorCode.INTERNAL_SERVER_ERROR });

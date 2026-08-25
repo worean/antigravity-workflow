@@ -1,15 +1,16 @@
-﻿import React, { useState, useEffect } from 'react';
-import type { Project, Issue } from '../types';
-import { getProjects, getIssues } from '../services/api';
+import React, { Suspense, useTransition } from 'react';
+import type { Issue } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSuspenseProjects, useSuspenseIssues, useIssues, issueKeys, projectKeys } from '../api';
 import { FolderKanban, CheckSquare, Clock, CheckCircle2, ArrowUpRight, Plus, RefreshCw, Terminal } from 'lucide-react';
 import {
   Button,
-  Spinner,
   CountBadge,
   StatusBadge,
   ProjectBadge,
   Avatar,
+  SkeletonDashboard,
 } from '../components/common';
 import { formatDateOnly } from '../utils/dateUtils';
 import { parseStatusCategory } from '../utils/statusUtils';
@@ -22,51 +23,63 @@ interface DashboardPageProps {
   refreshKey?: number;
 }
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({
+const DashboardContent: React.FC<DashboardPageProps> = ({
   onNavigate,
   onOpenCreateIssue,
   onOpenCreateProject,
   onSelectIssue,
-  refreshKey,
 }) => {
   const { user, isAuthenticated } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
+  const [isPending, startTransition] = useTransition();
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [pRes, iRes] = await Promise.all([getProjects(), getIssues()]);
-      setProjects(pRes);
-      setIssues(iRes);
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
-    } finally {
-      setLoading(false);
-    }
+  // 1. useSuspenseQuery를 활용한 선언적 데이터 로딩 (Suspense 연동)
+  const { data: projects = [] } = useSuspenseProjects({
+    limit: 30,
+    sortBy: 'updatedAt',
+    order: 'desc',
+  });
+
+  const { data: recentIssues = [] } = useSuspenseIssues({
+    limit: 6,
+    sortBy: 'id',
+    order: 'desc',
+  });
+
+  const { data: statsIssues = [] } = useSuspenseIssues({
+    limit: 100,
+    sortBy: 'id',
+    order: 'desc',
+  });
+
+  // 내 담당 이슈는 로그인 여부에 따라 조건부 조회
+  const { data: myAssignedIssues = [] } = useIssues(
+    { assigneeId: 'my', limit: 6, sortBy: 'updatedAt', order: 'desc' },
+    { enabled: isAuthenticated }
+  );
+
+  // useTransition을 활용한 부드러운(Smooth) 백그라운드 새로고침
+  const handleRefresh = () => {
+    startTransition(() => {
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+    });
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [refreshKey]);
-
-  const inProgressCount = issues.filter((i) => {
+  const inProgressCount = statsIssues.filter((i) => {
     const cat = parseStatusCategory(i.statusId || i.status);
     return cat === 'IN_PROGRESS';
   }).length;
 
-  const inReviewCount = issues.filter((i) => {
+  const inReviewCount = statsIssues.filter((i) => {
     const cat = parseStatusCategory(i.statusId || i.status);
     return cat === 'IN_REVIEW';
   }).length;
 
-  const doneCount = issues.filter((i) => {
+  const doneCount = statsIssues.filter((i) => {
     const cat = parseStatusCategory(i.statusId || i.status);
     return cat === 'DONE';
   }).length;
-
-  const myAssignedIssues = issues.filter((i) => i.assigneeId === user?.id || i.assignee?.id === user?.id);
 
   const handleIssueClick = (issue: Issue) => {
     if (onSelectIssue) {
@@ -77,7 +90,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+      className={`animate-fade-in ${isPending ? 'transition-pending' : ''}`}
+    >
       {/* Top Compact Summary Toolbar */}
       <div
         style={{
@@ -104,7 +120,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         <div style={{ display: 'flex', gap: '6px' }}>
-          <Button variant="secondary" size="sm" icon={<RefreshCw size={12} />} onClick={fetchData}>
+          <Button variant="secondary" size="sm" icon={<RefreshCw size={12} />} onClick={handleRefresh}>
             새로고침
           </Button>
           {isAuthenticated && (
@@ -162,7 +178,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600 }}>전체 이슈</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-bright)', marginTop: '2px' }}>
-              {issues.length}
+              {statsIssues.length}
             </div>
           </div>
           <CheckSquare size={18} color="var(--primary)" />
@@ -233,14 +249,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {loading ? (
-              <Spinner centered label="불러오는 중..." />
-            ) : issues.length === 0 ? (
+            {recentIssues.length === 0 ? (
               <div style={{ color: 'var(--text-muted)', padding: '16px', textAlign: 'center', fontSize: '0.78rem' }}>
                 등록된 이슈가 없습니다.
               </div>
             ) : (
-              issues.slice(0, 6).map((issue) => (
+              recentIssues.map((issue) => (
                 <div
                   key={issue.id}
                   onClick={() => handleIssueClick(issue)}
@@ -259,16 +273,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   }}
                   title="클릭하여 이슈 상세 및 수정 화면으로 이동"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--primary)', flexShrink: 0 }}>
-                      #{issue.id}
-                    </span>
-                    <span style={{ color: 'var(--text-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
-                      {issue.title}
-                    </span>
-                    <ProjectBadge project={issue.project} projectId={issue.projectId} size="sm" />
-                  </div>
-
+                  {DashboardIssueCard(issue)}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                     {issue.dueDate && (
                       <span style={{ color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
@@ -312,7 +317,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 현재 배정된 작업이 없습니다.
               </div>
             ) : (
-              myAssignedIssues.slice(0, 6).map((issue) => (
+              myAssignedIssues.map((issue) => (
                 <div
                   key={issue.id}
                   onClick={() => handleIssueClick(issue)}
@@ -331,12 +336,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   }}
                   title="클릭하여 이슈 상세 및 수정 화면으로 이동"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>
-                      #{issue.id} {issue.title}
-                    </span>
-                    <ProjectBadge project={issue.project} projectId={issue.projectId} size="sm" />
-                  </div>
+                  {DashboardIssueCard(issue)}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                     {issue.dueDate && (
                       <span style={{ color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
@@ -354,3 +354,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     </div>
   );
 };
+function DashboardIssueCard(issue: Issue) {
+  return <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+    <span style={{ fontWeight: 700, color: 'var(--primary)', flexShrink: 0 }}>
+      #{issue.id}
+    </span>
+    <span style={{ color: 'var(--text-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
+      {issue.title}
+    </span>
+    <ProjectBadge project={issue.project} projectId={issue.projectId} size="sm" />
+  </div>;
+}
+
+export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
+  return (
+    <Suspense fallback={<SkeletonDashboard />}>
+      <DashboardContent {...props} />
+    </Suspense>
+  );
+};
+
+

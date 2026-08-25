@@ -1,4 +1,4 @@
-﻿// -*- coding: utf-8 -*-
+// -*- coding: utf-8 -*-
 const { contextBridge, ipcRenderer } = require('electron');
 
 // 안전한 Context Isolation API 노출
@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   showNotification: (options) => ipcRenderer.invoke('show-notification', options),
   getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+  getBackendConfig: () => ipcRenderer.invoke('get-backend-config'),
+  setBackendConfig: (config) => ipcRenderer.invoke('set-backend-config', config),
   onNotificationClick: (callback) => {
     const subscription = (_event, data) => callback(data);
     ipcRenderer.on('notification-clicked', subscription);

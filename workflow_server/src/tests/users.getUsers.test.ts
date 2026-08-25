@@ -22,7 +22,7 @@ describe('🧪 [users.getUsers] Service & REST API Unit Tests', () => {
           data: {
             email: `get_users_test_${Date.now()}@example.com`,
             name: 'GetUsers Test',
-            passwordHash: 'hashed_pwd',
+            password: 'hashed_pwd',
           },
         });
       }

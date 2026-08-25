@@ -1,4 +1,4 @@
-﻿// -*- coding: utf-8 -*-
+// -*- coding: utf-8 -*-
 import { prisma } from '#lib/prisma.js';
 
 export interface UpdateGroupInput {
@@ -9,8 +9,27 @@ export interface UpdateGroupInput {
   order?: number;
 }
 
-export const updateGroupService = async (id: number, data: UpdateGroupInput) => {
+export const updateGroupService = async (id: number, data: UpdateGroupInput, currentUser?: any) => {
   if (!id) throw new Error('Group ID is required');
+
+  const existingGroup = await prisma.group.findUnique({
+    where: { id },
+    include: { members: true },
+  });
+
+  if (!existingGroup) {
+    throw new Error(`Group with ID ${id} not found`);
+  }
+
+  // 전역 관리자가 아닌 경우: 해당 그룹의 OWNER 또는 ADMIN 멤버인지 검증
+  if (currentUser && currentUser.role !== 'ADMIN') {
+    const isGroupOwnerOrAdmin = existingGroup.members.some(
+      (m) => m.userId === currentUser.id && (m.role === 'OWNER' || m.role === 'ADMIN' || m.role === 'LEADER')
+    );
+    if (!isGroupOwnerOrAdmin) {
+      throw new Error('Forbidden: 그룹 오너 또는 관리자만 그룹 정보를 수정할 수 있습니다.');
+    }
+  }
 
   // 자기 자신을 부모로 지정하는 순환 참조 방지
   if (data.parentId !== undefined && data.parentId === id) {

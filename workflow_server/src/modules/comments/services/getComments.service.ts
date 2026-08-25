@@ -1,7 +1,28 @@
-﻿import { prisma } from '#lib/prisma.js';
+import { prisma } from '#lib/prisma.js';
 
-export const getCommentsService = async (issueId: number) => {
+export interface PaginatedCommentsResult {
+  items: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const getCommentsService = async (issueId: number, query: any = {}) => {
   if (!issueId) throw new Error('issueId is required');
+
+  const {
+    page: pageQuery,
+    limit,
+    pageSize,
+    take: takeQuery,
+    skip: skipQuery,
+    offset,
+    sortBy = 'createdAt',
+    order = 'asc',
+    sortOrder,
+    all
+  } = query;
 
   const rawComments = await prisma.comment.findMany({
     where: { issueId: Number(issueId) },
@@ -58,7 +79,50 @@ export const getCommentsService = async (issueId: number) => {
     }
   }
 
-  rootComments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  // 정렬 처리
+  const isDesc = (order || sortOrder || 'asc').toLowerCase() === 'desc';
+  rootComments.sort((a, b) => {
+    const timeA = new Date(a[sortBy] || a.createdAt).getTime();
+    const timeB = new Date(b[sortBy] || b.createdAt).getTime();
+    return isDesc ? timeB - timeA : timeA - timeB;
+  });
 
-  return rootComments;
+  // 페이지네이션 처리 - 기본값: 루트 댓글 기준 페이지당 20개
+  const totalCount = rootComments.length;
+  const isAll = all === 'true' || limit === 'all';
+  const page = Math.max(1, Number(pageQuery || 1));
+  const defaultPageSize = 20;
+
+  let take: number | undefined;
+  if (isAll) {
+    take = undefined;
+  } else if (limit !== undefined || pageSize !== undefined || takeQuery !== undefined) {
+    take = Math.max(1, Number(limit ?? pageSize ?? takeQuery));
+  } else {
+    take = defaultPageSize;
+  }
+
+  let skip: number;
+  if (skipQuery !== undefined || offset !== undefined) {
+    skip = Math.max(0, Number(skipQuery ?? offset));
+  } else if (take !== undefined) {
+    skip = (page - 1) * take;
+  } else {
+    skip = 0;
+  }
+
+  const paginatedItems = take !== undefined
+    ? rootComments.slice(skip, skip + take)
+    : rootComments;
+
+  const effectiveLimit = take ?? totalCount;
+  const totalPages = effectiveLimit > 0 ? Math.ceil(totalCount / effectiveLimit) : 1;
+
+  return {
+    items: paginatedItems,
+    total: totalCount,
+    page,
+    limit: effectiveLimit,
+    totalPages
+  };
 };

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   updateUser,
@@ -14,6 +14,11 @@ import {
   updateGroupMember,
   removeGroupMember,
   getMe,
+  saveCustomBackendUrl,
+  resetCustomBackendUrl,
+  testApiConnection,
+  getCurrentBackendHostUrl,
+  getApiBaseUrl,
 } from '../services/api';
 import type { CustomFieldDefinition, HealthStatus, Group, GroupMember, User as UserType } from '../types';
 import {
@@ -46,6 +51,13 @@ import {
   Edit2,
   Camera,
   Dices,
+  Globe,
+  Wifi,
+  WifiOff,
+  Check,
+  AlertCircle,
+  RotateCcw,
+  Zap,
 } from 'lucide-react';
 
 
@@ -114,9 +126,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
   });
   const [testNotificationSent, setTestNotificationSent] = useState<boolean>(false);
 
-  // 4. System Health State
+  // 4. System Health & Backend Config State
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [healthLoading, setHealthLoading] = useState<boolean>(false);
+  const [backendUrlInput, setBackendUrlInput] = useState<string>(() => getCurrentBackendHostUrl());
+  const [testingConnection, setTestingConnection] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    status?: string;
+    latencyMs: number;
+    error?: string;
+    timestamp?: string;
+  } | null>(null);
+  const [backendSaveFeedback, setBackendSaveFeedback] = useState<string | null>(null);
 
   // 5. Organization & Groups State
   const [treeGroups, setTreeGroups] = useState<Group[]>([]);
@@ -200,10 +222,56 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
       const data = await checkHealth();
       setHealth(data);
     } catch (err) {
-      console.error(err);
+      console.error('Health check failed:', err);
+      setHealth(null);
     } finally {
       setHealthLoading(false);
     }
+  };
+
+  const handleTestBackendConnection = async (targetUrl?: string) => {
+    setTestingConnection(true);
+    setTestResult(null);
+    try {
+      const result = await testApiConnection(targetUrl || backendUrlInput);
+      setTestResult(result);
+      if (result.success) {
+        setHealth({
+          status: result.status || 'OK',
+          timestamp: result.timestamp || new Date().toISOString(),
+        });
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        latencyMs: 0,
+        error: err.message || '연결 테스트 중 오류 발생',
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleSaveBackendUrl = async () => {
+    try {
+      const saved = await saveCustomBackendUrl(backendUrlInput);
+      setBackendUrlInput(saved);
+      setBackendSaveFeedback('백엔드 API 서버 주소가 성공적으로 저장 및 적용되었습니다.');
+      await handleTestBackendConnection(saved);
+      setTimeout(() => setBackendSaveFeedback(null), 4000);
+    } catch (err: any) {
+      alert(err.message || '서버 주소 저장 실패');
+    }
+  };
+
+  const handleResetBackendUrl = async () => {
+    await resetCustomBackendUrl();
+    const defaultUrl = getCurrentBackendHostUrl();
+    setBackendUrlInput(defaultUrl);
+    setTestResult(null);
+    setBackendSaveFeedback('기본 서버 주소로 복원되었습니다.');
+    loadHealth();
+    setTimeout(() => setBackendSaveFeedback(null), 3000);
   };
 
   // Load profile with group memberships
@@ -1403,42 +1471,48 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                                     <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                                       {grp.members?.length || 0}명
                                     </span>
-                                    <button
-                                      title="하위 서브그룹 추가"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setGroupParentId(grp.id);
-                                        setNewGroupName('');
-                                        setNewGroupCode('');
-                                        setNewGroupDesc('');
-                                        setShowGroupForm(true);
-                                      }}
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--text-sub)',
-                                        cursor: 'pointer',
-                                        padding: '2px',
-                                      }}
-                                    >
-                                      <Plus size={12} />
-                                    </button>
-                                    <button
-                                      title="그룹 삭제"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteGroup(grp.id);
-                                      }}
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                        padding: '2px',
-                                      }}
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
+                                    {(user?.role === 'ADMIN' || grp.members?.some((m: any) => m.userId === user?.id && (m.role === 'ADMIN' || m.role === 'LEADER'))) && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          title="하위 서브그룹 추가"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setGroupParentId(grp.id);
+                                            setNewGroupName('');
+                                            setNewGroupCode('');
+                                            setNewGroupDesc('');
+                                            setShowGroupForm(true);
+                                          }}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--text-sub)',
+                                            cursor: 'pointer',
+                                            padding: '2px',
+                                          }}
+                                        >
+                                          <Plus size={12} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="그룹 삭제"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteGroup(grp.id);
+                                          }}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--text-muted)',
+                                            cursor: 'pointer',
+                                            padding: '2px',
+                                          }}
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
 
@@ -1469,6 +1543,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                         );
                       }
 
+                      const isSysAdmin = user?.role === 'ADMIN';
+                      const myMembership = selectedGroup?.members?.find((m: any) => m.userId === user?.id);
+                      const myRoleUpper = (myMembership?.role || '').toUpperCase();
+                      const isGroupOwner = isSysAdmin || myRoleUpper === 'OWNER';
+                      const isGroupAdmin = isGroupOwner || myRoleUpper === 'ADMIN' || myRoleUpper === 'LEADER';
+
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                           {/* Group Detail Card */}
@@ -1495,21 +1575,41 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                                     {selectedGroup.description}
                                   </p>
                                 )}
+
+                                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600,
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    background: isSysAdmin ? 'rgba(230, 162, 60, 0.15)' : (isGroupOwner ? 'rgba(245, 158, 11, 0.15)' : (isGroupAdmin ? 'rgba(59, 130, 246, 0.15)' : 'rgba(150, 150, 150, 0.15)')),
+                                    color: isSysAdmin ? '#e6a23c' : (isGroupOwner ? '#f59e0b' : (isGroupAdmin ? '#60a5fa' : 'var(--text-muted)')),
+                                    border: `1px solid ${isSysAdmin ? 'rgba(230, 162, 60, 0.3)' : (isGroupOwner ? 'rgba(245, 158, 11, 0.3)' : (isGroupAdmin ? 'rgba(59, 130, 246, 0.3)' : 'rgba(150, 150, 150, 0.3)'))}`,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    {isSysAdmin ? <Crown size={11} /> : (isGroupOwner ? <Crown size={11} /> : (isGroupAdmin ? <ShieldCheck size={11} /> : <User size={11} />))}
+                                    {isSysAdmin ? '전역 시스템 관리자 권한' : (isGroupOwner ? '👑 그룹 오너 권한 (모든 권한 설정 가능)' : (isGroupAdmin ? '⭐ 그룹 관리자(PM) 권한' : '일반 구성원 권한'))}
+                                  </span>
+                                </div>
                               </div>
 
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                icon={<UserPlus size={13} />}
-                                onClick={() => {
-                                  setNewMemberUserId('');
-                                  setNewMemberRole('MEMBER');
-                                  setNewMemberTitle('');
-                                  setShowMemberForm(true);
-                                }}
-                              >
-                                팀원 배정 / 직책 부여
-                              </Button>
+                              {isGroupAdmin && (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  icon={<UserPlus size={13} />}
+                                  onClick={() => {
+                                    setNewMemberUserId('');
+                                    setNewMemberRole('MEMBER');
+                                    setNewMemberTitle('');
+                                    setShowMemberForm(true);
+                                  }}
+                                >
+                                  팀원 배정 / 직책 부여
+                                </Button>
+                              )}
                             </div>
                           </div>
 
@@ -1521,19 +1621,43 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                                 소속 구성원 목록 ({selectedGroup.members?.length || 0}명)
                               </div>
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                * 그룹 내 권한: 관리자(PM) / 담당자(개발자) / 참석자(리뷰어)
+                                * 오너(1명) 및 전역 관리자는 모든 권한 설정이 가능하며, 관리자(PM)는 팀원 권한을 설정할 수 있습니다.
                               </span>
                             </div>
 
                             {(!selectedGroup.members || selectedGroup.members.length === 0) ? (
                               <div style={{ padding: '24px', textAlign: 'center', background: '#252526', borderRadius: 'var(--radius-xs)', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                                이 그룹에 배정된 구성원이 없습니다. [팀원 배정 / 직책 부여] 버튼으로 구성원을 추가하세요.
+                                이 그룹에 배정된 구성원이 없습니다.
                               </div>
                             ) : (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {selectedGroup.members.map((m: GroupMember) => {
                                   const roleUpper = (m.role || 'MEMBER').toUpperCase();
-                                  const currentRoleValue = (roleUpper === 'LEADER' || roleUpper === 'ADMIN') ? 'ADMIN' : (roleUpper === 'VIEWER' ? 'VIEWER' : 'MEMBER');
+                                  const currentRoleValue = roleUpper === 'OWNER' ? 'OWNER' : ((roleUpper === 'ADMIN' || roleUpper === 'LEADER') ? 'ADMIN' : (roleUpper === 'VIEWER' ? 'VIEWER' : 'MEMBER'));
+
+                                  const isSelf = m.userId === user?.id;
+                                  const isTargetOwner = currentRoleValue === 'OWNER';
+                                  const isTargetAdmin = currentRoleValue === 'ADMIN';
+
+                                  const canModifyRole = isSysAdmin || isGroupOwner || (isGroupAdmin && !isSelf && !isTargetOwner && !isTargetAdmin);
+                                  const canRemoveMember = isSysAdmin || isGroupOwner || (isGroupAdmin && !isTargetOwner && !isTargetAdmin);
+
+                                  let disabledReason = '';
+                                  if (!canModifyRole) {
+                                    if (!isGroupAdmin) disabledReason = '그룹 관리자 이상만 권한을 변경할 수 있습니다.';
+                                    else if (isTargetOwner) disabledReason = '그룹 오너의 권한은 수정할 수 없습니다.';
+                                    else if (isTargetAdmin) disabledReason = '다른 그룹 관리자의 권한은 수정할 수 없습니다.';
+                                    else if (isSelf) disabledReason = '관리자 본인의 권한은 수정할 수 없습니다.';
+                                  }
+
+                                  const getRoleColor = (r: string) => {
+                                    if (r === 'OWNER') return { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#f59e0b' };
+                                    if (r === 'ADMIN') return { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', text: '#60a5fa' };
+                                    if (r === 'VIEWER') return { bg: 'rgba(167, 139, 250, 0.15)', border: 'rgba(167, 139, 250, 0.4)', text: '#a78bfa' };
+                                    return { bg: 'rgba(78, 201, 176, 0.15)', border: 'rgba(78, 201, 176, 0.4)', text: '#4ec9b0' };
+                                  };
+
+                                  const roleColor = getRoleColor(currentRoleValue);
 
                                   return (
                                     <div
@@ -1557,16 +1681,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                                           size={32}
                                           shape="rounded"
                                           style={{
-                                            border: `2px solid ${
-                                              currentRoleValue === 'ADMIN'
-                                                ? '#f59e0b'
-                                                : (currentRoleValue === 'VIEWER' ? '#a78bfa' : 'var(--primary)')
-                                            }`,
+                                            border: `2px solid ${roleColor.text}`,
                                           }}
                                         />
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+                                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             {m.user?.name || '(이름 없음)'}
+                                            {isSelf && (
+                                              <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '0px 4px', borderRadius: '3px' }}>
+                                                나
+                                              </span>
+                                            )}
                                           </div>
                                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                             {m.user?.email}
@@ -1592,22 +1717,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                                           <Briefcase size={11} color="var(--primary)" />
                                           {m.title || '직책 미설정'}
                                         </span>
-                                        <button
-                                          type="button"
-                                          title="직책 수정"
-                                          onClick={() => handleUpdateGroupMemberTitle(selectedGroup.id, m.userId, m.title)}
-                                          style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--text-sub)',
-                                            cursor: 'pointer',
-                                            padding: '3px',
-                                            borderRadius: '3px',
-                                            display: 'flex',
-                                          }}
-                                        >
-                                          <Edit2 size={12} />
-                                        </button>
+                                        {isGroupAdmin && (
+                                          <button
+                                            type="button"
+                                            title="직책 수정"
+                                            onClick={() => handleUpdateGroupMemberTitle(selectedGroup.id, m.userId, m.title)}
+                                            style={{
+                                              background: 'none',
+                                              border: 'none',
+                                              color: 'var(--text-sub)',
+                                              cursor: 'pointer',
+                                              padding: '3px',
+                                              borderRadius: '3px',
+                                              display: 'flex',
+                                            }}
+                                          >
+                                            <Edit2 size={12} />
+                                          </button>
+                                        )}
                                       </div>
 
                                       {/* Group Role Selector & Actions */}
@@ -1617,57 +1744,63 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                                           <select
                                             className="input-field"
                                             value={currentRoleValue}
+                                            disabled={!canModifyRole}
+                                            title={disabledReason || '그룹 권한 변경'}
                                             onChange={(e) => handleUpdateGroupMemberRole(selectedGroup.id, m.userId, e.target.value)}
                                             style={{
                                               fontSize: '0.74rem',
                                               padding: '3px 8px',
                                               height: '28px',
-                                              width: '140px',
+                                              width: '150px',
                                               borderRadius: 'var(--radius-xs)',
-                                              background: currentRoleValue === 'ADMIN'
-                                                ? 'rgba(230, 162, 60, 0.15)'
-                                                : (currentRoleValue === 'VIEWER' ? 'rgba(167, 139, 250, 0.15)' : 'rgba(78, 201, 176, 0.15)'),
-                                              borderColor: currentRoleValue === 'ADMIN'
-                                                ? 'rgba(230, 162, 60, 0.4)'
-                                                : (currentRoleValue === 'VIEWER' ? 'rgba(167, 139, 250, 0.4)' : 'rgba(78, 201, 176, 0.4)'),
-                                              color: currentRoleValue === 'ADMIN'
-                                                ? '#e6a23c'
-                                                : (currentRoleValue === 'VIEWER' ? '#a78bfa' : '#4ec9b0'),
+                                              background: roleColor.bg,
+                                              borderColor: roleColor.border,
+                                              color: roleColor.text,
                                               fontWeight: 600,
-                                              cursor: 'pointer',
+                                              cursor: canModifyRole ? 'pointer' : 'not-allowed',
+                                              opacity: canModifyRole ? 1 : 0.7,
                                             }}
                                           >
-                                            <option value="ADMIN" style={{ background: '#252526', color: '#e6a23c' }}>
-                                              👑 1. 관리자 (PM)
+                                            {(isGroupOwner || isSysAdmin) && (
+                                              <option value="OWNER" style={{ background: '#252526', color: '#f59e0b' }}>
+                                                👑 1. 오너 (Owner)
+                                              </option>
+                                            )}
+                                            <option value="ADMIN" style={{ background: '#252526', color: '#60a5fa' }}>
+                                              ⭐ 2. 관리자 (PM)
                                             </option>
                                             <option value="MEMBER" style={{ background: '#252526', color: '#4ec9b0' }}>
-                                              💻 2. 담당자 (개발자)
+                                              💻 3. 담당자 (개발자)
                                             </option>
                                             <option value="VIEWER" style={{ background: '#252526', color: '#a78bfa' }}>
-                                              👁️ 3. 참석자 (리뷰어)
+                                              👁️ 4. 참석자 (리뷰어)
                                             </option>
                                           </select>
                                         </div>
 
-                                        <button
-                                          title="그룹에서 제외"
-                                          onClick={() => handleRemoveMemberFromGroup(selectedGroup.id, m.userId)}
-                                          style={{
-                                            background: '#382222',
-                                            border: '1px solid #5a2e2e',
-                                            color: '#f87171',
-                                            cursor: 'pointer',
-                                            padding: '4px 8px',
-                                            borderRadius: 'var(--radius-xs)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            fontSize: '0.7rem',
-                                          }}
-                                        >
-                                          <Trash2 size={12} />
-                                          제외
-                                        </button>
+                                        {isGroupAdmin && (
+                                          <button
+                                            title={!canRemoveMember ? (isTargetOwner ? '그룹 오너는 제외할 수 없습니다.' : '다른 관리자는 제외할 수 없습니다.') : '그룹에서 제외'}
+                                            disabled={!canRemoveMember}
+                                            onClick={() => handleRemoveMemberFromGroup(selectedGroup.id, m.userId)}
+                                            style={{
+                                              background: canRemoveMember ? '#382222' : '#282828',
+                                              border: `1px solid ${canRemoveMember ? '#5a2e2e' : '#3a3a3a'}`,
+                                              color: canRemoveMember ? '#f87171' : 'var(--text-muted)',
+                                              cursor: canRemoveMember ? 'pointer' : 'not-allowed',
+                                              padding: '4px 8px',
+                                              borderRadius: 'var(--radius-xs)',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '4px',
+                                              fontSize: '0.7rem',
+                                              opacity: canRemoveMember ? 1 : 0.5,
+                                            }}
+                                          >
+                                            <Trash2 size={12} />
+                                            제외
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                   );
@@ -1780,9 +1913,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                           value={newMemberRole}
                           onChange={(e) => setNewMemberRole(e.target.value)}
                         >
-                          <option value="ADMIN">👑 1. 관리자 (PM)</option>
-                          <option value="MEMBER">💻 2. 담당자 (개발자)</option>
-                          <option value="VIEWER">👁️ 3. 참석자 (리뷰어)</option>
+                          {(() => {
+                            const curGroup = flatGroups.find((g) => g.id === selectedGroupId) || flatGroups[0];
+                            const isCurGroupOwner = user?.role === 'ADMIN' || curGroup?.members?.some((m) => m.userId === user?.id && m.role?.toUpperCase() === 'OWNER');
+                            return (
+                              <>
+                                {isCurGroupOwner && (
+                                  <option value="OWNER">👑 1. 오너 (Owner - 기존 오너 자동 승계)</option>
+                                )}
+                                <option value="ADMIN">⭐ 2. 관리자 (PM - 여러명 가능)</option>
+                                <option value="MEMBER">💻 3. 담당자 (개발자)</option>
+                                <option value="VIEWER">👁️ 4. 참석자 (리뷰어)</option>
+                              </>
+                            );
+                          })()}
                         </select>
                       </div>
 
@@ -2180,18 +2324,217 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
             </div>
           )}
 
-          {/* ================= TAB 4: SYSTEM INFO ================= */}
+          {/* ================= TAB 4: SYSTEM INFO & BACKEND CONFIG ================= */}
           {activeSubTab === 'system' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '560px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '620px' }}>
               <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '10px' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-                  시스템 상태 및 버전 정보
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Server size={16} color="var(--primary)" /> 시스템 상태 및 백엔드 API 서버 설정
                 </h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  AntiGravity Workflow REST API 서버 및 데스크톱 런타임 상태를 확인합니다.
+                  Electron 데스크톱 런타임 및 브라우저 클라이언트가 통신할 REST API 서버 주소를 유연하게 구성하고 진단합니다.
                 </p>
               </div>
 
+              {/* 1. 백엔드 API 서버 URL 설정 카드 */}
+              <div style={{ padding: '16px', background: '#252526', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Globe size={15} color="var(--accent-cyan)" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+                      백엔드 API 서버 엔드포인트 (Base URL)
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    background: health?.status === 'OK' ? 'rgba(78, 201, 176, 0.15)' : 'rgba(241, 76, 76, 0.15)',
+                    color: health?.status === 'OK' ? '#4ec9b0' : '#f14c4c',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    {health?.status === 'OK' ? <Wifi size={11} /> : <WifiOff size={11} />}
+                    {health?.status === 'OK' ? '서버 연결 정상' : '연결 필요 / 오프라인'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    서버 호스트 주소 (HTTP / HTTPS 및 포트 지정)
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={backendUrlInput}
+                      onChange={(e) => setBackendUrlInput(e.target.value)}
+                      placeholder="예: https://localhost:4000 또는 http://192.168.0.10:4000"
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        background: '#1e1e1e',
+                        border: '1px solid var(--border-main)',
+                        borderRadius: 'var(--radius-xs)',
+                        color: 'var(--text-bright)',
+                        fontSize: '0.82rem',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 빠른 주소 프리셋 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>빠른 프리셋:</span>
+                  <button
+                    type="button"
+                    onClick={() => setBackendUrlInput('https://localhost:4000')}
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '2px 8px',
+                      background: '#333333',
+                      border: '1px solid #444444',
+                      borderRadius: '4px',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🔒 로컬 HTTPS (4000)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBackendUrlInput('http://localhost:4000')}
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '2px 8px',
+                      background: '#333333',
+                      border: '1px solid #444444',
+                      borderRadius: '4px',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🌐 로컬 HTTP (4000)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBackendUrlInput('https://127.0.0.1:4000')}
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '2px 8px',
+                      background: '#333333',
+                      border: '1px solid #444444',
+                      borderRadius: '4px',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🏠 127.0.0.1 (4000)
+                  </button>
+                </div>
+
+                {/* 액션 버튼 그룹 */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleTestBackendConnection()}
+                    disabled={testingConnection}
+                  >
+                    {testingConnection ? (
+                      <>
+                        <RefreshCw size={12} className="animate-spin" /> 연결 진단 중...
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={12} /> 연결 테스트 (Health Check)
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveBackendUrl}
+                  >
+                    <Save size={12} /> 저장 및 즉시 적용
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetBackendUrl}
+                    title="기본 로컬호스트 주소로 초기화"
+                  >
+                    <RotateCcw size={12} /> 기본값 복원
+                  </Button>
+                </div>
+
+                {/* 저장 피드백 메시지 */}
+                {backendSaveFeedback && (
+                  <div style={{
+                    padding: '8px 12px',
+                    background: 'rgba(78, 201, 176, 0.12)',
+                    border: '1px solid #4ec9b0',
+                    borderRadius: 'var(--radius-xs)',
+                    color: '#4ec9b0',
+                    fontSize: '0.76rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <Check size={14} /> {backendSaveFeedback}
+                  </div>
+                )}
+
+                {/* 실시간 연결 테스트 결과 카드 */}
+                {testResult && (
+                  <div style={{
+                    padding: '10px 12px',
+                    background: testResult.success ? 'rgba(78, 201, 176, 0.08)' : 'rgba(241, 76, 76, 0.08)',
+                    border: `1px solid ${testResult.success ? 'rgba(78, 201, 176, 0.4)' : 'rgba(241, 76, 76, 0.4)'}`,
+                    borderRadius: 'var(--radius-xs)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        color: testResult.success ? '#4ec9b0' : '#f14c4c',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        {testResult.success ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                        {testResult.success ? '서버 응답 성공 (Healthy)' : '서버 연결 실패'}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        응답 속도: {testResult.latencyMs}ms
+                      </span>
+                    </div>
+
+                    {testResult.success ? (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-sub)' }}>
+                        상태: <strong>{testResult.status}</strong> | 타임스탬프: {testResult.timestamp}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.72rem', color: '#f14c4c' }}>
+                        원인: {testResult.error}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  💡 <strong>Tip</strong>: Electron 데스크톱 앱에서는 자체 서명 SSL 인증서(`https://`) 및 사설 IP 네트워크 주소를 자동으로 안전하게 신뢰하도록 구성되어 있습니다.
+                </div>
+              </div>
+
+              {/* 2. 시스템 및 런타임 진단 정보 카드 */}
               {healthLoading ? (
                 <Spinner centered label="서버 상태 진단 중..." />
               ) : (
@@ -2205,8 +2548,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
 
                   <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>서버 헬스체크 상태</span>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#4ec9b0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Activity size={13} /> {health?.status || 'OK (Active)'}
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: health?.status === 'OK' ? '#4ec9b0' : '#f14c4c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Activity size={13} /> {health?.status || '연결 대기 중 (Offline)'}
                     </span>
                   </div>
 
@@ -2218,16 +2561,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                   </div>
 
                   <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>백엔드 API 서버 주소</span>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-cyan)' }}>
-                      {localStorage.getItem('pref_backend_api_url') || 'http://localhost:4000 (기본 로컬 서버)'}
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>현재 활성 API Base URL</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-cyan)', fontFamily: 'monospace' }}>
+                      {getApiBaseUrl()}
                     </span>
                   </div>
 
                   <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>시스템 버전</span>
                     <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-                      AntiGravity Workflow v2.4.0 (Desktop Edition)
+                      AntiGravity Workflow v2.5.0 (Universal Edition)
                     </span>
                   </div>
 
@@ -2237,7 +2580,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onOpenAuth }) => {
                       JWT Bearer Token Signature Only
                     </span>
                   </div>
-
                 </div>
               )}
             </div>

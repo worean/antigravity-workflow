@@ -384,6 +384,48 @@ textarea.input-field {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.08) !important;
 }
 
+/* ====================================================
+   ✨ Skeleton Loading & Shimmer Animation
+   ==================================================== */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
 
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-xs);
+}
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+.transition-pending {
+  opacity: 0.6;
+  filter: grayscale(20%);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+  pointer-events: none;
+}

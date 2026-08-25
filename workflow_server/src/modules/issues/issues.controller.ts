@@ -22,8 +22,18 @@ export const createIssue = async (req: Request, res: Response) => {
 export const getIssues = async (req: Request, res: Response) => {
   try {
     const currentUserId = req.user ? req.user.id : undefined;
-    const issues = await getIssuesService(req.query, currentUserId);
-    res.json(issues);
+    const result = await getIssuesService(req.query, currentUserId);
+
+    res.setHeader('X-Total-Count', String(result.total));
+    res.setHeader('X-Page', String(result.page));
+    res.setHeader('X-Limit', String(result.limit));
+    res.setHeader('X-Total-Pages', String(result.totalPages));
+
+    if (req.query.withMeta === 'true' || req.query.format === 'object') {
+      res.json(result);
+    } else {
+      res.json(result.items);
+    }
   } catch (error: any) {
     res.status(500).json({ error: error.message, errorCode: ErrorCode.INTERNAL_SERVER_ERROR });
   }

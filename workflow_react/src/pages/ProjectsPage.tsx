@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Project } from '../types';
-import { getProjects, deleteProject } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useProjects, useDeleteProject } from '../api';
 import { FolderKanban, Plus, Layers, Users, ArrowRight, Trash2, Sliders, Folder } from 'lucide-react';
 import { CustomFieldsModal } from '../components/CustomFieldsModal';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -25,34 +25,16 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   const { isAuthenticated } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
 
-  const [internalProjects, setInternalProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  // TanStack Query로 프로젝트 목록 로드
+  const { data: fetchedProjects = [], isLoading: loading } = useProjects();
+  const deleteProjectMutation = useDeleteProject();
+
   const [isCustomFieldsModalOpen, setIsCustomFieldsModalOpen] = useState<boolean>(false);
 
   // Deletion confirm modal state
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
-  const projects = externalProjects || internalProjects;
-
-  const fetchProjects = async () => {
-    setLoading(true);
-    try {
-      const data = await getProjects();
-      if (onProjectsChange) {
-        onProjectsChange(data);
-      } else {
-        setInternalProjects(data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  const projects = externalProjects || fetchedProjects;
 
   const handleOpenDeleteConfirm = (e: React.MouseEvent, proj: Project) => {
     e.stopPropagation();
@@ -64,15 +46,12 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
 
     await executeAction(
       async () => {
-        return await deleteProject(deletingProject.id);
+        return await deleteProjectMutation.mutateAsync(deletingProject.id);
       },
       {
         onSuccess: () => {
-          const updated = projects.filter((p) => p.id !== deletingProject.id);
           if (onProjectsChange) {
-            onProjectsChange(updated);
-          } else {
-            setInternalProjects(updated);
+            onProjectsChange(projects.filter((p) => p.id !== deletingProject.id));
           }
           setDeletingProject(null);
         },

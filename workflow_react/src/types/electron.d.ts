@@ -1,4 +1,4 @@
-﻿export interface ElectronNotificationOptions {
+export interface ElectronNotificationOptions {
   title: string;
   body: string;
   urgency?: 'normal' | 'critical' | 'low';
@@ -12,6 +12,11 @@ export interface ElectronAppInfo {
   platform: string;
 }
 
+export interface ElectronBackendConfig {
+  backendApiUrl?: string;
+  [key: string]: any;
+}
+
 export interface ElectronAPI {
   isElectron: boolean;
   minimizeWindow?: () => Promise<boolean>;
@@ -21,6 +26,8 @@ export interface ElectronAPI {
   onWindowMaximizedChange?: (callback: (isMaximized: boolean) => void) => () => void;
   showNotification: (options: ElectronNotificationOptions) => Promise<{ success: boolean; reason?: string }>;
   getAppInfo: () => Promise<ElectronAppInfo>;
+  getBackendConfig?: () => Promise<ElectronBackendConfig>;
+  setBackendConfig?: (config: ElectronBackendConfig) => Promise<ElectronBackendConfig | null>;
   onNotificationClick: (callback: (data: { title: string; tag?: string }) => void) => () => void;
 }
 

@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import type { Issue, Project, User } from '../types';
-import { getIssues, getProjects, getUsers, updateIssue, toggleLikeIssue, deleteIssue } from '../services/api';
+import type { Issue } from '../types';
 import { useAuth } from '../context/AuthContext';
+import {
+  useIssues,
+  useProjects,
+  useUsers,
+  useUpdateIssue,
+  useDeleteIssue,
+  useToggleLikeIssue,
+} from '../api';
 import { Plus, Heart, Trash2, Search, Calendar, Filter, GripVertical } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { getProjectMembers } from '../utils/projectMembers';
 import { PriorityBadge, IssueTypeBadge, UserBadge } from '../components/common';
 import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
 import { STATUS_LIST, STATUS_CONFIG, parseStatusCategory, parsePriorityLevel } from '../utils/statusUtils';
-
 
 interface IssuesPageProps {
   onOpenCreateIssue: () => void;
@@ -29,20 +35,35 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   selectedAssigneeId = 'ALL',
   searchTermProp = '',
   onFilterChange,
-  refreshKey,
   onIssueUpdatedDirectly,
   onIssueDeletedDirectly,
 }) => {
   const { isAuthenticated, user } = useAuth();
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
 
   // Filters
   const [filterProjectId, setFilterProjectId] = useState<number | 'ALL'>(selectedProjectId || 'ALL');
   const [filterAssigneeId, setFilterAssigneeId] = useState<number | 'ALL' | 'MY'>(selectedAssigneeId || 'ALL');
   const [searchTerm, setSearchTerm] = useState<string>(searchTermProp || '');
-  const [loading, setLoading] = useState<boolean>(true);
+
+  // 1. Projects & Users Query
+  const { data: projects = [] } = useProjects({ limit: 50 });
+  const { data: users = [] } = useUsers();
+
+  // 2. Issues Query (TanStack Query with automatic caching & debounced filters)
+  const queryProjectId = filterProjectId === 'ALL' ? undefined : filterProjectId;
+  const queryAssigneeId = filterAssigneeId === 'MY' ? 'my' : filterAssigneeId === 'ALL' ? undefined : Number(filterAssigneeId);
+
+  const { data: issues = [], isLoading: loading } = useIssues({
+    projectId: queryProjectId,
+    assigneeId: queryAssigneeId,
+    search: searchTerm.trim() || undefined,
+    all: true, // 보드 뷰에서는 전체 항목 표시
+  });
+
+  // Mutations
+  const updateIssueMutation = useUpdateIssue();
+  const deleteIssueMutation = useDeleteIssue();
+  const toggleLikeMutation = useToggleLikeIssue();
 
   // Drag and Drop States
   const [draggedIssueId, setDraggedIssueId] = useState<number | null>(null);
@@ -64,49 +85,6 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   useEffect(() => {
     setSearchTerm(searchTermProp || '');
   }, [searchTermProp]);
-
-  const loadInitData = async () => {
-    try {
-      const [pData, uData] = await Promise.all([getProjects(), getUsers()]);
-      setProjects(pData);
-      setUsers(uData);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchIssues = async () => {
-    setLoading(true);
-    try {
-      const pid = filterProjectId === 'ALL' ? undefined : filterProjectId;
-      let aid: number | undefined = undefined;
-
-      if (filterAssigneeId === 'MY') {
-        aid = user?.id;
-      } else if (filterAssigneeId !== 'ALL') {
-        aid = Number(filterAssigneeId);
-      }
-
-      const iData = await getIssues({
-        projectId: pid,
-        assigneeId: aid,
-        search: searchTerm.trim() || undefined,
-      });
-      setIssues(iData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadInitData();
-  }, []);
-
-  useEffect(() => {
-    fetchIssues();
-  }, [filterProjectId, filterAssigneeId, searchTerm, refreshKey]);
 
   // Filter change handlers
   const handleProjectFilterChange = (newProj: number | 'ALL') => {
@@ -138,32 +116,15 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     const curCat = parseStatusCategory(targetIssue.statusId || targetIssue.status);
     if (curCat === targetMeta.key) return;
 
-    // 낙관적 업데이트 (Optimistic Update)
-    setIssues((prev) =>
-      prev.map((item) =>
-        item.id === issueId
-          ? {
-              ...item,
-              statusId: targetMeta.id,
-              status: {
-                id: targetMeta.id,
-                name: targetMeta.key,
-                category: targetMeta.key,
-              },
-
-            }
-          : item
-      )
-    );
-
     try {
-      const updated = await updateIssue(issueId, { statusId: targetMeta.id });
-      setIssues((prev) => prev.map((item) => (item.id === issueId ? updated : item)));
+      const updated = await updateIssueMutation.mutateAsync({
+        id: issueId,
+        data: { statusId: targetMeta.id },
+      });
       if (onIssueUpdatedDirectly) onIssueUpdatedDirectly(updated);
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.error || '상태 변경 중 오류가 발생했습니다.');
-      fetchIssues();
     }
   };
 
@@ -210,18 +171,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     if (!isAuthenticated) return alert('좋아요 기능은 로그인 후 이용 가능합니다.');
 
     try {
-      const res = await toggleLikeIssue(issue.id);
-      setIssues((prev) =>
-        prev.map((i) =>
-          i.id === issue.id
-            ? {
-                ...i,
-                isLiked: res.isLiked,
-                likesCount: res.likesCount,
-              }
-            : i
-        )
-      );
+      await toggleLikeMutation.mutateAsync(issue.id);
     } catch (err) {
       console.error(err);
     }
@@ -237,11 +187,11 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     setDeleteLoading(true);
 
     try {
-      await deleteIssue(deletingIssue.id);
-      setIssues((prev) => prev.filter((i) => i.id !== deletingIssue.id));
+      await deleteIssueMutation.mutateAsync(deletingIssue.id);
       if (onIssueDeletedDirectly) onIssueDeletedDirectly(deletingIssue.id);
       setDeletingIssue(null);
     } catch (err: any) {
+      console.error(err);
       alert(err.response?.data?.error || '이슈 삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleteLoading(false);

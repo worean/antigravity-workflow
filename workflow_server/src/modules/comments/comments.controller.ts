@@ -16,8 +16,19 @@ export const createComment = async (req: Request, res: Response) => {
 
 export const getComments = async (req: Request, res: Response) => {
   try {
-    const comments = await getCommentsService(Number(req.params.issueId || req.query.issueId));
-    res.json(comments);
+    const issueId = Number(req.params.issueId || req.query.issueId);
+    const result = await getCommentsService(issueId, req.query);
+
+    res.setHeader('X-Total-Count', String(result.total));
+    res.setHeader('X-Page', String(result.page));
+    res.setHeader('X-Limit', String(result.limit));
+    res.setHeader('X-Total-Pages', String(result.totalPages));
+
+    if (req.query.withMeta === 'true' || req.query.format === 'object') {
+      res.json(result);
+    } else {
+      res.json(result.items);
+    }
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
