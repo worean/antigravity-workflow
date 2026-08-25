@@ -14,11 +14,13 @@
     "electron": "electron .",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
     "electron:pack": "node scripts/package-app.cjs",
-    "electron:build": "node scripts/package-app.cjs"
+    "electron:build": "node scripts/package-app.cjs",
+    "electron:dist": "npm run build && electron-builder --win --x64"
   },
   "build": {
     "appId": "com.antigravity.workflow",
     "productName": "AntiGravity Workflow",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release"
     },
