@@ -61,8 +61,8 @@ export const SprintsPage: React.FC = () => {
   const [backlogSearch, setBacklogSearch] = useState<string>('');
   const [autoCalculating, setAutoCalculating] = useState<boolean>(false);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading: boolean = false) => {
+    if (showLoading) setLoading(true);
     try {
       const [sData, pData] = await Promise.all([
         getSprints(selectedProjectId === 'ALL' ? undefined : selectedProjectId),
@@ -74,12 +74,12 @@ export const SprintsPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch sprint data:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
   }, [selectedProjectId]);
 
   // Open Create Modal
@@ -416,7 +416,7 @@ export const SprintsPage: React.FC = () => {
       </div>
 
       {/* Sprints Grid List */}
-      {loading ? (
+      {loading && sprints.length === 0 ? (
         <Spinner centered label="스프린트 불러오는 중..." />
       ) : filteredSprints.length === 0 ? (
         <Card variant="glass" padding="28px" style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>

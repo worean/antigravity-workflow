@@ -215,6 +215,8 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [issuesLoading, setIssuesLoading] = useState<boolean>(false);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
+  const [isBackgroundSyncing, setIsBackgroundSyncing] = useState<boolean>(false);
 
   // Preference: isSundayStart (default: true)
   const isSundayStart = useMemo<boolean>(() => {
@@ -267,28 +269,50 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
   }, []);
 
   // 2. Load Sprints & Issues when Project changes
-  const loadProjectData = useCallback(async () => {
-    if (!selectedProjectId) return;
-    setIssuesLoading(true);
-    try {
-      const [sData, iData] = await Promise.all([
-        getSprints(selectedProjectId),
-        getIssues({
-          projectId: selectedProjectId,
-          sprintId: selectedSprintId === 'ALL' ? undefined : selectedSprintId,
-        }),
-      ]);
-      setSprints(sData);
-      setIssues(iData);
-    } catch (err) {
-      console.error('Failed to load WBS data:', err);
-    } finally {
-      setIssuesLoading(false);
-    }
-  }, [selectedProjectId, selectedSprintId]);
+  const loadProjectData = useCallback(
+    async (showLoading: boolean = false) => {
+      if (!selectedProjectId) return;
+      if (showLoading) setIssuesLoading(true);
+      else setIsBackgroundSyncing(true);
+
+      const prevTableScrollTop = tableBodyRef.current?.scrollTop;
+      const prevGanttScrollTop = ganttBodyRef.current?.scrollTop;
+      const prevGanttScrollLeft = ganttBodyRef.current?.scrollLeft;
+
+      try {
+        const [sData, iData] = await Promise.all([
+          getSprints(selectedProjectId),
+          getIssues({
+            projectId: selectedProjectId,
+            sprintId: selectedSprintId === 'ALL' ? undefined : selectedSprintId,
+          }),
+        ]);
+        setSprints(sData);
+        setIssues(iData);
+      } catch (err) {
+        console.error('Failed to load WBS data:', err);
+      } finally {
+        if (showLoading) setIssuesLoading(false);
+        setIsBackgroundSyncing(false);
+        setIsInitialLoading(false);
+
+        // 스크롤 위치 복원 (인-플레이스 갱신 시 커서/스크롤 위치 완벽 보존)
+        requestAnimationFrame(() => {
+          if (tableBodyRef.current && prevTableScrollTop !== undefined) {
+            tableBodyRef.current.scrollTop = prevTableScrollTop;
+          }
+          if (ganttBodyRef.current) {
+            if (prevGanttScrollTop !== undefined) ganttBodyRef.current.scrollTop = prevGanttScrollTop;
+            if (prevGanttScrollLeft !== undefined) ganttBodyRef.current.scrollLeft = prevGanttScrollLeft;
+          }
+        });
+      }
+    },
+    [selectedProjectId, selectedSprintId]
+  );
 
   useEffect(() => {
-    loadProjectData();
+    loadProjectData(true);
   }, [loadProjectData]);
 
   // 3. Build Hierarchical Tree and compute derived dates
@@ -1250,6 +1274,24 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
           <Button variant="secondary" size="sm" onClick={handleCollapseAll} style={{ height: '26px', fontSize: '0.74rem' }}>
             <Minimize2 size={12} style={{ marginRight: '4px' }} /> 모두 접기
           </Button>
+
+          {(isBackgroundSyncing || updatingIssueId) && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '0.7rem',
+                color: 'var(--accent-cyan)',
+                background: 'rgba(0, 122, 204, 0.1)',
+                padding: '2px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              <Loader2 size={12} className="animate-spin" />
+              <span>동기화 중</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1282,7 +1324,7 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       )}
 
       {/* Main Split Layout: Left Table + Right Gantt Timeline */}
-      {loading || issuesLoading ? (
+      {((loading && projects.length === 0) || (issuesLoading && issues.length === 0) || (isInitialLoading && issues.length === 0)) ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
           <Spinner />
         </div>
@@ -1302,30 +1344,6 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
             position: 'relative',
           }}
         >
-          {/* Global Updating Overlay */}
-          {updatingIssueId && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0,0,0,0.35)',
-                zIndex: 50,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                color: '#fff',
-                fontSize: '0.85rem',
-                backdropFilter: 'blur(1px)',
-              }}
-            >
-              <Loader2 size={18} className="animate-spin" color="var(--primary)" />
-              <span>일정 동기화 중...</span>
-            </div>
-          )}
           {/* ========================================================================= */}
           {/* 📋 Left WBS Hierarchical Table */}
           {/* ========================================================================= */}

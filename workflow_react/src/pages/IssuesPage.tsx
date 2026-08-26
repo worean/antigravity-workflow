@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Issue } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -296,7 +296,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
       </div>
 
       {/* Kanban Board Grid (100% Height to bottom) */}
-      {loading ? (
+      {loading && issues.length === 0 ? (
         <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
           이슈 불러오는 중...
         </div>
