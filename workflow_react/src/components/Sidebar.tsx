@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import { LayoutDashboard, FolderKanban, CheckSquare, Zap, Layers, Clock, Code2, Settings, MessageSquare } from 'lucide-react';
 import { ProfileCard } from './ProfileCard';
+import { useUnreadChatStats } from '../api/chat';
 
 export type TabType = 'dashboard' | 'projects' | 'issues' | 'sprints' | 'wbs' | 'worklogs' | 'chat' | 'issue-detail' | 'project-detail' | 'settings';
 
@@ -15,9 +16,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   onOpenAuth,
 }) => {
+  const { totalUnreadCount, hasMentionUnread } = useUnreadChatStats();
+
   const navItems = [
     { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
-    { id: 'chat', label: '실시간 채팅', icon: MessageSquare },
+    { id: 'chat', label: '실시간 채팅', icon: MessageSquare, unreadCount: totalUnreadCount, hasMention: hasMentionUnread },
     { id: 'projects', label: '프로젝트 목록', icon: FolderKanban },
     { id: 'issues', label: '이슈 칸반 보드', icon: CheckSquare },
     { id: 'sprints', label: '스프린트 관리', icon: Zap },
@@ -127,7 +130,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
               >
                 <Icon size={14} color={isActive ? 'var(--accent-cyan)' : 'var(--text-sub)'} />
-                <span>{item.label}</span>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {Boolean(item.unreadCount && item.unreadCount > 0) && (
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    {item.hasMention && (
+                      <span
+                        style={{
+                          background: '#3b82f6',
+                          color: '#fff',
+                          fontSize: '0.6rem',
+                          fontWeight: 800,
+                          padding: '0 3px',
+                          borderRadius: '4px',
+                          height: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title="@멘션 메시지 있음"
+                      >
+                        @
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        background: '#f43f5e',
+                        color: '#ffffff',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: '10px',
+                        minWidth: '16px',
+                        height: '15px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {item.unreadCount! > 99 ? '99+' : item.unreadCount}
+                    </span>
+                  </div>
+                )}
               </button>
             );
           })}
