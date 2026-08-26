@@ -1,8 +1,8 @@
 ﻿import React from 'react';
-import { LayoutDashboard, FolderKanban, CheckSquare, Zap, Layers, Clock, Code2, Settings } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, CheckSquare, Zap, Layers, Clock, Code2, Settings, MessageSquare } from 'lucide-react';
 import { ProfileCard } from './ProfileCard';
 
-export type TabType = 'dashboard' | 'projects' | 'issues' | 'sprints' | 'wbs' | 'worklogs' | 'issue-detail' | 'project-detail' | 'settings';
+export type TabType = 'dashboard' | 'projects' | 'issues' | 'sprints' | 'wbs' | 'worklogs' | 'chat' | 'issue-detail' | 'project-detail' | 'settings';
 
 interface SidebarProps {
   activeTab: TabType;
@@ -17,6 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems = [
     { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
+    { id: 'chat', label: '실시간 채팅', icon: MessageSquare },
     { id: 'projects', label: '프로젝트 목록', icon: FolderKanban },
     { id: 'issues', label: '이슈 칸반 보드', icon: CheckSquare },
     { id: 'sprints', label: '스프린트 관리', icon: Zap },

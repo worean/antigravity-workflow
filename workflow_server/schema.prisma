@@ -127,6 +127,10 @@ model User {
   watchedIssues    IssueWatcher[]
   likes            IssueLike[]
 
+  chatMembers      ChatMember[]
+  chatMessages     ChatMessage[]
+  chatReactions    ChatMessageReaction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -183,6 +187,7 @@ model Project {
   testCases       TestCase[]
   testRuns        TestRun[]
   customFieldDefs CustomFieldDefinition[]
+  chatChannels    ChatChannel[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -696,6 +701,7 @@ model Group {
 
   members       GroupMember[]
   projectGroups ProjectGroup[]
+  chatChannels  ChatChannel[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -713,6 +719,111 @@ model GroupMember {
   joinedAt  DateTime @default(now())
 
   @@unique([groupId, userId])
+}
+
+// ----------------------------------------------------
+// 💬 Discord-style Chat System Models
+// ----------------------------------------------------
+
+// 채널/대화방 (GLOBAL, PROJECT, GROUP, DM)
+model ChatChannel {
+  id          Int      @id @default(autoincrement())
+  name        String   // 채널명 (예: "general", "공지사항", DM인 경우 상대방/빈값)
+  type        String   @default("GLOBAL") // "GLOBAL" | "PROJECT" | "GROUP" | "DM"
+  topic       String?  // 채널 설명/토픽
+  icon        String?  // 채널 아이콘/이모지 (예: 📢, 💬, 🚀)
+  isPrivate   Boolean  @default(false)
+
+  projectId   Int?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  groupId     Int?
+  group       Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  members     ChatMember[]
+  messages    ChatMessage[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([projectId])
+  @@index([groupId])
+}
+
+// 채널 참여자 및 유저별 알림/읽음 설정
+model ChatMember {
+  id                 Int         @id @default(autoincrement())
+  channelId          Int
+  channel            ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId             Int
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role               String      @default("MEMBER") // "OWNER" | "ADMIN" | "MEMBER"
+
+  // 🔔 유저별 알림 설정 (스마트 스로틀러 및 모바일 푸시 기준)
+  notificationLevel  String      @default("ALL") // "ALL" | "MENTIONS_ONLY" | "MUTED"
+  mutedUntil         DateTime?   // 일시 음소거 만료 시각
+
+  // ⏱️ 마지막 알림 발송 시각 (30초 쿨다운 계산용)
+  lastNotificationAt DateTime?
+
+  // 📖 마지막 읽은 시각 (Unread 카운트 계산용)
+  lastReadAt         DateTime    @default(now())
+
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@unique([channelId, userId])
+  @@index([userId])
+  @@index([channelId])
+}
+
+// 채팅 메시지
+model ChatMessage {
+  id          Int         @id @default(autoincrement())
+  channelId   Int
+  channel     ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  senderId    Int
+  sender      User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  content     String      // 메시지 본문 (텍스트/마크다운)
+  attachments String?     // 첨부파일 JSON (URL, fileName, fileSize, mimeType 등)
+
+  // 멘션 정보
+  mentions    String?     // 언급된 userId 목록 JSON 또는 "@all"
+  hasMention  Boolean     @default(false)
+
+  // 고정 핀 및 시스템 메시지 여부
+  isPinned    Boolean     @default(false)
+  isSystem    Boolean     @default(false)
+
+  reactions   ChatMessageReaction[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([channelId, createdAt])
+  @@index([senderId])
+}
+
+// 메시지 이모지 반응
+model ChatMessageReaction {
+  id        Int         @id @default(autoincrement())
+  messageId Int
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emoji     String      // 이모지 (예: 👍, ❤️, 🔥, 🎉)
+
+  createdAt DateTime    @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
 }
 
 

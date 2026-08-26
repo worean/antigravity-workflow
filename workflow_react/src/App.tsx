@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { AuthProvider } from './context/AuthContext';
@@ -14,6 +14,7 @@ import { SprintsPage } from './pages/SprintsPage';
 import { WBSPage } from './pages/WBSPage';
 import { WorklogsPage } from './pages/WorklogsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ChatPage } from './pages/ChatPage';
 import { AuthModal } from './components/AuthModal';
 
 import { ProjectModal } from './components/ProjectModal';
@@ -38,7 +39,7 @@ const AppContent: React.FC = () => {
       const hash = window.location.hash.replace(/^#/, '');
       if (hash) {
         const [rawTab, queryStr] = hash.split('?');
-        const validTabs: TabType[] = ['dashboard', 'projects', 'project-detail', 'issues', 'sprints', 'wbs', 'worklogs', 'issue-detail', 'settings'];
+        const validTabs: TabType[] = ['dashboard', 'chat', 'projects', 'project-detail', 'issues', 'sprints', 'wbs', 'worklogs', 'issue-detail', 'settings'];
         const tab = validTabs.includes(rawTab as TabType) ? (rawTab as TabType) : 'dashboard';
 
         const params = new URLSearchParams(queryStr || '');
@@ -57,7 +58,7 @@ const AppContent: React.FC = () => {
 
     const savedTab = localStorage.getItem('activeTab') as TabType;
     const savedProjectId = localStorage.getItem('selectedProjectId');
-    const validTabs: TabType[] = ['dashboard', 'projects', 'project-detail', 'issues', 'sprints', 'wbs', 'worklogs', 'issue-detail', 'settings'];
+    const validTabs: TabType[] = ['dashboard', 'chat', 'projects', 'project-detail', 'issues', 'sprints', 'wbs', 'worklogs', 'issue-detail', 'settings'];
 
     return {
       tab: validTabs.includes(savedTab) ? savedTab : 'dashboard',
@@ -297,6 +298,7 @@ const AppContent: React.FC = () => {
           )}
 
 
+          {activeTab === 'chat' && <ChatPage />}
           {activeTab === 'sprints' && <SprintsPage />}
           {activeTab === 'wbs' && <WBSPage onSelectIssue={handleSelectIssue} />}
           {activeTab === 'worklogs' && <WorklogsPage />}

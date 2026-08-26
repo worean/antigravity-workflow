@@ -4,6 +4,7 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { app } from './app.js';
+import { initSocketServer } from './lib/socket.js';
 
 const PORT = process.env.PORT || 4000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true' || process.env.ENABLE_HTTPS === 'true';
@@ -20,6 +21,7 @@ if (fs.existsSync(certKeyPath) && fs.existsSync(certOutPath)) {
     cert: fs.readFileSync(certOutPath)
   };
   server = https.createServer(options, app);
+  initSocketServer(server);
   server.listen(PORT, () => {
     console.log(`\n==================================================`);
     console.log(`🔒 [OpenSSL HTTPS Enabled] Secure Server Running!`);
@@ -29,8 +31,9 @@ if (fs.existsSync(certKeyPath) && fs.existsSync(certOutPath)) {
   });
 } else {
   server = http.createServer(app);
+  initSocketServer(server);
   server.listen(PORT, () => {
-    console.log(`🚀 Authenticated REST API Server running at http://localhost:${PORT}`);
+    console.log(`🚀 Authenticated REST API & Socket.IO Server running at http://localhost:${PORT}`);
   });
 }
 
