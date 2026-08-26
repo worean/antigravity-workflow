@@ -14,6 +14,7 @@ import {
   Calendar,
   AlertCircle,
   Loader2,
+  GripVertical,
 } from 'lucide-react';
 import { Button, Spinner, StatusBadge, Avatar } from '../components/common';
 import { formatDateOnly, parseLocalDate, addDays, diffDays, getWeekNumber } from '../utils/dateUtils';
@@ -201,6 +202,11 @@ interface DragState {
   currentDueDate: Date;
 }
 
+interface TreeDropTarget {
+  targetId: number | 'root';
+  position: 'inside' | 'before' | 'after' | 'root';
+}
+
 export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -222,10 +228,14 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
   // Zoom & Scale State (dayWidth: 6px ~ 72px)
   const [dayWidth, setDayWidth] = useState<number>(36);
 
-  // Drag & Drop / Resize State
+  // Gantt Bar Drag & Drop / Resize State
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [updatingIssueId, setUpdatingIssueId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Left TreeList Drag & Drop State (계층 구조 변경)
+  const [treeDragSourceId, setTreeDragSourceId] = useState<number | null>(null);
+  const [treeDropTarget, setTreeDropTarget] = useState<TreeDropTarget | null>(null);
 
   // Left table width
   const leftWidth = 440;
@@ -319,6 +329,38 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       return { start, end };
     };
 
+    // 시작계획일(plannedStartDate) 기준 오름차순 시간순 정렬 헬퍼
+    const compareWBSOrder = (a: Issue, b: Issue): number => {
+      const aDates = computeDates(a);
+      const bDates = computeDates(b);
+
+      const aStart = aDates.start ? aDates.start.getTime() : null;
+      const bStart = bDates.start ? bDates.start.getTime() : null;
+
+      // 1. 시작일 기준 정렬 (시작일이 빠른 이슈가 앞, 없는 이슈는 뒤)
+      if (aStart !== null && bStart !== null) {
+        if (aStart !== bStart) return aStart - bStart;
+      } else if (aStart !== null && bStart === null) {
+        return -1;
+      } else if (aStart === null && bStart !== null) {
+        return 1;
+      }
+
+      // 2. 시작일이 같거나 둘 다 없는 경우: 기한(Due Date) 빠른 순
+      const aEnd = aDates.end ? aDates.end.getTime() : null;
+      const bEnd = bDates.end ? bDates.end.getTime() : null;
+      if (aEnd !== null && bEnd !== null) {
+        if (aEnd !== bEnd) return aEnd - bEnd;
+      } else if (aEnd !== null && bEnd === null) {
+        return -1;
+      } else if (aEnd === null && bEnd !== null) {
+        return 1;
+      }
+
+      // 3. 시작일과 기한이 모두 같은 경우: ID 오름차순
+      return a.id - b.id;
+    };
+
     // Flatten tree respecting collapsedIds
     const flatList: WBSItem[] = [];
     let minDate: Date | null = null;
@@ -352,12 +394,16 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       const isCollapsed = collapsedIds.has(iss.id);
       const hideNext = isHiddenByParent || isCollapsed;
 
-      children.forEach((child) => {
+      // 하위 자식 이슈들도 시작계획일 순서대로 정렬하여 순회
+      const sortedChildren = [...children].sort(compareWBSOrder);
+      sortedChildren.forEach((child) => {
         traverse(child, depth + 1, hideNext, rootId);
       });
     };
 
-    rootIssues.forEach((root) => traverse(root, 0, false, root.id));
+    // 최상위 루트 이슈들을 시작계획일 순서대로 정렬
+    const sortedRootIssues = [...rootIssues].sort(compareWBSOrder);
+    sortedRootIssues.forEach((root) => traverse(root, 0, false, root.id));
 
     // Determine Timeline Range (minDate ~ maxDate with padding)
     const today = new Date();
@@ -765,6 +811,119 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [dragState, dayWidth, loadProjectData, getDescendantIssueIds, issues, liveDateMap]);
+
+  // ----------------------------------------------------
+  // 6. TreeList Drag & Drop Handlers (좌측 트리 계층 변경 & 재배치)
+  // ----------------------------------------------------
+  const handleTreeDragStart = (e: React.DragEvent, issueId: number) => {
+    e.stopPropagation();
+    e.dataTransfer.setData('text/plain', String(issueId));
+    e.dataTransfer.effectAllowed = 'move';
+    setTreeDragSourceId(issueId);
+  };
+
+  const handleTreeDragOver = (e: React.DragEvent, targetIssue: Issue) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!treeDragSourceId || treeDragSourceId === targetIssue.id) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
+    // 순환 참조 방지: 드래그 중인 이슈의 자손 이슈들 밑으로는 드롭 불가
+    const descendantIds = getDescendantIssueIds(treeDragSourceId);
+    if (descendantIds.has(targetIssue.id)) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
+    e.dataTransfer.dropEffect = 'move';
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const height = rect.height;
+
+    if (offsetY < height * 0.25) {
+      setTreeDropTarget({ targetId: targetIssue.id, position: 'before' });
+    } else if (offsetY > height * 0.75) {
+      setTreeDropTarget({ targetId: targetIssue.id, position: 'after' });
+    } else {
+      setTreeDropTarget({ targetId: targetIssue.id, position: 'inside' });
+    }
+  };
+
+  const handleTreeDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleTreeDrop = async (e: React.DragEvent, targetIssue: Issue | 'root') => {
+    e.preventDefault();
+    e.stopPropagation();
+    const sourceId = treeDragSourceId;
+    const dropTarget = treeDropTarget;
+    setTreeDragSourceId(null);
+    setTreeDropTarget(null);
+
+    if (!sourceId || !dropTarget) return;
+
+    let newParentId: number | null = null;
+
+    if (targetIssue === 'root' || dropTarget.position === 'root') {
+      newParentId = null;
+    } else if (typeof targetIssue === 'object') {
+      if (sourceId === targetIssue.id) return;
+      const descendantIds = getDescendantIssueIds(sourceId);
+      if (descendantIds.has(targetIssue.id)) return;
+
+      if (dropTarget.position === 'inside') {
+        newParentId = targetIssue.id;
+      } else {
+        // 'before' or 'after' -> 타겟 이슈와 동일한 계층(타겟의 parentId)으로 이동
+        newParentId = targetIssue.parentId ? Number(targetIssue.parentId) : null;
+      }
+    }
+
+    const draggedIssue = issues.find((i) => i.id === sourceId);
+    if (!draggedIssue) return;
+    const currentParentId = draggedIssue.parentId ? Number(draggedIssue.parentId) : null;
+
+    if (currentParentId === newParentId) {
+      return; // 변경 없음
+    }
+
+    // 1. 낙관적 UI 업데이트 (Optimistic UI Update)
+    const previousIssues = [...issues];
+    setIssues((prev) =>
+      prev.map((iss) => (iss.id === sourceId ? { ...iss, parentId: newParentId } : iss))
+    );
+
+    // 새 부모가 접혀 있었다면 펼치기
+    if (newParentId) {
+      setCollapsedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(newParentId!);
+        return next;
+      });
+    }
+
+    setUpdatingIssueId(sourceId);
+    try {
+      await updateIssue(sourceId, { parentId: newParentId });
+      await loadProjectData();
+    } catch (err: any) {
+      console.error('Failed to reparent issue in tree:', err);
+      setIssues(previousIssues);
+      setErrorMessage(err.response?.data?.error || '계층 구조 변경에 실패하여 원위치로 롤백합니다.');
+      await loadProjectData();
+    } finally {
+      setUpdatingIssueId(null);
+    }
+  };
+
+  const handleTreeDragEnd = () => {
+    setTreeDragSourceId(null);
+    setTreeDropTarget(null);
+  };
 
   // Sprint Due Date Marker Lines Calculation (스프린트 기한 선 위치 계산)
   const sprintDueLines = useMemo(() => {
@@ -1211,32 +1370,89 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                 flex: 1,
                 overflowY: 'auto',
                 overflowX: 'hidden',
+                position: 'relative',
               }}
             >
               {flatWBSItems.map((item) => {
                 const iss = item.issue;
                 const isCollapsed = collapsedIds.has(iss.id);
+                const isBeingDragged = treeDragSourceId === iss.id;
+                const isTarget = treeDropTarget?.targetId === iss.id;
+
+                let rowBg = item.isParent ? 'rgba(255,255,255,0.03)' : 'transparent';
+                let rowBoxShadow: string | undefined = undefined;
+                let rowBorderTop: string | undefined = undefined;
+                let rowBorderBottom = '1px solid #333333';
+
+                if (isTarget) {
+                  if (treeDropTarget?.position === 'inside') {
+                    rowBg = 'rgba(0, 122, 204, 0.28)';
+                    rowBoxShadow = 'inset 0 0 0 2px #007acc';
+                  } else if (treeDropTarget?.position === 'before') {
+                    rowBorderTop = '2.5px solid #38bdf8';
+                  } else if (treeDropTarget?.position === 'after') {
+                    rowBorderBottom = '2.5px solid #38bdf8';
+                  }
+                }
 
                 return (
                   <div
                     key={iss.id}
+                    draggable={!updatingIssueId}
+                    onDragStart={(e) => handleTreeDragStart(e, iss.id)}
+                    onDragOver={(e) => handleTreeDragOver(e, iss)}
+                    onDragLeave={handleTreeDragLeave}
+                    onDrop={(e) => handleTreeDrop(e, iss)}
+                    onDragEnd={handleTreeDragEnd}
                     onClick={() => onSelectIssue && onSelectIssue(iss)}
                     style={{
                       height: '38px',
                       display: 'flex',
                       alignItems: 'center',
-                      borderBottom: '1px solid #333333',
+                      borderBottom: rowBorderBottom,
+                      borderTop: rowBorderTop,
                       fontSize: '0.74rem',
                       padding: '0 8px',
-                      cursor: 'pointer',
-                      background: item.isParent ? 'rgba(255,255,255,0.03)' : 'transparent',
-                      transition: 'background 0.1s',
+                      cursor: 'grab',
+                      background: rowBg,
+                      boxShadow: rowBoxShadow,
+                      opacity: isBeingDragged ? 0.35 : 1,
+                      transition: 'background 0.1s, opacity 0.15s',
+                      boxSizing: 'border-box',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#2a2d2e')}
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = item.isParent ? 'rgba(255,255,255,0.03)' : 'transparent')
+                    title={
+                      isTarget && treeDropTarget?.position === 'inside'
+                        ? `"${iss.title}"의 하위 이슈로 배치`
+                        : isTarget && treeDropTarget?.position === 'before'
+                        ? `"${iss.title}"의 위쪽(동일 계층)으로 이동`
+                        : isTarget && treeDropTarget?.position === 'after'
+                        ? `"${iss.title}"의 아래쪽(동일 계층)으로 이동`
+                        : undefined
                     }
+                    onMouseEnter={(e) => {
+                      if (!isTarget) e.currentTarget.style.background = '#2a2d2e';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isTarget) e.currentTarget.style.background = rowBg;
+                    }}
                   >
+                    {/* Drag Grip Handle */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '14px',
+                        color: 'var(--text-muted)',
+                        cursor: 'grab',
+                        flexShrink: 0,
+                        opacity: 0.5,
+                      }}
+                      title="드래그하여 계층 구조를 변경합니다"
+                    >
+                      <GripVertical size={12} />
+                    </div>
+
                     {/* Title with indent and collapse arrow */}
                     <div
                       style={{
@@ -1244,7 +1460,7 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        paddingLeft: `${item.depth * 16}px`,
+                        paddingLeft: `${item.depth * 14}px`,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -1326,6 +1542,34 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                   </div>
                 );
               })}
+
+              {/* Drop Target Zone: Move to Root (최상위 이슈로 빼기 영역) */}
+              {treeDragSourceId && (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'move';
+                    setTreeDropTarget({ targetId: 'root', position: 'root' });
+                  }}
+                  onDragLeave={handleTreeDragLeave}
+                  onDrop={(e) => handleTreeDrop(e, 'root')}
+                  style={{
+                    margin: '8px',
+                    padding: '10px 8px',
+                    borderRadius: '4px',
+                    border: treeDropTarget?.targetId === 'root' ? '2px dashed #007acc' : '1px dashed #3e3e3e',
+                    background: treeDropTarget?.targetId === 'root' ? 'rgba(0, 122, 204, 0.2)' : 'rgba(255,255,255,0.02)',
+                    textAlign: 'center',
+                    fontSize: '0.72rem',
+                    color: treeDropTarget?.targetId === 'root' ? '#38bdf8' : 'var(--text-muted)',
+                    cursor: 'copy',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  ➕ 여기에 놓으면 <strong>최상위(Root) 이슈</strong>로 변경됩니다
+                </div>
+              )}
             </div>
           </div>
 
