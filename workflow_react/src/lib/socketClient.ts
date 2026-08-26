@@ -1,33 +1,42 @@
 ﻿// -*- coding: utf-8 -*-
 import { io, Socket } from 'socket.io-client';
+import { getCurrentBackendHostUrl } from './apiClient';
 
 let socket: Socket | null = null;
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-
 export const getSocket = (token?: string): Socket => {
-  if (socket && socket.connected) {
-    return socket;
-  }
+  const authToken =
+    token ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('auth_token') || localStorage.getItem('token') || ''
+      : '');
 
-  const authToken = token || localStorage.getItem('token') || '';
+  const hostUrl = typeof window !== 'undefined' ? getCurrentBackendHostUrl() : 'http://localhost:4000';
 
   if (!socket) {
-    socket = io(SOCKET_URL, {
+    socket = io(hostUrl, {
       auth: {
         token: authToken,
       },
-      autoConnect: false,
+      autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      console.log('🟢 [Socket.IO] Connected successfully:', socket?.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn('⚠️ [Socket.IO] Connection error:', err.message);
     });
   } else {
     socket.auth = { token: authToken };
-  }
-
-  if (!socket.connected && authToken) {
-    socket.connect();
+    if (!socket.connected && authToken) {
+      socket.connect();
+    }
   }
 
   return socket;

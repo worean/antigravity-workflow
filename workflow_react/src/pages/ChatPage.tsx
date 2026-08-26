@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   MessageSquare,
@@ -19,6 +19,7 @@ import {
 import {
   getChannels,
   createChannel,
+  getMessages,
   sendMessage,
   markAsRead,
   updateMemberSettings,
@@ -93,7 +94,10 @@ export const ChatPage: React.FC = () => {
 
     const handleNewMessage = (newMsg: ChatMessage) => {
       if (newMsg.channelId === selectedChannelId) {
-        setMessages((prev) => [...prev, newMsg]);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
         markAsRead(newMsg.channelId).catch(console.error);
       }
 
@@ -106,7 +110,7 @@ export const ChatPage: React.FC = () => {
                 id: newMsg.id,
                 content: newMsg.content,
                 senderId: newMsg.senderId,
-                senderName: newMsg.sender.name,
+                senderName: newMsg.sender?.name,
                 createdAt: newMsg.createdAt,
               },
               unreadCount: c.id === selectedChannelId ? 0 : c.unreadCount + 1,
@@ -188,17 +192,18 @@ export const ChatPage: React.FC = () => {
     socket.emit('chat:join_channel', selectedChannelId);
 
     setLoadingMessages(true);
-    import('../api/chat').then(({ getMessages }) => {
-      getMessages(selectedChannelId)
-        .then((res) => {
-          setMessages(res.messages);
-          markAsRead(selectedChannelId).catch(console.error);
-          setChannels((prev) =>
-            prev.map((c) => (c.id === selectedChannelId ? { ...c, unreadCount: 0 } : c))
-          );
-        })
-        .finally(() => setLoadingMessages(false));
-    });
+    getMessages(selectedChannelId)
+      .then((res) => {
+        setMessages(res.messages);
+        markAsRead(selectedChannelId).catch(console.error);
+        setChannels((prev) =>
+          prev.map((c) => (c.id === selectedChannelId ? { ...c, unreadCount: 0 } : c))
+        );
+      })
+      .catch((err) => {
+        console.error('Failed to load channel messages:', err);
+      })
+      .finally(() => setLoadingMessages(false));
 
     return () => {
       socket.emit('chat:leave_channel', selectedChannelId);
@@ -221,9 +226,31 @@ export const ChatPage: React.FC = () => {
     socket.emit('chat:stop_typing', { channelId: selectedChannelId });
 
     try {
-      await sendMessage(selectedChannelId, { content });
-    } catch (err) {
+      const sentMessage = await sendMessage(selectedChannelId, { content });
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === sentMessage.id)) return prev;
+        return [...prev, sentMessage];
+      });
+
+      setChannels((prev) =>
+        prev.map((c) =>
+          c.id === selectedChannelId
+            ? {
+                ...c,
+                lastMessage: {
+                  id: sentMessage.id,
+                  content: sentMessage.content,
+                  senderId: sentMessage.senderId,
+                  senderName: sentMessage.sender?.name,
+                  createdAt: sentMessage.createdAt,
+                },
+              }
+            : c
+        )
+      );
+    } catch (err: any) {
       console.error('Failed to send message:', err);
+      alert(err.response?.data?.error || '메시지 전송에 실패했습니다.');
     }
   };
 
