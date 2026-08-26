@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Project, Sprint, Issue } from '../types';
-import { getProjects, getSprints, getIssues, updateIssue } from '../services/api';
+import { getProjects, getSprints, getIssues, updateIssue, batchUpdateIssueSchedules } from '../services/api';
 import {
   Layers,
   ChevronRight,
@@ -22,6 +22,164 @@ interface WBSPageProps {
   onSelectIssue?: (issue: Issue) => void;
 }
 
+export interface WBSColorTheme {
+  name: string;
+  base: string;
+  border: string;
+  progress: string;
+  bgEmpty: string;
+  parentBase: string;
+  parentBorder: string;
+  dragBase: string;
+  dragBorder: string;
+}
+
+// 12가지 다채로운 WBS/간트차트 전용 색상 팔레트
+export const WBS_PALETTE: WBSColorTheme[] = [
+  {
+    name: 'blue',
+    base: '#007acc',
+    border: '#1f8ad2',
+    progress: '#38bdf8',
+    bgEmpty: 'rgba(0, 122, 204, 0.18)',
+    parentBase: '#007acc',
+    parentBorder: '#38bdf8',
+    dragBase: '#0284c7',
+    dragBorder: '#7dd3fc',
+  },
+  {
+    name: 'emerald',
+    base: '#059669',
+    border: '#10b981',
+    progress: '#34d399',
+    bgEmpty: 'rgba(5, 150, 105, 0.18)',
+    parentBase: '#059669',
+    parentBorder: '#34d399',
+    dragBase: '#047857',
+    dragBorder: '#6ee7b7',
+  },
+  {
+    name: 'indigo',
+    base: '#4f46e5',
+    border: '#6366f1',
+    progress: '#818cf8',
+    bgEmpty: 'rgba(79, 70, 229, 0.18)',
+    parentBase: '#4f46e5',
+    parentBorder: '#818cf8',
+    dragBase: '#4338ca',
+    dragBorder: '#a5b4fc',
+  },
+  {
+    name: 'purple',
+    base: '#7c3aed',
+    border: '#8b5cf6',
+    progress: '#a78bfa',
+    bgEmpty: 'rgba(124, 58, 237, 0.18)',
+    parentBase: '#7c3aed',
+    parentBorder: '#a78bfa',
+    dragBase: '#6d28d9',
+    dragBorder: '#c4b5fd',
+  },
+  {
+    name: 'amber',
+    base: '#d97706',
+    border: '#f59e0b',
+    progress: '#fbbf24',
+    bgEmpty: 'rgba(217, 119, 6, 0.18)',
+    parentBase: '#d97706',
+    parentBorder: '#fbbf24',
+    dragBase: '#b45309',
+    dragBorder: '#fde68a',
+  },
+  {
+    name: 'cyan',
+    base: '#0891b2',
+    border: '#06b6d4',
+    progress: '#22d3ee',
+    bgEmpty: 'rgba(8, 145, 178, 0.18)',
+    parentBase: '#0891b2',
+    parentBorder: '#22d3ee',
+    dragBase: '#0e7490',
+    dragBorder: '#67e8f9',
+  },
+  {
+    name: 'rose',
+    base: '#e11d48',
+    border: '#f43f5e',
+    progress: '#fb7185',
+    bgEmpty: 'rgba(225, 29, 72, 0.18)',
+    parentBase: '#e11d48',
+    parentBorder: '#fb7185',
+    dragBase: '#be123c',
+    dragBorder: '#fda4af',
+  },
+  {
+    name: 'green',
+    base: '#16a34a',
+    border: '#22c55e',
+    progress: '#4ade80',
+    bgEmpty: 'rgba(22, 163, 74, 0.18)',
+    parentBase: '#16a34a',
+    parentBorder: '#4ade80',
+    dragBase: '#15803d',
+    dragBorder: '#86efac',
+  },
+  {
+    name: 'orange',
+    base: '#ea580c',
+    border: '#f97316',
+    progress: '#fb923c',
+    bgEmpty: 'rgba(234, 88, 12, 0.18)',
+    parentBase: '#ea580c',
+    parentBorder: '#fb923c',
+    dragBase: '#c2410c',
+    dragBorder: '#fdba74',
+  },
+  {
+    name: 'fuchsia',
+    base: '#c026d3',
+    border: '#d946ef',
+    progress: '#e879f9',
+    bgEmpty: 'rgba(192, 38, 211, 0.18)',
+    parentBase: '#c026d3',
+    parentBorder: '#e879f9',
+    dragBase: '#a21caf',
+    dragBorder: '#f0abfc',
+  },
+  {
+    name: 'teal',
+    base: '#0d9488',
+    border: '#14b8a6',
+    progress: '#2dd4bf',
+    bgEmpty: 'rgba(13, 148, 136, 0.18)',
+    parentBase: '#0d9488',
+    parentBorder: '#2dd4bf',
+    dragBase: '#0f766e',
+    dragBorder: '#5eead4',
+  },
+  {
+    name: 'violet',
+    base: '#6d28d9',
+    border: '#7c3aed',
+    progress: '#8b5cf6',
+    bgEmpty: 'rgba(109, 40, 217, 0.18)',
+    parentBase: '#6d28d9',
+    parentBorder: '#8b5cf6',
+    dragBase: '#5b21b6',
+    dragBorder: '#a78bfa',
+  },
+];
+
+/**
+ * 고정된 Seed 기반 의사 난수 해시 함수
+ * 최상위 이슈 ID(rootId)에 따라 항상 일관되고 고정된 색상 테마를 반환합니다.
+ */
+export const getWBSColorByRootId = (rootId: number): WBSColorTheme => {
+  const hash = Math.abs((rootId * 2654435761) ^ (rootId >> 16));
+  const index = hash % WBS_PALETTE.length;
+  return WBS_PALETTE[index];
+};
+
 interface WBSItem {
   issue: Issue;
   depth: number;
@@ -29,6 +187,8 @@ interface WBSItem {
   startDate: Date | null;
   endDate: Date | null;
   isParent: boolean;
+  rootIssueId: number;
+  color: WBSColorTheme;
 }
 
 interface DragState {
@@ -164,7 +324,7 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
     let minDate: Date | null = null;
     let maxDate: Date | null = null;
 
-    const traverse = (iss: Issue, depth: number, isHiddenByParent: boolean) => {
+    const traverse = (iss: Issue, depth: number, isHiddenByParent: boolean, rootId: number) => {
       const children = childrenMap.get(iss.id) || [];
       const hasChildren = children.length > 0;
       const { start, end } = computeDates(iss);
@@ -184,6 +344,8 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
           startDate: start,
           endDate: end,
           isParent: hasChildren,
+          rootIssueId: rootId,
+          color: getWBSColorByRootId(rootId),
         });
       }
 
@@ -191,11 +353,11 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       const hideNext = isHiddenByParent || isCollapsed;
 
       children.forEach((child) => {
-        traverse(child, depth + 1, hideNext);
+        traverse(child, depth + 1, hideNext, rootId);
       });
     };
 
-    rootIssues.forEach((root) => traverse(root, 0, false));
+    rootIssues.forEach((root) => traverse(root, 0, false, root.id));
 
     // Determine Timeline Range (minDate ~ maxDate with padding)
     const today = new Date();
@@ -335,13 +497,7 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
         plannedStartDate: startDateStr,
         dueDate: dueDateStr,
       });
-      setIssues((prev) =>
-        prev.map((item) =>
-          item.id === iss.id
-            ? { ...item, plannedStartDate: startDateStr, dueDate: dueDateStr }
-            : item
-        )
-      );
+      await loadProjectData();
     } catch (err: any) {
       console.error('Failed to quick schedule issue:', err);
       setErrorMessage(err.response?.data?.error || '일정 설정에 실패했습니다.');
@@ -349,6 +505,25 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       setUpdatingIssueId(null);
     }
   };
+
+  // Helper to find all descendants of an issue (모든 자손 하위 이슈 ID 집합 구하기)
+  const getDescendantIssueIds = useCallback(
+    (parentIssueId: number): Set<number> => {
+      const descSet = new Set<number>();
+      const queue = [parentIssueId];
+      while (queue.length > 0) {
+        const currId = queue.shift()!;
+        issues.forEach((iss) => {
+          if (iss.parentId === currId && !descSet.has(iss.id)) {
+            descSet.add(iss.id);
+            queue.push(iss.id);
+          }
+        });
+      }
+      return descSet;
+    },
+    [issues]
+  );
 
   // 5. Drag & Drop and Resize Handlers
   const handleMouseDownOnBar = (
@@ -371,6 +546,111 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       currentDueDate: new Date(endDate),
     });
   };
+
+  // Live Date Map (드래그 상태를 실시간 반영한 이슈별 유효 시작일/기한 및 상위 이슈 자동 롤업 계산)
+  const liveDateMap = useMemo(() => {
+    const map = new Map<number, { start: Date | null; end: Date | null; isAffected: boolean }>();
+    const issueMap = new Map<number, Issue>();
+    const childrenMap = new Map<number, Issue[]>();
+
+    issues.forEach((iss) => {
+      issueMap.set(iss.id, iss);
+    });
+
+    issues.forEach((iss) => {
+      if (iss.parentId && issueMap.has(iss.parentId)) {
+        const list = childrenMap.get(iss.parentId) || [];
+        list.push(iss);
+        childrenMap.set(iss.parentId, list);
+      }
+    });
+
+    const isAncestorDragged = (issId: number): boolean => {
+      if (!dragState) return false;
+      if (dragState.issueId === issId) return false;
+      return getDescendantIssueIds(dragState.issueId).has(issId);
+    };
+
+    const deltaDays = dragState
+      ? diffDays(dragState.currentStartDate, dragState.originalStartDate)
+      : 0;
+
+    // 각 이슈의 개별 실시간 기본 날짜
+    const getDirectLiveDates = (iss: Issue): { start: Date | null; end: Date | null; isDirectAffected: boolean } => {
+      if (dragState && dragState.issueId === iss.id) {
+        return {
+          start: dragState.currentStartDate,
+          end: dragState.currentDueDate,
+          isDirectAffected: true,
+        };
+      }
+      if (dragState && isAncestorDragged(iss.id)) {
+        const origStart = parseLocalDate(iss.plannedStartDate);
+        const origDue = parseLocalDate(iss.dueDate);
+        return {
+          start: origStart ? addDays(origStart, deltaDays) : null,
+          end: origDue ? addDays(origDue, deltaDays) : null,
+          isDirectAffected: true,
+        };
+      }
+      return {
+        start: parseLocalDate(iss.plannedStartDate),
+        end: parseLocalDate(iss.dueDate),
+        isDirectAffected: false,
+      };
+    };
+
+    // 재귀적으로 자식들의 min/max를 실시간으로 반영한 날짜 계산
+    const computeLiveDates = (iss: Issue): { start: Date | null; end: Date | null; isAffected: boolean } => {
+      if (map.has(iss.id)) {
+        return map.get(iss.id)!;
+      }
+
+      const direct = getDirectLiveDates(iss);
+      const children = childrenMap.get(iss.id) || [];
+
+      // 상위 이슈 자신이 직접 드래그 중인 경우 직접 날짜 사용
+      if (dragState && dragState.issueId === iss.id) {
+        const res = { start: direct.start, end: direct.end, isAffected: true };
+        map.set(iss.id, res);
+        return res;
+      }
+
+      let start = direct.start;
+      let end = direct.end;
+      let isAffected = direct.isDirectAffected;
+
+      if (children.length > 0) {
+        let minChildStart: Date | null = null;
+        let maxChildEnd: Date | null = null;
+
+        for (const child of children) {
+          const cLive = computeLiveDates(child);
+          if (cLive.isAffected) isAffected = true;
+
+          if (cLive.start) {
+            if (!minChildStart || cLive.start < minChildStart) minChildStart = cLive.start;
+          }
+          if (cLive.end) {
+            if (!maxChildEnd || cLive.end > maxChildEnd) maxChildEnd = cLive.end;
+          }
+        }
+
+        if (minChildStart) start = minChildStart;
+        if (maxChildEnd) end = maxChildEnd;
+      }
+
+      const res = { start, end, isAffected };
+      map.set(iss.id, res);
+      return res;
+    };
+
+    issues.forEach((iss) => {
+      computeLiveDates(iss);
+    });
+
+    return map;
+  }, [issues, dragState, getDescendantIssueIds]);
 
   // Global Mouse Move & Mouse Up for Dragging
   useEffect(() => {
@@ -399,35 +679,80 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
 
     const handleMouseUp = async () => {
       const current = dragState;
-      setDragState(null);
       if (!current) return;
 
+      const deltaDays = diffDays(current.currentStartDate, current.originalStartDate);
       const newStartStr = formatDateOnly(current.currentStartDate);
       const newDueStr = formatDateOnly(current.currentDueDate);
       const origStartStr = formatDateOnly(current.originalStartDate);
       const origDueStr = formatDateOnly(current.originalDueDate);
 
       if (newStartStr === origStartStr && newDueStr === origDueStr) {
+        setDragState(null);
         return;
       }
 
+      // 이전 이슈 상태 스냅샷 저장 (API 실패 시 원상복구용)
+      const previousIssues = [...issues];
+
+      // 1. 낙관적 UI 업데이트 (Optimistic UI Update): liveDateMap에 계산된 실시간 롤업 날짜들을 즉시 반영
+      setIssues((prev) =>
+        prev.map((iss) => {
+          const live = liveDateMap.get(iss.id);
+          if (live && live.isAffected) {
+            return {
+              ...iss,
+              plannedStartDate: live.start ? formatDateOnly(live.start) : iss.plannedStartDate,
+              dueDate: live.end ? formatDateOnly(live.end) : iss.dueDate,
+            };
+          }
+          return iss;
+        })
+      );
+
+      // 드래그 상태 해제
+      setDragState(null);
       setUpdatingIssueId(current.issueId);
+
+      // 2. 백엔드 API 요청 (성공 시 유지 및 최종 동기화, 실패 시 원위치 롤백)
       try {
-        await updateIssue(current.issueId, {
-          plannedStartDate: newStartStr,
-          dueDate: newDueStr,
-        });
-        setIssues((prev) =>
-          prev.map((item) =>
-            item.id === current.issueId
-              ? { ...item, plannedStartDate: newStartStr, dueDate: newDueStr }
-              : item
-          )
-        );
+        if (current.type === 'move') {
+          const descendantIds = getDescendantIssueIds(current.issueId);
+          if (descendantIds.size > 0) {
+            // 상위 이슈 이동: 모든 하위 자손 이슈들을 단일 트랜잭션으로 초고속 일괄 병렬 업데이트!
+            const childIssuesToUpdate = issues.filter((iss) => descendantIds.has(iss.id));
+            const batchItems = childIssuesToUpdate.map((child) => {
+              const cStart = parseLocalDate(child.plannedStartDate);
+              const cDue = parseLocalDate(child.dueDate);
+              return {
+                id: child.id,
+                plannedStartDate: cStart ? formatDateOnly(addDays(cStart, deltaDays)) : null,
+                dueDate: cDue ? formatDateOnly(addDays(cDue, deltaDays)) : null,
+              };
+            });
+            await batchUpdateIssueSchedules(batchItems);
+          } else {
+            // 하위 이슈가 없는 단일 이슈 이동
+            await updateIssue(current.issueId, {
+              plannedStartDate: newStartStr,
+              dueDate: newDueStr,
+            });
+          }
+        } else {
+          // resize-left, resize-right (단일 이슈 리사이즈)
+          await updateIssue(current.issueId, {
+            plannedStartDate: newStartStr,
+            dueDate: newDueStr,
+          });
+        }
+        // 최종 롤업 데이터 동기화
+        await loadProjectData();
       } catch (err: any) {
         console.error('Failed to update issue schedule:', err);
+        // 실패 시 원래 위치로 롤백
+        setIssues(previousIssues);
         setErrorMessage(err.response?.data?.error || '일정 수정에 실패하여 원위치로 롤백합니다.');
-        loadProjectData();
+        await loadProjectData();
       } finally {
         setUpdatingIssueId(null);
       }
@@ -439,7 +764,51 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, dayWidth, loadProjectData]);
+  }, [dragState, dayWidth, loadProjectData, getDescendantIssueIds, issues, liveDateMap]);
+
+  // Sprint Due Date Marker Lines Calculation (스프린트 기한 선 위치 계산)
+  const sprintDueLines = useMemo(() => {
+    return sprints
+      .map((s) => {
+        if (!s.endDate) return null;
+        const endDate = parseLocalDate(s.endDate);
+        if (!endDate) return null;
+
+        const dayDiff = diffDays(endDate, timelineRange.start);
+        if (dayDiff < 0 || dayDiff >= timelineRange.totalDays) return null;
+
+        // 해당 일자의 오른쪽 끝 경계선 (마감 시점)
+        const leftPos = (dayDiff + 1) * dayWidth;
+
+        return {
+          sprint: s,
+          endDate,
+          dayIndex: dayDiff,
+          leftPos,
+          formattedDate: formatDateOnly(endDate),
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [sprints, timelineRange.start, timelineRange.totalDays, dayWidth]);
+
+  // Today Marker Line Calculation (오늘 날짜 선 및 마커 위치 계산)
+  const todayMarker = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dayDiff = diffDays(today, timelineRange.start);
+    if (dayDiff < 0 || dayDiff >= timelineRange.totalDays) return null;
+
+    // 오늘 일자의 중앙 위치
+    const leftPos = dayDiff * dayWidth + dayWidth / 2;
+
+    return {
+      date: today,
+      dayIndex: dayDiff,
+      leftPos,
+      formattedDate: formatDateOnly(today),
+    };
+  }, [timelineRange.start, timelineRange.totalDays, dayWidth]);
 
   // Dynamic Timeline Headers based on Scale
   const topHeaders = useMemo(() => {
@@ -905,6 +1274,20 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                         <span style={{ width: '13px', display: 'inline-block' }} />
                       )}
 
+                      <span
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: item.color.border,
+                          display: 'inline-block',
+                          flexShrink: 0,
+                          marginRight: '3px',
+                          boxShadow: `0 0 4px ${item.color.border}88`,
+                        }}
+                        title={`루트 이슈 #${item.rootIssueId} 색상 그룹`}
+                      />
+
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', marginRight: '2px' }}>
                         #{iss.id}
                       </span>
@@ -1115,33 +1498,150 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                         background: isToday ? 'rgba(0,122,204,0.08)' : isWeekend ? 'rgba(255,255,255,0.015)' : 'transparent',
                         position: 'relative',
                       }}
-                    >
-                      {isToday && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            bottom: 0,
-                            left: '50%',
-                            width: '2px',
-                            background: '#007acc',
-                            zIndex: 1,
-                          }}
-                        />
-                      )}
-                    </div>
+                    />
                   );
                 })}
               </div>
+
+              {/* Timeline Marker Line Rendering Helper Function */}
+              {(() => {
+                const renderTimelineMarkerLine = ({
+                  key,
+                  leftPos,
+                  color,
+                  lineStyle = 'solid',
+                  lineWidth = 2,
+                  zIndex = 5,
+                  title,
+                  badge,
+                }: {
+                  key?: string | number;
+                  leftPos: number;
+                  color: string;
+                  lineStyle?: 'solid' | 'dashed';
+                  lineWidth?: number;
+                  zIndex?: number;
+                  title?: string;
+                  badge?: {
+                    show?: boolean;
+                    label: string;
+                    icon?: React.ReactNode;
+                    color?: string;
+                    bgColor?: string;
+                    borderColor?: string;
+                  };
+                }) => {
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        left: `${leftPos}px`,
+                        width: 0,
+                        borderLeft: `${lineWidth}px ${lineStyle} ${color}`,
+                        zIndex,
+                        pointerEvents: 'none',
+                      }}
+                      title={title}
+                    >
+                      {badge && badge.show && (
+                        <div
+                          style={{
+                            position: 'sticky',
+                            top: '2px',
+                            transform: 'translateX(-50%)',
+                            background: badge.bgColor || 'rgba(24, 24, 27, 0.95)',
+                            color: badge.color || color,
+                            border: `1px solid ${badge.borderColor || color}`,
+                            borderRadius: '3px',
+                            padding: '1px 6px',
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            pointerEvents: 'auto',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            cursor: 'default',
+                          }}
+                          title={title}
+                        >
+                          {badge.icon}
+                          <span>{badge.label}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                };
+
+                return (
+                  <>
+                    {/* Today Line (오늘 날짜: 라벨/아이콘/박스 없이 파란색 실선만 표시) */}
+                    {todayMarker &&
+                      renderTimelineMarkerLine({
+                        key: 'today-line',
+                        leftPos: todayMarker.leftPos,
+                        color: '#007acc',
+                        lineStyle: 'solid',
+                        lineWidth: 2,
+                        zIndex: 5,
+                        title: `오늘: ${todayMarker.formattedDate}`,
+                        badge: {
+                          show: false,
+                          label: '오늘',
+                        },
+                      })}
+
+                    {/* Sprint Due Date Lines (스프린트 기한: 오렌지 점선 및 마감 뱃지 블록 표시) */}
+                    {sprintDueLines.map(({ sprint, leftPos, formattedDate }) =>
+                      renderTimelineMarkerLine({
+                        key: `sprint-line-${sprint.id}`,
+                        leftPos,
+                        color: '#f59e0b',
+                        lineStyle: 'dashed',
+                        lineWidth: 2,
+                        zIndex: 4,
+                        title: `${sprint.name} 기한: ${formattedDate} (${sprint.status})`,
+                        badge: {
+                          show: true,
+                          label: `${sprint.name} 마감`,
+                          icon: <span>🚩</span>,
+                          color: '#fbbf24',
+                          borderColor: '#f59e0b',
+                        },
+                      })
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Gantt Bars Rows */}
               <div style={{ position: 'relative', zIndex: 1, width: `${timelineRange.totalDays * dayWidth}px` }}>
                 {flatWBSItems.map((item) => {
                   const iss = item.issue;
+                  const live = liveDateMap.get(iss.id);
                   const isBeingDragged = dragState?.issueId === iss.id;
+                  const isDescendantOfDragged =
+                    dragState && !isBeingDragged
+                      ? getDescendantIssueIds(dragState.issueId).has(iss.id)
+                      : false;
 
-                  let curStart = isBeingDragged ? dragState.currentStartDate : item.startDate;
-                  let curEnd = isBeingDragged ? dragState.currentDueDate : item.endDate;
+                  let curStart = live?.start ?? item.startDate;
+                  let curEnd = live?.end ?? item.endDate;
+
+                  // 날짜/범위가 실제로 원래 값과 다르게 변동되었는지 여부
+                  const isDatesChanged = Boolean(
+                    dragState &&
+                      !isBeingDragged &&
+                      (curStart?.getTime() !== item.startDate?.getTime() ||
+                        curEnd?.getTime() !== item.endDate?.getTime())
+                  );
+
+                  // 드래그로 인해 영향을 받아 일정이 변동되는 연관 일감(상위 부모 일감 또는 하위 자손 일감) 점선 피드백
+                  const isDashedFeedback = isDescendantOfDragged || isDatesChanged;
 
                   let barLeft = 0;
                   let barWidth = 0;
@@ -1177,27 +1677,29 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                             position: 'absolute',
                             left: `${barLeft}px`,
                             width: `${Math.max(barWidth, 6)}px`,
-                            height: item.isParent ? '12px' : '22px',
-                            borderRadius: item.isParent ? '2px' : '4px',
-                            background: item.isParent
-                              ? '#3a3d41'
-                              : isBeingDragged
-                              ? '#0284c7'
-                              : '#007acc',
-                            border: item.isParent
-                              ? '1px solid #555'
-                              : isBeingDragged
-                              ? '1.5px solid #38bdf8'
-                              : '1px solid #1f8ad2',
-                            boxShadow: isBeingDragged ? '0 4px 12px rgba(0,122,204,0.5)' : '0 2px 4px rgba(0,0,0,0.25)',
+                            height: '22px',
+                            borderRadius: '4px',
+                            background: item.color.bgEmpty,
+                            border: isBeingDragged
+                              ? `2.5px solid ${item.color.dragBorder}`
+                              : isDashedFeedback
+                              ? `2px dashed ${item.color.dragBorder}`
+                              : `2px solid ${item.color.border}`,
+                            boxShadow: isBeingDragged
+                              ? `0 4px 14px ${item.color.base}88`
+                              : isDashedFeedback
+                              ? `0 2px 8px ${item.color.base}55`
+                              : '0 2px 4px rgba(0,0,0,0.3)',
                             display: 'flex',
                             alignItems: 'center',
                             userSelect: 'none',
-                            cursor: item.isParent ? 'default' : 'grab',
-                            transition: isBeingDragged ? 'none' : 'box-shadow 0.15s',
+                            cursor: 'grab',
+                            transition: isBeingDragged ? 'none' : 'left 0.08s ease, width 0.08s ease, box-shadow 0.15s',
+                            boxSizing: 'border-box',
+                            overflow: 'hidden',
                           }}
                           onMouseDown={(e) => {
-                            if (!item.isParent && curStart && curEnd) {
+                            if (curStart && curEnd) {
                               handleMouseDownOnBar(e, iss, 'move', curStart, curEnd);
                             }
                           }}
@@ -1227,30 +1729,32 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                             />
                           )}
 
-                          {/* Progress Fill Bar */}
+                          {/* Progress Fill Bar (0%일 때는 배경 bgEmpty가 노출되고, %가 차오를수록 불투명 채우기 색상 적용) */}
                           <div
                             style={{
                               width: `${prog}%`,
                               height: '100%',
-                              background: item.isParent ? '#89d185' : '#10b981',
-                              opacity: 0.85,
-                              borderRadius: item.isParent ? '1px' : '3px 0 0 3px',
+                              background: isBeingDragged ? item.color.dragBase : item.color.base,
+                              opacity: 1,
+                              borderRadius: prog === 100 ? '2px' : '2px 0 0 2px',
                               pointerEvents: 'none',
+                              transition: isBeingDragged ? 'none' : 'width 0.2s ease',
                             }}
                           />
 
-                          {/* Label on Bar */}
-                          {barWidth > 32 && (
+                          {/* Label on Bar (% 진척도 텍스트) */}
+                          {barWidth > 28 && (
                             <span
                               style={{
                                 position: 'absolute',
-                                left: '8px',
-                                fontSize: '0.62rem',
+                                left: '6px',
+                                fontSize: '0.64rem',
                                 color: '#ffffff',
-                                fontWeight: 600,
+                                fontWeight: 700,
                                 whiteSpace: 'nowrap',
-                                textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                                textShadow: '0 1px 3px rgba(0,0,0,0.95)',
                                 pointerEvents: 'none',
+                                zIndex: 5,
                               }}
                             >
                               {prog}%
@@ -1288,8 +1792,8 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                                 left: '50%',
                                 transform: 'translateX(-50%)',
                                 background: '#18181b',
-                                color: '#38bdf8',
-                                border: '1px solid #0284c7',
+                                color: item.color.progress,
+                                border: `1.5px solid ${item.color.dragBorder}`,
                                 padding: '2px 6px',
                                 borderRadius: '3px',
                                 fontSize: '0.65rem',
@@ -1297,6 +1801,7 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
                                 whiteSpace: 'nowrap',
                                 zIndex: 30,
                                 pointerEvents: 'none',
+                                boxShadow: `0 2px 8px rgba(0,0,0,0.5)`,
                               }}
                             >
                               {formatDateOnly(curStart)} ~ {formatDateOnly(curEnd)} ({diffDays(curEnd, curStart) + 1}일)

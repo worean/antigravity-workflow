@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+﻿import { useQuery, useSuspenseQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import type { Issue } from '../types';
 
@@ -76,6 +76,19 @@ export const createIssue = async (data: {
 
 export const updateIssue = async (id: number, data: Partial<Issue>): Promise<Issue> => {
   const res = await apiClient.put(`/issues/${id}`, data);
+  return res.data;
+};
+
+export interface BatchScheduleItem {
+  id: number;
+  plannedStartDate?: string | null;
+  dueDate?: string | null;
+}
+
+export const batchUpdateIssueSchedules = async (
+  items: BatchScheduleItem[]
+): Promise<{ updatedCount: number; issues: Issue[] }> => {
+  const res = await apiClient.put('/issues/batch-schedules', { items });
   return res.data;
 };
 

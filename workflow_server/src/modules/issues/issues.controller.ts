@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { createIssueService } from './services/createIssue.service.js';
 import { getIssuesService } from './services/getIssues.service.js';
 import { getIssueService } from './services/getIssue.service.js';
 import { updateIssueService } from './services/updateIssue.service.js';
+import { batchUpdateScheduleService } from './services/batchUpdateSchedule.service.js';
 import { deleteIssueService } from './services/deleteIssue.service.js';
 import { likeIssueService, unlikeIssueService } from './services/likeIssue.service.js';
 import { toggleLikeIssueService } from './services/toggleLikeIssue.service.js';
@@ -65,6 +66,17 @@ export const updateIssue = async (req: Request, res: Response) => {
       error: error.message,
       errorCode: isRestricted ? ErrorCode.RESTRICTED_PERMISSION : ErrorCode.INVALID_INPUT,
     });
+  }
+};
+
+export const batchUpdateSchedules = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
+    const items = req.body.items || req.body;
+    const result = await batchUpdateScheduleService(items);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
   }
 };
 

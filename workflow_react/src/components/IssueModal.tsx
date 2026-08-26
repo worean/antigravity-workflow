@@ -1,9 +1,10 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Project, User, Issue, CustomFieldDefinition, Comment } from '../types';
 import {
   createIssue,
   updateIssue,
   deleteIssue,
+  getIssue,
   getIssues,
   getUsers,
   getComments,
@@ -228,6 +229,24 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       setWorklogDescInput('');
       setComments([]);
       setParentId(initialParentId ?? null);
+
+      // 하위 이슈로 새로 생성 시 상위 이슈의 시작계획일/기한 정보를 그대로 복사 (UI에서만)
+      if (initialParentId) {
+        getIssue(initialParentId)
+          .then((parentIssue) => {
+            if (parentIssue) {
+              if (parentIssue.plannedStartDate) {
+                setPlannedStartDate(formatDateOnly(parentIssue.plannedStartDate));
+              }
+              if (parentIssue.dueDate) {
+                setDueDate(formatDateOnly(parentIssue.dueDate));
+              }
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to copy initial parent issue dates:', err);
+          });
+      }
     }
   }, [selectedIssue, isOpen, projects, initialParentId]);
 
@@ -1134,7 +1153,24 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                 <select
                   className="input-field"
                   value={parentId ? String(parentId) : ''}
-                  onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
+                  onChange={(e) => {
+                    const newParentId = e.target.value ? Number(e.target.value) : null;
+                    setParentId(newParentId);
+
+                    // UI에서 이슈 생성 시 상위 이슈를 등록하면 날짜정보들이 상위 이슈의 정보들로 조정된다.
+                    // 만약 이미 사용자가 UI에서 설정한 값이 있다면 사용자 값을 우선시하여 변경되지 않는다.
+                    if (newParentId && !selectedIssue) {
+                      const parentItem = candidateParentIssues.find((p) => p.id === newParentId);
+                      if (parentItem) {
+                        if (!plannedStartDate && parentItem.plannedStartDate) {
+                          setPlannedStartDate(formatDateOnly(parentItem.plannedStartDate));
+                        }
+                        if (!dueDate && parentItem.dueDate) {
+                          setDueDate(formatDateOnly(parentItem.dueDate));
+                        }
+                      }
+                    }
+                  }}
                 >
                   <option value="">[상위 이슈 없음 (최상위 일감)]</option>
                   {candidateParentIssues.map((pIss) => (

@@ -1,4 +1,4 @@
-﻿import { prisma } from '#lib/prisma.js';
+import { prisma } from '#lib/prisma.js';
 import { getIssueService } from './getIssue.service.js';
 
 const parseDateOnly = (val: any): Date | null | undefined => {
@@ -126,6 +126,23 @@ export const updateIssueService = async (issueId: number, data: any) => {
       actualEndDate: parseDateOnly(actualEndDate)
     }
   });
+
+  // 상위 이슈 일정 동기화 (Rollup)
+  const { syncParentDatesService } = await import('./syncParentDates.service.js');
+  // 1) 자기 자신에게 하위 이슈가 있다면 자기 자신의 시작계획일/기한을 하위 이슈 기준으로 강제 보정
+  await syncParentDatesService(issueId);
+
+  // 2) 신규/현재 부모 이슈 일정 동기화
+  const oldParentId = currentIssue.parentId;
+  const newParentId = parentId !== undefined ? (parentId ? Number(parentId) : null) : oldParentId;
+  if (newParentId) {
+    await syncParentDatesService(newParentId);
+  }
+
+  // 3) 부모 이슈가 변경된 경우, 이전 부모 이슈 일정 동기화
+  if (oldParentId && oldParentId !== newParentId) {
+    await syncParentDatesService(oldParentId);
+  }
 
   // 비관계형 활동 로그 기록
   try {

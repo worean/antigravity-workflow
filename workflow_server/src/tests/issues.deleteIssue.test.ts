@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 /**
  * 🧪 [Domain: issues / Service: deleteIssue]
  * - 기능: 이슈 삭제 REST API 단위 테스트
@@ -69,6 +69,61 @@ describe('🧪 [issues.deleteIssue] Service & REST API Unit Tests', () => {
         .set('Authorization', `Bearer ${authToken}`);
 
       expect([400, 404]).toContain(response.status);
+    });
+
+    it('상위 이슈가 삭제될 때 하위 이슈들의 parentId가 자신의 상위 이슈 ID(조부모)로 변경되어야 한다', async () => {
+      // 1) 조부모 이슈 생성
+      const grandParent = await createIssueService({
+        title: '조부모 이슈',
+        projectId: testProject.id,
+        authorId: testUser.id,
+      });
+
+      // 2) 중간 부모 이슈 생성 (parentId: grandParent.id)
+      const middleParent = await createIssueService({
+        title: '중간 부모 이슈',
+        projectId: testProject.id,
+        parentId: grandParent.id,
+        authorId: testUser.id,
+      });
+
+      // 3) 자식 이슈 2개 생성 (parentId: middleParent.id)
+      const child1 = await createIssueService({
+        title: '자식 이슈 1',
+        projectId: testProject.id,
+        parentId: middleParent.id,
+        plannedStartDate: '2026-09-01',
+        dueDate: '2026-09-10',
+        authorId: testUser.id,
+      });
+
+      const child2 = await createIssueService({
+        title: '자식 이슈 2',
+        projectId: testProject.id,
+        parentId: middleParent.id,
+        plannedStartDate: '2026-09-05',
+        dueDate: '2026-09-20',
+        authorId: testUser.id,
+      });
+
+      // 4) 중간 부모 이슈 삭제 요청
+      const res = await request(app)
+        .delete(`/api/issues/${middleParent.id}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+
+      // 5) 자식 이슈들의 parentId가 middleParent의 parentId인 grandParent.id로 변경되었는지 확인
+      const updatedChild1 = await prisma.issue.findUnique({ where: { id: child1.id } });
+      const updatedChild2 = await prisma.issue.findUnique({ where: { id: child2.id } });
+
+      expect(updatedChild1?.parentId).toBe(grandParent.id);
+      expect(updatedChild2?.parentId).toBe(grandParent.id);
+
+      // 6) 조부모 이슈의 날짜가 승계된 자식들의 min(2026-09-01), max(2026-09-20)으로 자동 동기화되었는지 확인
+      const updatedGrandParent = await prisma.issue.findUnique({ where: { id: grandParent.id } });
+      expect(new Date(updatedGrandParent!.plannedStartDate!).toISOString()).toBe('2026-09-01T00:00:00.000Z');
+      expect(new Date(updatedGrandParent!.dueDate!).toISOString()).toBe('2026-09-20T00:00:00.000Z');
     });
   });
 });

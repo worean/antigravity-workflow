@@ -96,6 +96,12 @@ export const createIssueService = async (data: any, authorIdInput?: number) => {
     }
   });
 
+  // 상위 이슈가 지정된 경우, 상위 이슈의 시작계획일/기한을 자동 롤업 동기화
+  if (issue.parentId) {
+    const { syncParentDatesService } = await import('./syncParentDates.service.js');
+    await syncParentDatesService(issue.parentId);
+  }
+
   // 비관계형 활동 로그 기록
   try {
     const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
