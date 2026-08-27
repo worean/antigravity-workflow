@@ -10,7 +10,6 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { IssuesPage } from './pages/IssuesPage';
-import { IssueDetailPage } from './pages/IssueDetailPage';
 import { SprintsPage } from './pages/SprintsPage';
 import { SprintDetailPage } from './pages/SprintDetailPage';
 import { WBSPage } from './pages/WBSPage';
@@ -21,6 +20,7 @@ import { AuthModal } from './components/AuthModal';
 
 import { ProjectModal } from './components/ProjectModal';
 import { IssueModal } from './components/IssueModal';
+import { IssueDetailDrawer } from './components/issueDetail';
 import { getProjects } from './services/api';
 import type { Project, Issue } from './types';
 import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from './utils/routeUtils';
@@ -34,7 +34,7 @@ const AppContent: React.FC = () => {
     return parseRouteFromHash(window.location.hash);
   }, []);
 
-  const [activeTab, setActiveTabState] = useState<TabType>(initialRoute.tab);
+  const [activeTab, setActiveTabState] = useState<TabType>(initialRoute.tab === 'issue-detail' ? 'issues' : initialRoute.tab);
   const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(initialRoute.projectId);
   const [selectedAssigneeId, setSelectedAssigneeIdState] = useState<number | 'ALL' | 'MY'>(initialRoute.assigneeId);
   const [searchTerm, setSearchTermState] = useState<string>(initialRoute.search);
@@ -70,29 +70,30 @@ const AppContent: React.FC = () => {
       replace: boolean = false,
       extra?: { assigneeId?: number | 'ALL' | 'MY'; search?: string; channelId?: number | null; sprintId?: number | null }
     ) => {
-      localStorage.setItem('activeTab', tab);
+      const normalizedTab = tab === 'issue-detail' ? 'issues' : tab;
+      localStorage.setItem('activeTab', normalizedTab);
       if (projId) {
         localStorage.setItem('selectedProjectId', String(projId));
       }
 
-      const targetSprintId = extra?.sprintId ?? (tab === 'sprint-detail' ? issueId : null);
+      const targetSprintId = extra?.sprintId ?? (normalizedTab === 'sprint-detail' ? issueId : null);
 
-      setActiveTabState(tab);
+      setActiveTabState(normalizedTab);
       setSelectedProjectIdState(projId);
       if (extra?.assigneeId !== undefined) setSelectedAssigneeIdState(extra.assigneeId);
       if (extra?.search !== undefined) setSearchTermState(extra.search);
       if (extra?.channelId !== undefined) setSelectedChannelIdState(extra.channelId);
       setSelectedSprintIdState(targetSprintId);
-      setSelectedIssueIdState(tab === 'sprint-detail' ? null : issueId);
+      setSelectedIssueIdState(normalizedTab === 'sprint-detail' ? null : issueId);
       setIssueDetailModeState(mode);
 
       // Build RESTful Hierarchical Hash URL
       const newHash = buildHashFromRoute({
-        tab: tab as ActiveTabType,
+        tab: (issueId ? 'issue-detail' : normalizedTab) as ActiveTabType,
         projectId: projId,
-        issueId: tab === 'sprint-detail' ? null : issueId,
+        issueId: normalizedTab === 'sprint-detail' ? null : issueId,
         sprintId: targetSprintId,
-        channelId: extra?.channelId ?? (tab === 'chat' ? selectedChannelId : null),
+        channelId: extra?.channelId ?? (normalizedTab === 'chat' ? selectedChannelId : null),
         mode,
         assigneeId: extra?.assigneeId ?? selectedAssigneeId,
         search: extra?.search ?? searchTerm,
@@ -128,7 +129,8 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handleUrlChange = () => {
       const route = parseRouteFromHash(window.location.hash);
-      setActiveTabState(route.tab);
+      const normalizedTab = route.tab === 'issue-detail' ? 'issues' : route.tab;
+      setActiveTabState(normalizedTab);
       setSelectedProjectIdState(route.projectId);
       setSelectedAssigneeIdState(route.assigneeId);
       setSearchTermState(route.search);
@@ -150,10 +152,17 @@ const AppContent: React.FC = () => {
     setIsIssueModalOpen(true);
   };
 
-  // 이슈 클릭 시 상세 페이지로 이동 (현재 필터 상태 유지한 채 히스토리에 push)
+  // 이슈 클릭 시: 기존 페이지 상태를 유지한 채 우측 슬라이드 드로어 오픈!
   const handleSelectIssue = (issue: Issue) => {
     const projId = selectedProjectId || issue.projectId || null;
-    navigate('issue-detail', projId, issue.id, 'view', false);
+    setSelectedIssueIdState(issue.id);
+    navigate(activeTab, projId, issue.id, 'view', false);
+  };
+
+  // 이슈 드로어 닫기
+  const handleCloseIssueDrawer = () => {
+    setSelectedIssueIdState(null);
+    navigate(activeTab, selectedProjectId, null, 'view', false);
   };
 
   // 프로젝트 클릭 시 프로젝트 상세/설정 페이지로 이동
@@ -167,7 +176,7 @@ const AppContent: React.FC = () => {
 
   const handleIssueModeChange = (newMode: IssueDetailMode) => {
     if (selectedIssueId) {
-      navigate('issue-detail', selectedProjectId, selectedIssueId, newMode, false);
+      navigate(activeTab, selectedProjectId, selectedIssueId, newMode, false);
     }
   };
 
@@ -180,20 +189,6 @@ const AppContent: React.FC = () => {
     });
   };
 
-  // 뒤로가기
-  const handleBackFromIssueDetail = () => {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      navigate('issues', selectedProjectId, null, 'view', false);
-    }
-  };
-
-  // 목록으로 돌아가기
-  const handleGoToListFromIssueDetail = () => {
-    navigate('issues', selectedProjectId, null, 'view', false);
-  };
-
   // 현재 선택된 프로젝트 객체
   const currentProject = useMemo(() => {
     if (!selectedProjectId) return null;
@@ -202,62 +197,78 @@ const AppContent: React.FC = () => {
 
   // 상단 계층형 Breadcrumbs 계산
   const breadcrumbs = useMemo<BreadcrumbItem[]>(() => {
+    const baseCrumbs: BreadcrumbItem[] = [];
+
     switch (activeTab) {
       case 'dashboard':
-        return [{ label: '대시보드' }];
+        baseCrumbs.push({ label: '대시보드' });
+        break;
       case 'projects':
-        return [{ label: '프로젝트 목록' }];
+        baseCrumbs.push({ label: '프로젝트 목록' });
+        break;
       case 'project-detail':
-        return [
+        baseCrumbs.push(
           { label: '프로젝트 목록', onClick: () => navigate('projects', null) },
-          { label: currentProject ? `${currentProject.name} (${currentProject.key})` : `프로젝트 #${selectedProjectId}` },
-        ];
+          { label: currentProject ? `${currentProject.name} (${currentProject.key})` : `프로젝트 #${selectedProjectId}` }
+        );
+        break;
       case 'issues':
         if (currentProject) {
-          return [
+          baseCrumbs.push(
             { label: '이슈 칸반 보드', onClick: () => navigate('issues', null) },
-            { label: `${currentProject.name} (${currentProject.key})` },
-          ];
+            { label: `${currentProject.name} (${currentProject.key})` }
+          );
+        } else {
+          baseCrumbs.push({ label: '이슈 칸반 보드' });
         }
-        return [{ label: '이슈 칸반 보드' }];
-      case 'issue-detail':
-        return [
-          { label: '이슈 칸반 보드', onClick: () => navigate('issues', selectedProjectId) },
-          ...(currentProject ? [{ label: `${currentProject.name} (${currentProject.key})`, onClick: () => navigate('issues', currentProject.id) }] : []),
-          { label: `이슈 #${selectedIssueId}` },
-        ];
+        break;
       case 'sprints':
         if (currentProject) {
-          return [
+          baseCrumbs.push(
             { label: '스프린트 관리', onClick: () => navigate('sprints', null) },
-            { label: `${currentProject.name} (${currentProject.key})` },
-          ];
+            { label: `${currentProject.name} (${currentProject.key})` }
+          );
+        } else {
+          baseCrumbs.push({ label: '스프린트 관리' });
         }
-        return [{ label: '스프린트 관리' }];
+        break;
       case 'sprint-detail':
-        return [
+        baseCrumbs.push(
           { label: '스프린트 관리', onClick: () => navigate('sprints', selectedProjectId) },
           ...(currentProject ? [{ label: `${currentProject.name} (${currentProject.key})`, onClick: () => navigate('sprints', currentProject.id) }] : []),
-          { label: `스프린트 #${selectedSprintId}` },
-        ];
+          { label: `스프린트 #${selectedSprintId}` }
+        );
+        break;
       case 'wbs':
         if (currentProject) {
-          return [
+          baseCrumbs.push(
             { label: 'WBS 간트 차트', onClick: () => navigate('wbs', null) },
-            { label: `${currentProject.name} (${currentProject.key})` },
-          ];
+            { label: `${currentProject.name} (${currentProject.key})` }
+          );
+        } else {
+          baseCrumbs.push({ label: 'WBS 간트 차트' });
         }
-        return [{ label: 'WBS 간트 차트' }];
+        break;
       case 'chat':
-        return [{ label: '실시간 채팅' }];
+        baseCrumbs.push({ label: '실시간 채팅' });
+        break;
       case 'worklogs':
-        return [{ label: '작업 로그' }];
+        baseCrumbs.push({ label: '작업 로그' });
+        break;
       case 'settings':
-        return [{ label: '환경 설정' }];
+        baseCrumbs.push({ label: '환경 설정' });
+        break;
       default:
-        return [{ label: '대시보드' }];
+        baseCrumbs.push({ label: '대시보드' });
+        break;
     }
-  }, [activeTab, currentProject, selectedProjectId, selectedIssueId, navigate]);
+
+    if (selectedIssueId) {
+      baseCrumbs.push({ label: `이슈 #${selectedIssueId}` });
+    }
+
+    return baseCrumbs;
+  }, [activeTab, currentProject, selectedProjectId, selectedIssueId, selectedSprintId, navigate]);
 
   return (
     <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -271,17 +282,14 @@ const AppContent: React.FC = () => {
           selectedChannelId={selectedChannelId}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onSelectProjectDetail={(pId) => navigate('project-detail', pId, null, 'view', false)}
-          onSelectProjectIssues={(pId) => navigate('issues', pId, null, 'view', false, { assigneeId: 'ALL', search: '' })}
-          onSelectProjectSprints={(pId) => navigate('sprints', pId, null, 'view', false)}
-          onSelectProjectWBS={(pId) => navigate('wbs', pId, null, 'view', false)}
-          onSelectChatChannel={(cId) => navigate('chat', null, null, 'view', false, { channelId: cId })}
+          onSelectChatChannel={(cId: number) => navigate('chat', null, null, 'view', false, { channelId: cId })}
         />
 
-        <main style={{ flex: 1, height: '100%', padding: '12px 16px', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+        <main style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-dark)', padding: '16px 20px', position: 'relative' }}>
           {activeTab === 'dashboard' && (
             <DashboardPage
-              key="tab-dashboard"
-              onNavigate={(tab) => navigate(tab, selectedProjectId, null, 'view', false)}
+              key={`tab-dash-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              onNavigate={(tab, pId) => navigate(tab, pId ?? null)}
               onOpenCreateIssue={handleOpenCreateIssue}
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
               onSelectIssue={handleSelectIssue}
@@ -292,34 +300,21 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'projects' && (
             <ProjectsPage
-              key="tab-projects"
-              onOpenCreateProject={() => setIsProjectModalOpen(true)}
-              onSelectProject={handleSelectProject}
+              key={`tab-projects-${issueRefreshKey}`}
               projects={projects}
-              onProjectsChange={setProjects}
+              onSelectProject={handleSelectProject}
+              onOpenCreateProject={() => setIsProjectModalOpen(true)}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
-          {activeTab === 'project-detail' && selectedProjectId && (
+          {activeTab === 'project-detail' && (
             <ProjectDetailPage
-              key={`tab-project-detail-${selectedProjectId}`}
-              projectId={selectedProjectId}
+              key={`tab-project-detail-${selectedProjectId || 1}`}
+              projectId={selectedProjectId || 1}
               onBack={() => navigate('projects')}
-              onGoToBoard={(pId) => {
-                setSelectedProjectIdState(pId);
-                navigate('issues', pId);
-              }}
-              onGoToWBS={(pId) => {
-                setSelectedProjectIdState(pId);
-                navigate('wbs', pId);
-              }}
-              onGoToSprints={(pId) => {
-                setSelectedProjectIdState(pId);
-                navigate('sprints', pId);
-              }}
-              onProjectUpdated={(up) => {
-                setProjects((prev) => prev.map((p) => (p.id === up.id ? up : p)));
+              onProjectUpdated={(upProj) => {
+                setProjects((prev) => prev.map((p) => (p.id === upProj.id ? upProj : p)));
               }}
               onProjectDeleted={(delId) => {
                 setProjects((prev) => prev.filter((p) => p.id !== delId));
@@ -340,20 +335,6 @@ const AppContent: React.FC = () => {
               onFilterChange={handleFilterChange}
               onOpenAuth={() => setIsAuthModalOpen(true)}
               refreshKey={issueRefreshKey}
-            />
-          )}
-
-          {activeTab === 'issue-detail' && (
-            <IssueDetailPage
-              key={`tab-issue-detail-${selectedIssueId}`}
-              issueId={selectedIssueId}
-              projectId={selectedProjectId}
-              mode={issueDetailMode}
-              onModeChange={handleIssueModeChange}
-              onBack={handleBackFromIssueDetail}
-              onGoToList={handleGoToListFromIssueDetail}
-              onIssueUpdated={handleIssueRefreshed}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
@@ -413,6 +394,18 @@ const AppContent: React.FC = () => {
           )}
         </main>
       </div>
+
+      {/* Slide-over Issue Detail Drawer (우측 슬라이드 오버레이) */}
+      <IssueDetailDrawer
+        isOpen={!!selectedIssueId}
+        issueId={selectedIssueId}
+        projectId={selectedProjectId}
+        mode={issueDetailMode}
+        onModeChange={handleIssueModeChange}
+        onClose={handleCloseIssueDrawer}
+        onIssueUpdated={handleIssueRefreshed}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+      />
 
       {/* Auth Modal */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />

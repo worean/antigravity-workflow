@@ -5,3 +5,4 @@ export * from './IssueDetailEditForm';
 export * from './IssueDetailMainCard';
 export * from './IssueWorklogs';
 export * from './IssueComments';
+export * from './IssueDetailDrawer';

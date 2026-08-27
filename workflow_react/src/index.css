@@ -1,4 +1,4 @@
-﻿/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
+/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
 
 :root {
   /* VS Code Core Colors */
@@ -429,4 +429,53 @@ textarea.input-field {
   filter: grayscale(20%);
   transition: opacity 0.2s ease, filter 0.2s ease;
   pointer-events: none;
+}
+
+/* ====================================================
+   ✨ Slide-Over Drawer Styles & Animations
+   ==================================================== */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1100;
+  display: flex;
+  justify-content: flex-end;
+  animation: drawerBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.drawer-panel {
+  width: 820px;
+  max-width: 95vw;
+  height: 100vh;
+  background-color: var(--bg-dark);
+  border-left: 1px solid var(--border-light);
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.65);
+  z-index: 1101;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

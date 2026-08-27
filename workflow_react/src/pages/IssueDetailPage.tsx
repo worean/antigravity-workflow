@@ -335,7 +335,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
   }
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '30px' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '30px' }}>
       {/* 1. Top Header */}
       <IssueDetailHeader
         issue={issue}
