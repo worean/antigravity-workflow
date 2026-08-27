@@ -16,5 +16,11 @@ export default defineConfig({
     globalSetup: ['./src/tests/globalSetup.ts'],
     setupFiles: ['./src/tests/setup.ts'],
     fileParallelism: false,
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
 });
