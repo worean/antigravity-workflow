@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Users,
   Layers,
+  Calendar,
 } from 'lucide-react';
 import {
   Button,
@@ -29,7 +30,7 @@ import {
   Avatar,
   FavoriteButton,
 } from '../components/common';
-import { formatDateOnly, diffDays } from '../utils/dateUtils';
+import { formatDateOnly } from '../utils/dateUtils';
 import { parseStatusCategory } from '../utils/statusUtils';
 
 interface DashboardPageProps {
@@ -112,6 +113,48 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     } else {
       onNavigate('issues', issue.projectId);
     }
+  };
+
+  const getSprintProgress = (sprint: any) => {
+    const issues = sprint.issues || [];
+    if (issues.length === 0) return { total: sprint._count?.issues || 0, done: 0, inProgress: 0, todo: 0, rate: 0 };
+
+    let done = 0;
+    let inProgress = 0;
+    let todo = 0;
+
+    for (const iss of issues) {
+      const cat = iss.status?.category || parseStatusCategory(iss.statusId || iss.status);
+      if (cat === 'DONE') done++;
+      else if (cat === 'IN_PROGRESS' || cat === 'IN_REVIEW') inProgress++;
+      else todo++;
+    }
+
+    const total = issues.length;
+    const rate = total > 0 ? Math.round((done / total) * 100) : 0;
+    return { total, done, inProgress, todo, rate };
+  };
+
+  const getDDayBadge = (sprint: any) => {
+    if (sprint.status === 'COMPLETED') {
+      return <span style={{ fontSize: '0.68rem', color: '#89d185', background: 'rgba(137,209,133,0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>완료됨</span>;
+    }
+    if (!sprint.endDate) {
+      return <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '1px 6px', borderRadius: '3px' }}>기한 미설정</span>;
+    }
+
+    const end = new Date(sprint.endDate);
+    end.setHours(23, 59, 59, 999);
+    const now = new Date();
+    const diffDays = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return <span style={{ fontSize: '0.68rem', color: '#f14c4c', background: 'rgba(241,76,76,0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>{Math.abs(diffDays)}일 초과</span>;
+    }
+    if (diffDays === 0) {
+      return <span style={{ fontSize: '0.68rem', color: '#cca700', background: 'rgba(204,167,0,0.18)', padding: '1px 6px', borderRadius: '3px', fontWeight: 700 }}>D-Day (오늘 마감)</span>;
+    }
+    return <span style={{ fontSize: '0.68rem', color: '#9cdcfe', background: 'rgba(0,122,204,0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>D-{diffDays}일 남음</span>;
   };
 
   return (
@@ -357,15 +400,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '10px' }}>
             {favoriteSprints.map((sprint) => {
+              const prog = getSprintProgress(sprint);
               const issues: Issue[] = sprint.issues || [];
-              const totalIssues = issues.length || sprint._count?.issues || 0;
-              const doneIssues = issues.filter((i) => parseStatusCategory(i.statusId || i.status) === 'DONE').length;
-              const inProgIssues = issues.filter((i) => {
-                const cat = parseStatusCategory(i.statusId || i.status);
-                return cat === 'IN_PROGRESS' || cat === 'IN_REVIEW';
-              }).length;
-              const todoIssues = totalIssues - doneIssues - inProgIssues;
-              const completionRate = totalIssues > 0 ? Math.round((doneIssues / totalIssues) * 100) : 0;
 
               const highRiskIssues = issues.filter((i) => {
                 const cat = parseStatusCategory(i.statusId || i.status);
@@ -378,26 +414,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 if (i.assignee) assigneesMap.set(i.assignee.id, i.assignee);
               });
               const assignees = Array.from(assigneesMap.values());
-
-              let dDayText = '기간 미정';
-              let dDayColor = '#9cdcfe';
-              let dDayBg = 'rgba(0,122,204,0.15)';
-              if (sprint.endDate) {
-                const d = diffDays(new Date(sprint.endDate), new Date());
-                if (d < 0) {
-                  dDayText = `${Math.abs(d)}일 초과`;
-                  dDayColor = '#f14c4c';
-                  dDayBg = 'rgba(241,76,76,0.15)';
-                } else if (d === 0) {
-                  dDayText = 'D-Day (오늘 마감)';
-                  dDayColor = '#cca700';
-                  dDayBg = 'rgba(204,167,0,0.18)';
-                } else {
-                  dDayText = `D-${d}일 남음`;
-                  dDayColor = '#9cdcfe';
-                  dDayBg = 'rgba(0,122,204,0.15)';
-                }
-              }
 
               return (
                 <div
@@ -415,7 +431,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     overflow: 'hidden',
                   }}
                 >
-                  {/* Gold Top Accent Line */}
                   <div
                     style={{
                       position: 'absolute',
@@ -427,7 +442,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     }}
                   />
 
-                  {/* Sprint Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -451,55 +465,41 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Goal & Schedule */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.74rem' }}>
-                    {sprint.goal && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', color: 'var(--text-sub)' }}>
-                        <Target size={12} color="#cca700" style={{ marginTop: '2px', flexShrink: 0 }} />
-                        <span style={{ lineHeight: '1.3' }}>{sprint.goal}</span>
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-muted)' }}>
-                      <span>
-                        {sprint.startDate ? formatDateOnly(sprint.startDate) : '시작일 미정'} ~ {sprint.endDate ? formatDateOnly(sprint.endDate) : '종료일 미정'}
-                      </span>
-                      <span style={{ fontSize: '0.68rem', color: dDayColor, background: dDayBg, padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>
-                        {dDayText}
-                      </span>
-                    </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)', display: 'flex', alignItems: 'flex-start', gap: '5px', minHeight: '18px' }}>
+                    <Target size={13} color="#cca700" style={{ marginTop: '1px', flexShrink: 0 }} />
+                    <span style={{ lineHeight: '1.3' }}>{sprint.goal || '설정된 목표가 없습니다.'}</span>
                   </div>
 
-                  {/* Progress & Burn-down Bar */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>
-                        진척률: {completionRate}%
-                      </span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                        완료 {doneIssues} / 진행 {inProgIssues} / 대기 {todoIssues} (총 {totalIssues}개)
+                  {/* Dates & D-Day (기존 표준 스타일) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#1e1e1e',
+                      padding: '5px 8px',
+                      borderRadius: 'var(--radius-xs)',
+                      fontSize: '0.72rem',
+                      color: 'var(--text-sub)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Calendar size={12} color="var(--text-muted)" />
+                      <span>
+                        {formatDateOnly(sprint.startDate) || '시작일 미정'} ~ {formatDateOnly(sprint.endDate) || '기한 미정'}
                       </span>
                     </div>
+                    {getDDayBadge(sprint)}
+                  </div>
 
-                    {/* Multi-segment Progress Bar */}
-                    <div
-                      style={{
-                        height: '6px',
-                        background: '#333333',
-                        borderRadius: '3px',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        width: '100%',
-                      }}
-                    >
-                      {totalIssues > 0 ? (
-                        <>
-                          <div style={{ width: `${(doneIssues / totalIssues) * 100}%`, background: '#10b981', transition: 'width 0.3s' }} title={`완료: ${doneIssues}개`} />
-                          <div style={{ width: `${(inProgIssues / totalIssues) * 100}%`, background: '#38bdf8', transition: 'width 0.3s' }} title={`진행 중: ${inProgIssues}개`} />
-                          <div style={{ width: `${(todoIssues / totalIssues) * 100}%`, background: '#4b5563', transition: 'width 0.3s' }} title={`대기: ${todoIssues}개`} />
-                        </>
-                      ) : (
-                        <div style={{ width: '100%', background: '#333333' }} />
-                      )}
+                  {/* Progress Bar & Issue Counts (기존 표준 스타일) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      <span>진척도 ({prog.rate}%)</span>
+                      <span>완료 {prog.done} / 전체 {prog.total}개 이슈</span>
+                    </div>
+                    <div style={{ width: '100%', height: '5px', background: '#333333', borderRadius: '3px', overflow: 'hidden', display: 'flex' }}>
+                      <div style={{ width: `${prog.rate}%`, background: '#89d185', transition: 'width 0.3s' }} />
                     </div>
                   </div>
 
