@@ -29,6 +29,7 @@ interface WBSGanttTimelineProps {
     startDate: Date,
     endDate: Date
   ) => void;
+  onSelectIssue?: (issue: Issue) => void;
   setUpdatingIssueId: (id: number | null) => void;
   setErrorMessage: (msg: string | null) => void;
   loadProjectData: () => Promise<void>;
@@ -50,6 +51,7 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
   onScroll,
   getDescendantIssueIds,
   onMouseDownOnBar,
+  onSelectIssue,
   setUpdatingIssueId,
   setErrorMessage,
   loadProjectData,
@@ -270,6 +272,7 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
                 liveEnd={live?.end}
                 getDescendantIssueIds={getDescendantIssueIds}
                 onMouseDownOnBar={onMouseDownOnBar}
+                onSelectIssue={onSelectIssue}
                 onTimelineRowClick={handleTimelineRowClick}
               />
             );

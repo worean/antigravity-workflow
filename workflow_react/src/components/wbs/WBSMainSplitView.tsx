@@ -120,6 +120,7 @@ export const WBSMainSplitView: React.FC<WBSMainSplitViewProps> = ({
         onScroll={onGanttScroll}
         getDescendantIssueIds={getDescendantIssueIds}
         onMouseDownOnBar={onMouseDownOnBar}
+        onSelectIssue={onSelectIssue}
         setUpdatingIssueId={setUpdatingIssueId}
         setErrorMessage={setErrorMessage}
         loadProjectData={loadProjectData}

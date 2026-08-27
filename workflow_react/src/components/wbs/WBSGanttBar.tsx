@@ -20,6 +20,7 @@ interface WBSGanttBarProps {
     startDate: Date,
     endDate: Date
   ) => void;
+  onSelectIssue?: (issue: Issue) => void;
   onTimelineRowClick: (e: React.MouseEvent<HTMLDivElement>, iss: Issue, isParent: boolean) => void;
 }
 
@@ -32,6 +33,7 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
   liveEnd,
   getDescendantIssueIds,
   onMouseDownOnBar,
+  onSelectIssue,
   onTimelineRowClick,
 }) => {
   const iss = item.issue;
@@ -109,6 +111,7 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
             boxSizing: 'border-box',
             overflow: 'hidden',
           }}
+          title={`#${iss.issueNumber || iss.id} ${iss.title} (${prog}%) - 더블 클릭 시 상세 보기`}
           onMouseDown={(e) => {
             if (curStart && curEnd) {
               onMouseDownOnBar(e, iss, 'move', curStart, curEnd);
@@ -116,6 +119,10 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
           }}
           onClick={(e) => {
             e.stopPropagation();
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            if (onSelectIssue) onSelectIssue(iss);
           }}
         >
           {/* Left Resize Handle */}
