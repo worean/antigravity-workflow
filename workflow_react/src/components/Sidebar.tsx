@@ -44,12 +44,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { totalUnreadCount, hasMentionUnread } = useUnreadChatStats();
   const { data: favorites = [] } = useFavorites(undefined, { enabled: isAuthenticated });
 
-  // 서브메뉴 접기/열기 상태 (기본 펼침)
+  // 서브메뉴 접기/열기 상태 (기본 접힘: false)
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
-    projects: true,
-    issues: true,
-    sprints: true,
-    chat: true,
+    projects: false,
+    issues: false,
+    sprints: false,
+    chat: false,
   });
 
   const toggleSubmenu = (menuId: string, e: React.MouseEvent) => {
