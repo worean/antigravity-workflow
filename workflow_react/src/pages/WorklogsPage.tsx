@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Worklog, Issue } from '../types';
 import { getWorklogs, getIssues, createWorklog } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Clock, Plus, CheckSquare } from 'lucide-react';
+import { Clock, Plus, CheckSquare, LogIn } from 'lucide-react';
 import { Button, Card, Spinner, UserBadge } from '../components/common';
 import { hoursToMinutes, formatWorklogTime } from '../utils/worklogUtils';
 
-export const WorklogsPage: React.FC = () => {
+interface WorklogsPageProps {
+  onOpenAuth?: () => void;
+}
+
+export const WorklogsPage: React.FC<WorklogsPageProps> = ({ onOpenAuth }) => {
   const { user: currentUser, isAuthenticated } = useAuth();
   const [worklogs, setWorklogs] = useState<Worklog[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -89,16 +93,24 @@ export const WorklogsPage: React.FC = () => {
           </span>
         </div>
 
-        {isAuthenticated && (
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Plus size={12} />}
-            onClick={() => setShowForm(!showForm)}
-          >
-            {showForm ? '닫기' : '작업 시간 기록'}
-          </Button>
-        )}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {!isAuthenticated && onOpenAuth && (
+            <Button variant="primary" size="sm" icon={<LogIn size={12} />} onClick={onOpenAuth}>
+              로그인
+            </Button>
+          )}
+
+          {isAuthenticated && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Plus size={12} />}
+              onClick={() => setShowForm(!showForm)}
+            >
+              {showForm ? '닫기' : '작업 시간 기록'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -163,6 +175,7 @@ export const WorklogsPage: React.FC = () => {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
               <Button type="button" variant="secondary" size="sm" onClick={() => setShowForm(false)}>
                 취소
@@ -179,7 +192,7 @@ export const WorklogsPage: React.FC = () => {
         <Spinner centered label="작업 로그 불러오는 중..." />
       ) : worklogs.length === 0 ? (
         <Card variant="glass" padding="24px" style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          등록된 작업 로그가 없습니다.
+          {!isAuthenticated ? '로그인 후 팀원들의 작업 시간 기록을 조회하거나 등록할 수 있습니다.' : '등록된 작업 로그가 없습니다.'}
         </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

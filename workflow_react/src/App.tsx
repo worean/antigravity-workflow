@@ -252,6 +252,7 @@ const AppContent: React.FC = () => {
               onSelectProject={handleSelectProject}
               projects={projects}
               onProjectsChange={setProjects}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
@@ -289,6 +290,7 @@ const AppContent: React.FC = () => {
               selectedAssigneeId={selectedAssigneeId}
               searchTermProp={searchTerm}
               onFilterChange={handleFilterChange}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
               refreshKey={issueRefreshKey}
             />
           )}
@@ -306,10 +308,10 @@ const AppContent: React.FC = () => {
           )}
 
 
-          {activeTab === 'chat' && <ChatPage key={`chat-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} />}
-          {activeTab === 'sprints' && <SprintsPage key={`sprints-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} />}
-          {activeTab === 'wbs' && <WBSPage key={`wbs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onSelectIssue={handleSelectIssue} />}
-          {activeTab === 'worklogs' && <WorklogsPage key={`worklogs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} />}
+          {activeTab === 'chat' && <ChatPage key={`chat-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onOpenAuth={() => setIsAuthModalOpen(true)} />}
+          {activeTab === 'sprints' && <SprintsPage key={`sprints-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onOpenAuth={() => setIsAuthModalOpen(true)} />}
+          {activeTab === 'wbs' && <WBSPage key={`wbs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onSelectIssue={handleSelectIssue} onOpenAuth={() => setIsAuthModalOpen(true)} />}
+          {activeTab === 'worklogs' && <WorklogsPage key={`worklogs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onOpenAuth={() => setIsAuthModalOpen(true)} />}
 
           {activeTab === 'settings' && <SettingsPage key={`settings-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onOpenAuth={() => setIsAuthModalOpen(true)} />}
         </main>

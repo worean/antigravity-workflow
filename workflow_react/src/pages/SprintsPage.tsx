@@ -28,10 +28,15 @@ import {
 } from 'lucide-react';
 import { Button, Card, Spinner, StatusBadge, ProjectBadge, Avatar } from '../components/common';
 import { formatDateOnly } from '../utils/dateUtils';
+import { LogIn } from 'lucide-react';
 
 type SprintStatusFilter = 'ALL' | 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 
-export const SprintsPage: React.FC = () => {
+interface SprintsPageProps {
+  onOpenAuth?: () => void;
+}
+
+export const SprintsPage: React.FC<SprintsPageProps> = ({ onOpenAuth }) => {
   const { isAuthenticated } = useAuth();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -402,6 +407,12 @@ export const SprintsPage: React.FC = () => {
             ))}
           </select>
         </div>
+
+        {!isAuthenticated && onOpenAuth && (
+          <Button variant="primary" size="sm" icon={<LogIn size={12} />} onClick={onOpenAuth}>
+            로그인
+          </Button>
+        )}
 
         {isAuthenticated && (
           <Button

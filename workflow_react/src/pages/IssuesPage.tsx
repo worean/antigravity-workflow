@@ -26,6 +26,7 @@ interface IssuesPageProps {
   refreshKey?: number;
   onIssueUpdatedDirectly?: (updated: Issue) => void;
   onIssueDeletedDirectly?: (issueId: number) => void;
+  onOpenAuth?: () => void;
 }
 
 export const IssuesPage: React.FC<IssuesPageProps> = ({
@@ -37,6 +38,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   onFilterChange,
   onIssueUpdatedDirectly,
   onIssueDeletedDirectly,
+  onOpenAuth,
 }) => {
   const { isAuthenticated, user } = useAuth();
 
@@ -168,7 +170,11 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
 
   const handleToggleLike = async (e: React.MouseEvent, issue: Issue) => {
     e.stopPropagation();
-    if (!isAuthenticated) return alert('좋아요 기능은 로그인 후 이용 가능합니다.');
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      else alert('좋아요 기능은 로그인 후 이용 가능합니다.');
+      return;
+    }
 
     try {
       await toggleLikeMutation.mutateAsync(issue.id);
@@ -179,6 +185,10 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
 
   const handleOpenDeleteConfirm = (e: React.MouseEvent, issue: Issue) => {
     e.stopPropagation();
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     setDeletingIssue(issue);
   };
 
@@ -252,7 +262,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
           ))}
         </select>
 
-        {/* User / Assignee Filter */}
+        {/* Assignee Filter */}
         <select
           value={filterAssigneeId}
           onChange={(e) =>
@@ -264,9 +274,9 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
           style={{ width: 'auto', minWidth: '130px' }}
         >
           <option value="ALL">전체 담당자</option>
-          {isAuthenticated && <option value="MY">👤 내 담당 이슈만</option>}
+          {isAuthenticated && <option value="MY">내 담당 일감 (My Tasks)</option>}
           {getProjectMembers(
-            projects.find((p) => p.id === filterProjectId),
+            filterProjectId !== 'ALL' ? projects.find((p) => p.id === filterProjectId) : undefined,
             users
           ).map((u) => (
             <option key={u.id} value={u.id}>
@@ -287,7 +297,12 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
           />
         </div>
 
-        {/* Create Button */}
+        {/* Auth Buttons */}
+        {!isAuthenticated && onOpenAuth && (
+          <button className="btn btn-primary btn-sm" onClick={onOpenAuth}>
+            로그인
+          </button>
+        )}
         {isAuthenticated && (
           <button className="btn btn-primary btn-sm" onClick={onOpenCreateIssue}>
             <Plus size={13} /> 이슈 생성

@@ -32,6 +32,7 @@ import { getSocket } from '../lib/socketClient';
 import { Avatar, Button, Spinner } from '../components/common';
 import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '../types';
 import { getUsers, getProjects, getGroups } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const QUICK_EMOJIS = ['👍', '❤️', '🔥', '🎉', '🚀', '👀', '😄', '💯'];
 
@@ -48,16 +49,13 @@ const CATEGORY_CONFIGS: CategoryConfig[] = [
   { type: 'DM', label: '다이렉트 메시지', icon: '💬' },
 ];
 
-export const ChatPage: React.FC = () => {
-  const currentUser = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  }, []);
-  const currentUserId = currentUser?.id || 1;
+interface ChatPageProps {
+  onOpenAuth?: () => void;
+}
+
+export const ChatPage: React.FC<ChatPageProps> = ({ onOpenAuth }) => {
+  const { user: authUser, isAuthenticated } = useAuth();
+  const currentUserId = authUser?.id || 0;
 
   const [channels, setChannels] = useState<ChatChannel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
@@ -303,7 +301,7 @@ export const ChatPage: React.FC = () => {
 
     socket.emit('chat:typing', {
       channelId: selectedChannelId,
-      userName: currentUser?.name || '익명',
+      userName: authUser?.name || authUser?.email || '익명',
     });
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -397,6 +395,10 @@ export const ChatPage: React.FC = () => {
 
   const handleOpenCreateForCategory = (type: ChannelType, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
     setCreateType(type);
     if (type === 'PROJECT' && allWorkspaceProjects.length > 0) {
       setCreateProjectId(allWorkspaceProjects[0].id);
@@ -1157,58 +1159,81 @@ export const ChatPage: React.FC = () => {
                   </div>
                 )}
 
-                <form onSubmit={handleSendMessage}>
+                {!isAuthenticated ? (
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'space-between',
                       background: '#383a40',
                       borderRadius: '8px',
-                      padding: '6px 12px',
+                      padding: '10px 14px',
                       gap: '8px',
                     }}
                   >
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: '#b5bac1', cursor: 'pointer', padding: '2px' }}
-                      title="파일 첨부"
-                    >
-                      <Paperclip size={18} />
-                    </button>
-
-                    <input
-                      type="text"
-                      placeholder={`#${currentChannel.name}에 메시지 보내기 (@로 멘션)`}
-                      value={inputText}
-                      onChange={handleInputChange}
+                    <span style={{ fontSize: '0.82rem', color: '#949ba4' }}>
+                      🔒 실시간 채팅에 참여하려면 로그인이 필요합니다.
+                    </span>
+                    {onOpenAuth && (
+                      <Button variant="primary" size="sm" onClick={onOpenAuth}>
+                        로그인하기
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <form onSubmit={handleSendMessage}>
+                    <div
                       style={{
-                        flex: 1,
-                        background: 'none',
-                        border: 'none',
-                        color: '#fff',
-                        fontSize: '0.86rem',
-                        outline: 'none',
-                      }}
-                    />
-
-                    <button
-                      type="submit"
-                      disabled={!inputText.trim()}
-                      style={{
-                        background: inputText.trim() ? 'var(--primary)' : 'transparent',
-                        border: 'none',
-                        color: inputText.trim() ? '#fff' : '#6d7078',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        cursor: inputText.trim() ? 'pointer' : 'default',
                         display: 'flex',
                         alignItems: 'center',
+                        background: '#383a40',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
+                        gap: '8px',
                       }}
                     >
-                      <Send size={16} />
-                    </button>
-                  </div>
-                </form>
+                      <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: '#b5bac1', cursor: 'pointer', padding: '2px' }}
+                        title="파일 첨부"
+                      >
+                        <Paperclip size={18} />
+                      </button>
+
+                      <input
+                        type="text"
+                        placeholder={`#${currentChannel.name}에 메시지 보내기 (@로 멘션)`}
+                        value={inputText}
+                        onChange={handleInputChange}
+                        style={{
+                          flex: 1,
+                          background: 'none',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: '0.86rem',
+                          outline: 'none',
+                        }}
+                      />
+
+                      <button
+                        type="submit"
+                        disabled={!inputText.trim()}
+                        style={{
+                          background: inputText.trim() ? 'var(--primary)' : 'transparent',
+                          border: 'none',
+                          color: inputText.trim() ? '#fff' : '#6d7078',
+                          borderRadius: '4px',
+                          padding: '4px 8px',
+                          cursor: inputText.trim() ? 'pointer' : 'default',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Send size={16} />
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
 

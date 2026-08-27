@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Project, Sprint, Issue } from '../types';
 import { getProjects, getSprints, getIssues, updateIssue, batchUpdateIssueSchedules } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   Layers,
   ChevronRight,
@@ -15,12 +16,14 @@ import {
   AlertCircle,
   Loader2,
   GripVertical,
+  LogIn,
 } from 'lucide-react';
 import { Button, Spinner, StatusBadge, Avatar } from '../components/common';
 import { formatDateOnly, parseLocalDate, addDays, diffDays, getWeekNumber } from '../utils/dateUtils';
 
 interface WBSPageProps {
   onSelectIssue?: (issue: Issue) => void;
+  onOpenAuth?: () => void;
 }
 
 export interface WBSColorTheme {
@@ -207,7 +210,8 @@ interface TreeDropTarget {
   position: 'inside' | 'before' | 'after' | 'root';
 }
 
-export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
+export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue, onOpenAuth }) => {
+  const { isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -1274,6 +1278,12 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue }) => {
           <Button variant="secondary" size="sm" onClick={handleCollapseAll} style={{ height: '26px', fontSize: '0.74rem' }}>
             <Minimize2 size={12} style={{ marginRight: '4px' }} /> 모두 접기
           </Button>
+
+          {!isAuthenticated && onOpenAuth && (
+            <Button variant="primary" size="sm" onClick={onOpenAuth} style={{ height: '26px', fontSize: '0.74rem' }}>
+              <LogIn size={12} style={{ marginRight: '4px' }} /> 로그인
+            </Button>
+          )}
 
           {(isBackgroundSyncing || updatingIssueId) && (
             <div

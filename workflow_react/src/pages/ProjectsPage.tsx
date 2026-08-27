@@ -2,7 +2,7 @@
 import type { Project } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useProjects, useDeleteProject } from '../api';
-import { FolderKanban, Plus, Layers, Users, ArrowRight, Trash2, Sliders, Folder } from 'lucide-react';
+import { FolderKanban, Plus, Layers, Users, ArrowRight, Trash2, Sliders, Folder, LogIn } from 'lucide-react';
 import { CustomFieldsModal } from '../components/CustomFieldsModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { useActionFeedback } from '../hooks/useActionFeedback';
@@ -14,6 +14,7 @@ interface ProjectsPageProps {
   onSelectProject: (projectId: number) => void;
   projects?: Project[];
   onProjectsChange?: (projects: Project[]) => void;
+  onOpenAuth?: () => void;
 }
 
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({
@@ -21,6 +22,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onSelectProject,
   projects: externalProjects,
   onProjectsChange,
+  onOpenAuth,
 }) => {
   const { isAuthenticated } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
@@ -35,6 +37,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
   const projects = externalProjects || fetchedProjects;
+
+  const handleCreateClick = () => {
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    onOpenCreateProject();
+  };
 
   const handleOpenDeleteConfirm = (e: React.MouseEvent, proj: Project) => {
     e.stopPropagation();
@@ -83,15 +93,20 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
         </div>
 
         <div style={{ display: 'flex', gap: '6px' }}>
-          {isAuthenticated && (
-            <Button variant="secondary" size="sm" icon={<Sliders size={12} />} onClick={() => setIsCustomFieldsModalOpen(true)}>
-              커스텀 필드
+          {!isAuthenticated && onOpenAuth && (
+            <Button variant="primary" size="sm" icon={<LogIn size={12} />} onClick={onOpenAuth}>
+              로그인
             </Button>
           )}
           {isAuthenticated && (
-            <Button variant="primary" size="sm" icon={<Plus size={12} />} onClick={onOpenCreateProject}>
-              프로젝트 생성
-            </Button>
+            <>
+              <Button variant="secondary" size="sm" icon={<Sliders size={12} />} onClick={() => setIsCustomFieldsModalOpen(true)}>
+                커스텀 필드
+              </Button>
+              <Button variant="primary" size="sm" icon={<Plus size={12} />} onClick={handleCreateClick}>
+                프로젝트 생성
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -112,9 +127,15 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
           }}
         >
           <FolderKanban size={32} color="var(--text-muted)" />
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>등록된 프로젝트가 없습니다.</div>
-          {isAuthenticated && (
-            <Button variant="primary" size="sm" icon={<Plus size={12} />} onClick={onOpenCreateProject}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+            {!isAuthenticated ? '로그인 후 프로젝트를 확인하거나 생성할 수 있습니다.' : '등록된 프로젝트가 없습니다.'}
+          </div>
+          {!isAuthenticated && onOpenAuth ? (
+            <Button variant="primary" size="sm" icon={<LogIn size={12} />} onClick={onOpenAuth}>
+              로그인하여 시작하기
+            </Button>
+          ) : (
+            <Button variant="primary" size="sm" icon={<Plus size={12} />} onClick={handleCreateClick}>
               첫 프로젝트 생성
             </Button>
           )}
