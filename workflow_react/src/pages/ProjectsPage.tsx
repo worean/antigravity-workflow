@@ -1,13 +1,13 @@
 ﻿import React, { useState } from 'react';
 import type { Project } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { useProjects, useDeleteProject, useToggleFavorite } from '../api';
-import { FolderKanban, Plus, Layers, Users, ArrowRight, Trash2, Sliders, Folder, LogIn, Star } from 'lucide-react';
+import { useProjects, useDeleteProject } from '../api';
+import { FolderKanban, Plus, Layers, Users, ArrowRight, Trash2, Sliders, Folder, LogIn } from 'lucide-react';
 import { CustomFieldsModal } from '../components/CustomFieldsModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { useActionFeedback } from '../hooks/useActionFeedback';
 import { ActionFeedbackModal } from '../components/ActionFeedbackModal';
-import { Button, Card, Spinner } from '../components/common';
+import { Button, Card, Spinner, FavoriteButton } from '../components/common';
 
 interface ProjectsPageProps {
   onOpenCreateProject: () => void;
@@ -30,7 +30,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   // TanStack Query로 프로젝트 목록 로드
   const { data: fetchedProjects = [], isLoading: loading } = useProjects();
   const deleteProjectMutation = useDeleteProject();
-  const toggleFavoriteMutation = useToggleFavorite();
 
   const [isCustomFieldsModalOpen, setIsCustomFieldsModalOpen] = useState<boolean>(false);
 
@@ -45,18 +44,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
       return;
     }
     onOpenCreateProject();
-  };
-
-  const handleToggleFavorite = (e: React.MouseEvent, proj: Project) => {
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-    toggleFavoriteMutation.mutate({
-      targetType: 'PROJECT',
-      targetId: proj.id,
-    });
   };
 
   const handleOpenDeleteConfirm = (e: React.MouseEvent, proj: Project) => {
@@ -195,26 +182,13 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                   </span>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleFavorite(e, proj)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title={proj.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
-                    >
-                      <Star
-                        size={13}
-                        fill={proj.isFavorite ? '#eab308' : 'none'}
-                        color={proj.isFavorite ? '#eab308' : '#9ca3af'}
-                      />
-                    </button>
+                    <FavoriteButton
+                      targetType="PROJECT"
+                      targetId={proj.id}
+                      isFavorite={proj.isFavorite}
+                      size="sm"
+                      onOpenAuth={onOpenAuth}
+                    />
 
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                       #{proj.id}

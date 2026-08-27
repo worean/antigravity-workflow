@@ -309,6 +309,7 @@ const AppContent: React.FC = () => {
               onBack={handleBackFromIssueDetail}
               onGoToList={handleGoToListFromIssueDetail}
               onIssueUpdated={handleIssueRefreshed}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 

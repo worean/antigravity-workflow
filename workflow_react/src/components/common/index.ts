@@ -1,4 +1,4 @@
-export { Button, type ButtonProps } from './Button';
+﻿export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export {
   Spinner,
@@ -20,3 +20,5 @@ export { MarkdownViewer } from './MarkdownViewer';
 export { MarkdownEditor } from './MarkdownEditor';
 export { Avatar, getRandomAvatarColor, getHashColor, AVATAR_PALETTE, type AvatarProps } from './Avatar';
 export { Skeleton, SkeletonCard, SkeletonDashboard, type SkeletonProps } from './Skeleton';
+export { FavoriteButton, type FavoriteButtonProps } from './FavoriteButton';
+

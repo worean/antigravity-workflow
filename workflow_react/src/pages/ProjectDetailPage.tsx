@@ -29,10 +29,8 @@ import {
   AlertCircle,
   Crown,
   X,
-  Star,
 } from 'lucide-react';
-import { useToggleFavorite } from '../api/favorites';
-import { Button, Spinner, Avatar, MarkdownViewer, MarkdownEditor, StatusBadge, PriorityBadge } from '../components/common';
+import { Button, Spinner, Avatar, MarkdownViewer, MarkdownEditor, StatusBadge, PriorityBadge, FavoriteButton } from '../components/common';
 import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
 import { useActionFeedback } from '../hooks/useActionFeedback';
 import { ActionFeedbackModal } from '../components/ActionFeedbackModal';
@@ -59,8 +57,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   onProjectDeleted,
   onOpenAuth,
 }) => {
-  const { user, isAuthenticated } = useAuth();
-  const toggleFavoriteMutation = useToggleFavorite();
+  const { user } = useAuth();
   const { errorState, closeErrorModal, executeAction } = useActionFeedback();
 
   const [project, setProject] = useState<Project | null>(null);
@@ -381,40 +378,16 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
             {project.name}
           </span>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (!isAuthenticated) {
-                if (onOpenAuth) onOpenAuth();
-                return;
-              }
-              if (project) {
-                toggleFavoriteMutation.mutate(
-                  { targetType: 'PROJECT', targetId: project.id },
-                  {
-                    onSuccess: (data) => {
-                      setProject((prev) => (prev ? { ...prev, isFavorite: data.isFavorite } : prev));
-                    },
-                  }
-                );
-              }
+          <FavoriteButton
+            targetType="PROJECT"
+            targetId={project.id}
+            isFavorite={project.isFavorite}
+            size="md"
+            onOpenAuth={onOpenAuth}
+            onToggleSuccess={(isFav) => {
+              setProject((prev) => (prev ? { ...prev, isFavorite: isFav } : prev));
             }}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-            title={project.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
-          >
-            <Star
-              size={16}
-              fill={project.isFavorite ? '#eab308' : 'none'}
-              color={project.isFavorite ? '#eab308' : 'var(--text-muted)'}
-            />
-          </button>
+          />
         </div>
 
         {/* Right: Quick Links & Actions */}

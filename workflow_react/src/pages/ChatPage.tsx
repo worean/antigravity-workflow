@@ -17,7 +17,6 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  Star,
 } from 'lucide-react';
 import {
   getChannels,
@@ -29,9 +28,8 @@ import {
   toggleReaction,
   type CreateChannelParams,
 } from '../api/chat';
-import { useToggleFavorite } from '../api/favorites';
 import { getSocket } from '../lib/socketClient';
-import { Avatar, Button, Spinner } from '../components/common';
+import { Avatar, Button, Spinner, FavoriteButton } from '../components/common';
 import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '../types';
 import { getUsers, getProjects, getGroups } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -58,26 +56,6 @@ interface ChatPageProps {
 export const ChatPage: React.FC<ChatPageProps> = ({ onOpenAuth }) => {
   const { user: authUser, isAuthenticated } = useAuth();
   const currentUserId = authUser?.id || 0;
-  const toggleFavoriteMutation = useToggleFavorite();
-
-  const handleToggleFavorite = (e: React.MouseEvent, channel: ChatChannel) => {
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-    toggleFavoriteMutation.mutate(
-      {
-        targetType: 'CHAT_CHANNEL',
-        targetId: channel.id,
-      },
-      {
-        onSuccess: () => {
-          fetchChannels();
-        },
-      }
-    );
-  };
 
   const [channels, setChannels] = useState<ChatChannel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
@@ -508,26 +486,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onOpenAuth }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            type="button"
-            onClick={(e) => handleToggleFavorite(e, channel)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '2px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            title={channel.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
-          >
-            <Star
-              size={12}
-              fill={channel.isFavorite ? '#eab308' : 'none'}
-              color={channel.isFavorite ? '#eab308' : '#72767d'}
-            />
-          </button>
+          <FavoriteButton
+            targetType="CHAT_CHANNEL"
+            targetId={channel.id}
+            isFavorite={channel.isFavorite}
+            size="xs"
+            onOpenAuth={onOpenAuth}
+            onToggleSuccess={() => fetchChannels()}
+          />
 
           {isMuted && (
             <span title="음소거됨" style={{ display: 'flex' }}>
@@ -919,25 +885,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onOpenAuth }) => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
-              <button
-                type="button"
-                onClick={(e) => handleToggleFavorite(e, currentChannel)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                title={currentChannel.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
-              >
-                <Star
-                  size={18}
-                  fill={currentChannel.isFavorite ? '#eab308' : 'none'}
-                  color={currentChannel.isFavorite ? '#eab308' : '#b5bac1'}
-                />
-              </button>
+              <FavoriteButton
+                targetType="CHAT_CHANNEL"
+                targetId={currentChannel.id}
+                isFavorite={currentChannel.isFavorite}
+                size="lg"
+                onOpenAuth={onOpenAuth}
+                onToggleSuccess={() => fetchChannels()}
+              />
 
               <button
                 type="button"
