@@ -197,11 +197,6 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
           <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>미지정</span>
         )}
       </div>
-
-      {/* Progress */}
-      <div style={{ width: '55px', textAlign: 'center', fontSize: '0.68rem', color: iss.progress === 100 ? '#89d185' : 'var(--text-sub)' }}>
-        {iss.progress || 0}%
-      </div>
     </div>
   );
 };

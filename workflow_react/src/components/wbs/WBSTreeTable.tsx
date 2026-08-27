@@ -177,7 +177,6 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
         <div style={{ flex: 1, paddingLeft: '4px' }}>작업명 / 이슈 제목 (WBS)</div>
         <div style={{ width: '70px', textAlign: 'center' }}>상태</div>
         <div style={{ width: '65px', textAlign: 'center' }}>담당자</div>
-        <div style={{ width: '55px', textAlign: 'center' }}>진척도</div>
       </div>
 
       {/* Left Body */}
