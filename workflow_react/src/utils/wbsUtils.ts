@@ -1,0 +1,431 @@
+﻿// -*- coding: utf-8 -*-
+import type { Issue } from '../types';
+import type { WBSColorTheme, WBSItem, TimelineRange, TopHeader, BottomHeaders } from '../types/wbs';
+import { parseLocalDate, addDays, diffDays, getWeekNumber } from './dateUtils';
+
+// 12가지 다채로운 WBS/간트차트 전용 색상 팔레트
+export const WBS_PALETTE: WBSColorTheme[] = [
+  {
+    name: 'blue',
+    base: '#007acc',
+    border: '#1f8ad2',
+    progress: '#38bdf8',
+    bgEmpty: 'rgba(0, 122, 204, 0.18)',
+    parentBase: '#007acc',
+    parentBorder: '#38bdf8',
+    dragBase: '#0284c7',
+    dragBorder: '#7dd3fc',
+  },
+  {
+    name: 'emerald',
+    base: '#059669',
+    border: '#10b981',
+    progress: '#34d399',
+    bgEmpty: 'rgba(5, 150, 105, 0.18)',
+    parentBase: '#059669',
+    parentBorder: '#34d399',
+    dragBase: '#047857',
+    dragBorder: '#6ee7b7',
+  },
+  {
+    name: 'indigo',
+    base: '#4f46e5',
+    border: '#6366f1',
+    progress: '#818cf8',
+    bgEmpty: 'rgba(79, 70, 229, 0.18)',
+    parentBase: '#4f46e5',
+    parentBorder: '#818cf8',
+    dragBase: '#4338ca',
+    dragBorder: '#a5b4fc',
+  },
+  {
+    name: 'purple',
+    base: '#7c3aed',
+    border: '#8b5cf6',
+    progress: '#a78bfa',
+    bgEmpty: 'rgba(124, 58, 237, 0.18)',
+    parentBase: '#7c3aed',
+    parentBorder: '#a78bfa',
+    dragBase: '#6d28d9',
+    dragBorder: '#c4b5fd',
+  },
+  {
+    name: 'amber',
+    base: '#d97706',
+    border: '#f59e0b',
+    progress: '#fbbf24',
+    bgEmpty: 'rgba(217, 119, 6, 0.18)',
+    parentBase: '#d97706',
+    parentBorder: '#fbbf24',
+    dragBase: '#b45309',
+    dragBorder: '#fde68a',
+  },
+  {
+    name: 'cyan',
+    base: '#0891b2',
+    border: '#06b6d4',
+    progress: '#22d3ee',
+    bgEmpty: 'rgba(8, 145, 178, 0.18)',
+    parentBase: '#0891b2',
+    parentBorder: '#22d3ee',
+    dragBase: '#0e7490',
+    dragBorder: '#67e8f9',
+  },
+  {
+    name: 'rose',
+    base: '#e11d48',
+    border: '#f43f5e',
+    progress: '#fb7185',
+    bgEmpty: 'rgba(225, 29, 72, 0.18)',
+    parentBase: '#e11d48',
+    parentBorder: '#fb7185',
+    dragBase: '#be123c',
+    dragBorder: '#fda4af',
+  },
+  {
+    name: 'green',
+    base: '#16a34a',
+    border: '#22c55e',
+    progress: '#4ade80',
+    bgEmpty: 'rgba(22, 163, 74, 0.18)',
+    parentBase: '#16a34a',
+    parentBorder: '#4ade80',
+    dragBase: '#15803d',
+    dragBorder: '#86efac',
+  },
+  {
+    name: 'orange',
+    base: '#ea580c',
+    border: '#f97316',
+    progress: '#fb923c',
+    bgEmpty: 'rgba(234, 88, 12, 0.18)',
+    parentBase: '#ea580c',
+    parentBorder: '#fb923c',
+    dragBase: '#c2410c',
+    dragBorder: '#fdba74',
+  },
+  {
+    name: 'fuchsia',
+    base: '#c026d3',
+    border: '#d946ef',
+    progress: '#e879f9',
+    bgEmpty: 'rgba(192, 38, 211, 0.18)',
+    parentBase: '#c026d3',
+    parentBorder: '#e879f9',
+    dragBase: '#a21caf',
+    dragBorder: '#f0abfc',
+  },
+  {
+    name: 'teal',
+    base: '#0d9488',
+    border: '#14b8a6',
+    progress: '#2dd4bf',
+    bgEmpty: 'rgba(13, 148, 136, 0.18)',
+    parentBase: '#0d9488',
+    parentBorder: '#2dd4bf',
+    dragBase: '#0f766e',
+    dragBorder: '#5eead4',
+  },
+  {
+    name: 'violet',
+    base: '#6d28d9',
+    border: '#7c3aed',
+    progress: '#8b5cf6',
+    bgEmpty: 'rgba(109, 40, 217, 0.18)',
+    parentBase: '#6d28d9',
+    parentBorder: '#8b5cf6',
+    dragBase: '#5b21b6',
+    dragBorder: '#a78bfa',
+  },
+];
+
+/**
+ * 고정된 Seed 기반 의사 난수 해시 함수
+ * 최상위 이슈 ID(rootId)에 따라 항상 일관되고 고정된 색상 테마를 반환합니다.
+ */
+export const getWBSColorByRootId = (rootId: number): WBSColorTheme => {
+  const hash = Math.abs((rootId * 2654435761) ^ (rootId >> 16));
+  const index = hash % WBS_PALETTE.length;
+  return WBS_PALETTE[index];
+};
+
+/**
+ * WBS 계층 트리 구축 및 평탄화, 타임라인 날짜 범위 계산
+ */
+export const buildWBSTree = (
+  issues: Issue[],
+  collapsedIds: Set<number>
+): { flatWBSItems: WBSItem[]; timelineRange: TimelineRange } => {
+  const issueMap = new Map<number, Issue>();
+  const childrenMap = new Map<number, Issue[]>();
+  const rootIssues: Issue[] = [];
+
+  issues.forEach((iss) => {
+    issueMap.set(iss.id, iss);
+  });
+
+  issues.forEach((iss) => {
+    if (iss.parentId && issueMap.has(iss.parentId)) {
+      const pList = childrenMap.get(iss.parentId) || [];
+      pList.push(iss);
+      childrenMap.set(iss.parentId, pList);
+    } else {
+      rootIssues.push(iss);
+    }
+  });
+
+  // 유효 일정 계산 (하위 자식 날짜 롤업 포함)
+  const computeDates = (iss: Issue): { start: Date | null; end: Date | null } => {
+    let start = parseLocalDate(iss.plannedStartDate);
+    let end = parseLocalDate(iss.dueDate);
+
+    const children = childrenMap.get(iss.id) || [];
+    for (const child of children) {
+      const cDates = computeDates(child);
+      if (cDates.start) {
+        if (!start || cDates.start < start) start = cDates.start;
+      }
+      if (cDates.end) {
+        if (!end || cDates.end > end) end = cDates.end;
+      }
+    }
+    return { start, end };
+  };
+
+  // 시작계획일 기준 오름차순 시간순 정렬
+  const compareWBSOrder = (a: Issue, b: Issue): number => {
+    const aDates = computeDates(a);
+    const bDates = computeDates(b);
+
+    const aStart = aDates.start ? aDates.start.getTime() : null;
+    const bStart = bDates.start ? bDates.start.getTime() : null;
+
+    if (aStart !== null && bStart !== null) {
+      if (aStart !== bStart) return aStart - bStart;
+    } else if (aStart !== null && bStart === null) {
+      return -1;
+    } else if (aStart === null && bStart !== null) {
+      return 1;
+    }
+
+    const aEnd = aDates.end ? aDates.end.getTime() : null;
+    const bEnd = bDates.end ? bDates.end.getTime() : null;
+    if (aEnd !== null && bEnd !== null) {
+      if (aEnd !== bEnd) return aEnd - bEnd;
+    } else if (aEnd !== null && bEnd === null) {
+      return -1;
+    } else if (aEnd === null && bEnd !== null) {
+      return 1;
+    }
+
+    return a.id - b.id;
+  };
+
+  const flatList: WBSItem[] = [];
+  let minDate: Date | null = null;
+  let maxDate: Date | null = null;
+
+  const traverse = (iss: Issue, depth: number, isHiddenByParent: boolean, rootId: number) => {
+    const children = childrenMap.get(iss.id) || [];
+    const hasChildren = children.length > 0;
+    const { start, end } = computeDates(iss);
+
+    if (start) {
+      if (!minDate || start < minDate) minDate = new Date(start);
+    }
+    if (end) {
+      if (!maxDate || end > maxDate) maxDate = new Date(end);
+    }
+
+    if (!isHiddenByParent) {
+      flatList.push({
+        issue: iss,
+        depth,
+        hasChildren,
+        startDate: start,
+        endDate: end,
+        isParent: hasChildren,
+        rootIssueId: rootId,
+        color: getWBSColorByRootId(rootId),
+      });
+    }
+
+    const isCollapsed = collapsedIds.has(iss.id);
+    const hideNext = isHiddenByParent || isCollapsed;
+
+    const sortedChildren = [...children].sort(compareWBSOrder);
+    sortedChildren.forEach((child) => {
+      traverse(child, depth + 1, hideNext, rootId);
+    });
+  };
+
+  const sortedRootIssues = [...rootIssues].sort(compareWBSOrder);
+  sortedRootIssues.forEach((root) => traverse(root, 0, false, root.id));
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const rangeStart = minDate ? new Date(minDate) : addDays(today, -7);
+  const rangeEnd = maxDate ? new Date(maxDate) : addDays(today, 21);
+
+  const paddedStart = addDays(rangeStart, -7);
+  const paddedEnd = addDays(rangeEnd, 14);
+
+  paddedStart.setHours(0, 0, 0, 0);
+  paddedEnd.setHours(0, 0, 0, 0);
+
+  const totalDays = Math.max(21, diffDays(paddedEnd, paddedStart) + 1);
+  const daysArray: Date[] = [];
+  for (let i = 0; i < totalDays; i++) {
+    daysArray.push(addDays(paddedStart, i));
+  }
+
+  return {
+    flatWBSItems: flatList,
+    timelineRange: {
+      start: paddedStart,
+      end: paddedEnd,
+      totalDays,
+      days: daysArray,
+    },
+  };
+};
+
+/**
+ * 타임라인 상단/하단 헤더 블록 생성
+ */
+export const generateTimelineHeaders = (
+  timelineRange: TimelineRange,
+  currentViewScale: 'day' | 'week' | 'month',
+  isSundayStart: boolean = true
+): { topHeaders: TopHeader[]; bottomHeaders: BottomHeaders } => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Top Headers (Year or Month)
+  const topHeaders: TopHeader[] = [];
+  if (currentViewScale === 'month') {
+    let curYear = -1;
+    let curCount = 0;
+
+    timelineRange.days.forEach((d) => {
+      const yr = d.getFullYear();
+      if (yr !== curYear) {
+        if (curCount > 0) {
+          topHeaders.push({ label: `${curYear}년`, daysCount: curCount });
+        }
+        curYear = yr;
+        curCount = 1;
+      } else {
+        curCount++;
+      }
+    });
+    if (curCount > 0) {
+      topHeaders.push({ label: `${curYear}년`, daysCount: curCount });
+    }
+  } else {
+    let curMonthKey = '';
+    let curCount = 0;
+
+    timelineRange.days.forEach((d) => {
+      const mKey = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (mKey !== curMonthKey) {
+        if (curCount > 0) {
+          const [y, m] = curMonthKey.split('.');
+          topHeaders.push({ label: `${y}년 ${Number(m)}월`, daysCount: curCount });
+        }
+        curMonthKey = mKey;
+        curCount = 1;
+      } else {
+        curCount++;
+      }
+    });
+    if (curCount > 0) {
+      const [y, m] = curMonthKey.split('.');
+      topHeaders.push({ label: `${y}년 ${Number(m)}월`, daysCount: curCount });
+    }
+  }
+
+  // Bottom Headers
+  if (currentViewScale === 'month') {
+    const blocks: { label: string; daysCount: number; isCurrent: boolean }[] = [];
+    let curMonthKey = '';
+    let curCount = 0;
+    let isCurrentMonth = false;
+
+    timelineRange.days.forEach((d) => {
+      const mKey = `${d.getFullYear()}-${d.getMonth() + 1}`;
+      const isCur = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();
+
+      if (mKey !== curMonthKey) {
+        if (curCount > 0) {
+          const monthNum = Number(curMonthKey.split('-')[1]);
+          blocks.push({ label: `${monthNum}월`, daysCount: curCount, isCurrent: isCurrentMonth });
+        }
+        curMonthKey = mKey;
+        curCount = 1;
+        isCurrentMonth = isCur;
+      } else {
+        curCount++;
+        if (isCur) isCurrentMonth = true;
+      }
+    });
+
+    if (curCount > 0) {
+      const monthNum = Number(curMonthKey.split('-')[1]);
+      blocks.push({ label: `${monthNum}월`, daysCount: curCount, isCurrent: isCurrentMonth });
+    }
+    return { topHeaders, bottomHeaders: { type: 'month', blocks } };
+  } else if (currentViewScale === 'week') {
+    const blocks: { label: string; daysCount: number; isCurrent: boolean }[] = [];
+    let curWeekNum = -1;
+    let curCount = 0;
+    let isCurrentWeek = false;
+
+    timelineRange.days.forEach((d) => {
+      const isCur =
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate();
+      const isWeekStart = isSundayStart ? d.getDay() === 0 : d.getDay() === 1;
+      const weekNum = getWeekNumber(d, isSundayStart);
+
+      if (isWeekStart && curCount > 0) {
+        blocks.push({ label: `${curWeekNum}주차`, daysCount: curCount, isCurrent: isCurrentWeek });
+        curWeekNum = weekNum;
+        curCount = 1;
+        isCurrentWeek = isCur;
+      } else {
+        if (curCount === 0) {
+          curWeekNum = weekNum;
+        }
+        curCount++;
+        if (isCur) isCurrentWeek = true;
+      }
+    });
+
+    if (curCount > 0) {
+      blocks.push({ label: `${curWeekNum}주차`, daysCount: curCount, isCurrent: isCurrentWeek });
+    }
+    return { topHeaders, bottomHeaders: { type: 'week', blocks } };
+  } else {
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const blocks = timelineRange.days.map((d) => {
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      const isToday =
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate();
+
+      return {
+        date: d,
+        dayNum: d.getDate(),
+        dayName: dayNames[d.getDay()],
+        isToday,
+        isWeekend,
+        daysCount: 1,
+      };
+    });
+    return { topHeaders, bottomHeaders: { type: 'day', blocks } };
+  }
+};

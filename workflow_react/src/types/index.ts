@@ -313,3 +313,6 @@ export interface ChatMessage {
   createdAt: string;
   updatedAt: string;
 }
+
+export * from './wbs';
+
