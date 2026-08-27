@@ -65,4 +65,44 @@ describe('favorites.getFavorites.test.ts', () => {
     expect(myProjects[idxProj2].isFavorite).toBe(true);
     expect(myProjects[idxProj1].isFavorite).toBe(false);
   });
+
+  it('getFavoritesService는 SPRINT 즐겨찾기 조회 시 project 및 issues 메타데이터를 포함한다', async () => {
+    const sprint = await prisma.sprint.create({
+      data: {
+        name: `Sprint #${Date.now()}`,
+        projectId: proj1.id,
+        goal: '집중 모니터링 테스트 목표',
+        status: 'ACTIVE',
+      },
+    });
+
+    await prisma.issue.create({
+      data: {
+        title: '스프린트 테스트 일감 1',
+        projectId: proj1.id,
+        sprintId: sprint.id,
+        authorId: testUser.id,
+        statusId: 1,
+        priorityId: 4,
+      },
+    });
+
+    await toggleFavoriteService({
+      userId: testUser.id,
+      targetType: 'SPRINT',
+      targetId: sprint.id,
+    });
+
+    const favs = await getFavoritesService({
+      userId: testUser.id,
+      targetType: 'SPRINT',
+    });
+
+    expect(favs.length).toBe(1);
+    expect(favs[0].targetId).toBe(sprint.id);
+    expect(favs[0].detail?.name).toBe(sprint.name);
+    expect(favs[0].detail?.project?.id).toBe(proj1.id);
+    expect(favs[0].detail?.issues?.length).toBe(1);
+    expect(favs[0].detail?.issues[0].title).toBe('스프린트 테스트 일감 1');
+  });
 });

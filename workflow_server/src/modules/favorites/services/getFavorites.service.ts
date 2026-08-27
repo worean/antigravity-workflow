@@ -55,7 +55,24 @@ export const getFavoritesService = async ({
     sprintIds.length > 0
       ? db.sprint.findMany({
           where: { id: { in: sprintIds } },
-          include: { project: { select: { id: true, name: true, key: true } } },
+          include: {
+            project: { select: { id: true, name: true, key: true } },
+            issues: {
+              select: {
+                id: true,
+                title: true,
+                statusId: true,
+                priorityId: true,
+                status: true,
+                priority: true,
+                plannedStartDate: true,
+                dueDate: true,
+                progress: true,
+                assignee: { select: { id: true, name: true, email: true, avatar: true } },
+              },
+            },
+            _count: { select: { issues: true } },
+          },
         })
       : [],
     channelIds.length > 0

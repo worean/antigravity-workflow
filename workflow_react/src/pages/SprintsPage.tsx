@@ -30,7 +30,7 @@ import {
 import { Button, Card, Spinner, StatusBadge, ProjectBadge, Avatar, FavoriteButton } from '../components/common';
 import { formatDateOnly } from '../utils/dateUtils';
 
-type SprintStatusFilter = 'ALL' | 'PLANNED' | 'ACTIVE' | 'COMPLETED';
+type SprintStatusFilter = 'ALL' | 'STARRED' | 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 
 interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;
@@ -348,7 +348,11 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   };
 
   const filteredSprints = sprints.filter((s) => {
-    if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
+    if (statusFilter === 'STARRED') {
+      if (!s.isFavorite) return false;
+    } else if (statusFilter !== 'ALL' && s.status !== statusFilter) {
+      return false;
+    }
     return true;
   });
 
@@ -384,22 +388,25 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
 
           {/* Status Tabs */}
           <div style={{ display: 'flex', gap: '3px', background: '#1e1e1e', padding: '2px', borderRadius: 'var(--radius-xs)', border: '1px solid #383838' }}>
-            {(['ALL', 'PLANNED', 'ACTIVE', 'COMPLETED'] as SprintStatusFilter[]).map((st) => (
+            {(['ALL', 'STARRED', 'PLANNED', 'ACTIVE', 'COMPLETED'] as SprintStatusFilter[]).map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
                 style={{
                   background: statusFilter === st ? 'var(--bg-card)' : 'none',
-                  color: statusFilter === st ? 'var(--text-bright)' : 'var(--text-muted)',
+                  color: statusFilter === st ? (st === 'STARRED' ? '#eab308' : 'var(--text-bright)') : 'var(--text-muted)',
                   border: 'none',
                   fontSize: '0.72rem',
                   fontWeight: statusFilter === st ? 600 : 400,
                   padding: '3px 8px',
                   borderRadius: '2px',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
                 }}
               >
-                {st === 'ALL' ? '전체' : st === 'PLANNED' ? '계획 중' : st === 'ACTIVE' ? '진행 중' : '완료됨'}
+                {st === 'ALL' ? '전체' : st === 'STARRED' ? '⭐ 즐겨찾기' : st === 'PLANNED' ? '계획 중' : st === 'ACTIVE' ? '진행 중' : '완료됨'}
               </button>
             ))}
           </div>
@@ -442,6 +449,82 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         )}
       </div>
 
+      {/* ⭐ Starred Sprints Focus HUD Strip (즐겨찾기 스프린트가 있고 STARRED 탭이 아닐 때) */}
+      {statusFilter !== 'STARRED' && sprints.some((s) => s.isFavorite) && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.12) 0%, rgba(202, 138, 4, 0.05) 100%)',
+            border: '1px solid rgba(234, 179, 8, 0.35)',
+            borderRadius: 'var(--radius-xs)',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#eab308', fontWeight: 600, fontSize: '0.8rem' }}>
+              <Zap size={14} />
+              <span>집중 모니터링 중인 스프린트 ({sprints.filter((s) => s.isFavorite).length}개):</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {sprints.filter((s) => s.isFavorite).map((fav) => {
+                const p = getSprintProgress(fav);
+                return (
+                  <button
+                    key={fav.id}
+                    onClick={() => {
+                      handleOpenManageModal(fav);
+                    }}
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: '1px solid rgba(234, 179, 8, 0.3)',
+                      borderRadius: '3px',
+                      padding: '3px 8px',
+                      fontSize: '0.73rem',
+                      color: 'var(--text-bright)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(234, 179, 8, 0.2)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.35)')}
+                    title="클릭하여 상세 및 이슈 목록 보기"
+                  >
+                    <span style={{ fontWeight: 600 }}>{fav.name}</span>
+                    <span style={{ color: p.rate === 100 ? '#4ec9b0' : '#38bdf8', fontSize: '0.68rem', fontWeight: 700 }}>
+                      {p.rate}%
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('STARRED')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#eab308',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              padding: 0,
+            }}
+          >
+            즐겨찾기만 필터링 보기 →
+          </button>
+        </div>
+      )}
+
       {/* Sprints Grid List */}
       {loading && sprints.length === 0 ? (
         <Spinner centered label="스프린트 불러오는 중..." />
@@ -461,16 +544,39 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
               <div
                 key={s.id}
                 style={{
-                  background: '#252526',
-                  border: isActive ? '1px solid #007acc' : '1px solid var(--border-light)',
+                  background: s.isFavorite ? '#23221e' : '#252526',
+                  border: s.isFavorite
+                    ? '1px solid rgba(234, 179, 8, 0.45)'
+                    : isActive
+                    ? '1px solid #007acc'
+                    : '1px solid var(--border-light)',
                   borderRadius: 'var(--radius-xs)',
                   padding: '12px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '8px',
-                  boxShadow: isActive ? '0 0 8px rgba(0,122,204,0.15)' : 'none',
+                  boxShadow: s.isFavorite
+                    ? '0 0 10px rgba(234, 179, 8, 0.12)'
+                    : isActive
+                    ? '0 0 8px rgba(0,122,204,0.15)'
+                    : 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
+                {/* Gold Top Accent Line for Favorite Sprint */}
+                {s.isFavorite && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '2px',
+                      background: 'linear-gradient(90deg, #eab308, #ca8a04)',
+                    }}
+                  />
+                )}
                 {/* Card Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
