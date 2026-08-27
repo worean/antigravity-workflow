@@ -50,15 +50,27 @@ const CATEGORY_CONFIGS: CategoryConfig[] = [
 ];
 
 interface ChatPageProps {
+  selectedChannelId?: number | null;
+  onSelectChannel?: (channelId: number) => void;
   onOpenAuth?: () => void;
 }
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onOpenAuth }) => {
+export const ChatPage: React.FC<ChatPageProps> = ({
+  selectedChannelId: initialChannelId = null,
+  onSelectChannel,
+  onOpenAuth,
+}) => {
   const { user: authUser, isAuthenticated } = useAuth();
   const currentUserId = authUser?.id || 0;
 
   const [channels, setChannels] = useState<ChatChannel[]>([]);
-  const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
+  const [selectedChannelId, setSelectedChannelId] = useState<number | null>(initialChannelId);
+
+  useEffect(() => {
+    if (initialChannelId !== undefined && initialChannelId !== null) {
+      setSelectedChannelId(initialChannelId);
+    }
+  }, [initialChannelId]);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'GLOBAL' | 'PROJECT' | 'GROUP' | 'DM'>('ALL');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<ChannelType, boolean>>({
     GLOBAL: false,
@@ -420,7 +432,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onOpenAuth }) => {
     return (
       <div
         key={channel.id}
-        onClick={() => setSelectedChannelId(channel.id)}
+        onClick={() => {
+          setSelectedChannelId(channel.id);
+          if (onSelectChannel) onSelectChannel(channel.id);
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',

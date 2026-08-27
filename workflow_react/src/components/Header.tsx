@@ -2,10 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { checkHealth } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Server, User as UserIcon, Minus, Square, Copy, X } from 'lucide-react';
+import { User as UserIcon, Minus, Square, Copy, X } from 'lucide-react';
 import { DotIndicator, Avatar } from './common';
 
-export const Header: React.FC = () => {
+export interface BreadcrumbItem {
+  label: string;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+}
+
+interface HeaderProps {
+  breadcrumbs?: BreadcrumbItem[];
+}
+
+export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
   const { user, isAuthenticated } = useAuth();
   const [isServerHealthy, setIsServerHealthy] = useState<boolean | null>(null);
   const [lastCheckTime, setLastCheckTime] = useState<string>('');
@@ -72,11 +82,59 @@ export const Header: React.FC = () => {
         WebkitAppRegion: 'drag',
       } as React.CSSProperties}
     >
-      {/* Left workspace status breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', color: 'var(--text-sub)' }}>
+      {/* Left workspace status / Breadcrumb */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '0.72rem',
+          color: 'var(--text-sub)',
+          WebkitAppRegion: 'no-drag',
+        } as React.CSSProperties}
+      >
         <span style={{ color: 'var(--text-muted)' }}>Workspace</span>
-        <span>/</span>
-        <span style={{ color: 'var(--text-bright)', fontWeight: 500 }}>AntiGravity Workflow Systems</span>
+        {breadcrumbs && breadcrumbs.length > 0 ? (
+          breadcrumbs.map((crumb, idx) => (
+            <React.Fragment key={idx}>
+              <span style={{ color: 'var(--text-muted)' }}>/</span>
+              {crumb.onClick ? (
+                <button
+                  type="button"
+                  onClick={crumb.onClick}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    margin: 0,
+                    color: idx === breadcrumbs.length - 1 ? 'var(--accent-cyan)' : 'var(--text-bright)',
+                    fontWeight: idx === breadcrumbs.length - 1 ? 600 : 400,
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                >
+                  {crumb.label}
+                </button>
+              ) : (
+                <span
+                  style={{
+                    color: idx === breadcrumbs.length - 1 ? 'var(--accent-cyan)' : 'var(--text-bright)',
+                    fontWeight: idx === breadcrumbs.length - 1 ? 600 : 400,
+                  }}
+                >
+                  {crumb.label}
+                </span>
+              )}
+            </React.Fragment>
+          ))
+        ) : (
+          <>
+            <span style={{ color: 'var(--text-muted)' }}>/</span>
+            <span style={{ color: 'var(--text-bright)', fontWeight: 500 }}>AntiGravity Workflow Systems</span>
+          </>
+        )}
       </div>
 
       {/* Right - User Status, Server Status & Window Controls */}
@@ -108,90 +166,83 @@ export const Header: React.FC = () => {
 
         {/* Server Status Indicator */}
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '1px 8px',
-            borderRadius: 'var(--radius-xs)',
-            background: 'rgba(0, 0, 0, 0.2)',
-            border: '1px solid var(--border-light)',
-            fontSize: '0.72rem',
-          }}
+          title={isServerHealthy === null ? '연결 확인 중...' : isServerHealthy ? `정상 (${lastCheckTime})` : '오프라인'}
+          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', cursor: 'help' }}
         >
-          <Server size={11} color="var(--text-sub)" />
-          <span style={{ color: 'var(--text-muted)' }}>API:</span>
-          <DotIndicator
-            color={isServerHealthy ? 'green' : isServerHealthy === false ? 'red' : 'amber'}
-            pulsing={isServerHealthy === true}
-            label={isServerHealthy ? 'Online' : isServerHealthy === false ? 'Disconnected' : 'Checking...'}
-          />
-          {lastCheckTime && (
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-              ({lastCheckTime})
-            </span>
-          )}
+          <DotIndicator color={isServerHealthy === null ? 'amber' : isServerHealthy ? 'green' : 'red'} />
+          <span style={{ color: 'var(--text-sub)' }}>API</span>
         </div>
 
-        {/* Electron Window Control Buttons */}
+        {/* Electron Window Controls */}
         {isElectron && (
-          <div style={{ display: 'flex', alignItems: 'center', height: '100%', marginLeft: '6px' }}>
+          <div style={{ display: 'flex', height: '100%' }}>
             <button
               onClick={handleMinimize}
-              title="최소화"
               style={{
-                width: '42px',
+                width: '36px',
                 height: '100%',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-sub)',
-                cursor: 'pointer',
-                transition: 'background 0.15s ease',
+                transition: 'background-color 0.1s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#2a2d2e';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+              title="최소화"
             >
               <Minus size={13} />
             </button>
 
             <button
               onClick={handleMaximize}
-              title={isMaximized ? '이전 크기로 복원' : '최대화'}
               style={{
-                width: '42px',
+                width: '36px',
                 height: '100%',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-sub)',
-                cursor: 'pointer',
-                transition: 'background 0.15s ease',
+                transition: 'background-color 0.1s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#2a2d2e';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+              title={isMaximized ? '이전 크기로 복원' : '최대화'}
             >
               {isMaximized ? <Copy size={11} /> : <Square size={11} />}
             </button>
 
             <button
               onClick={handleClose}
-              title="닫기"
               style={{
-                width: '42px',
+                width: '36px',
                 height: '100%',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-sub)',
-                cursor: 'pointer',
-                transition: 'background 0.15s ease, color 0.15s ease',
+                transition: 'background-color 0.1s, color 0.1s',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#e81123';
@@ -199,10 +250,11 @@ export const Header: React.FC = () => {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--text-sub)';
+                e.currentTarget.style.color = 'var(--text-muted)';
               }}
+              title="닫기"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
         )}

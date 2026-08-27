@@ -22,6 +22,8 @@ import { Button, Spinner, StatusBadge, Avatar } from '../components/common';
 import { formatDateOnly, parseLocalDate, addDays, diffDays, getWeekNumber } from '../utils/dateUtils';
 
 interface WBSPageProps {
+  selectedProjectId?: number | null;
+  onFilterChange?: (projectId: number | null) => void;
   onSelectIssue?: (issue: Issue) => void;
   onOpenAuth?: () => void;
 }
@@ -210,13 +212,24 @@ interface TreeDropTarget {
   position: 'inside' | 'before' | 'after' | 'root';
 }
 
-export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue, onOpenAuth }) => {
+export const WBSPage: React.FC<WBSPageProps> = ({
+  selectedProjectId: initialProjectId = null,
+  onFilterChange,
+  onSelectIssue,
+  onOpenAuth,
+}) => {
   const { isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(initialProjectId);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [selectedSprintId, setSelectedSprintId] = useState<number | 'ALL'>('ALL');
   const [issues, setIssues] = useState<Issue[]>([]);
+
+  useEffect(() => {
+    if (initialProjectId !== undefined) {
+      setSelectedProjectId(initialProjectId);
+    }
+  }, [initialProjectId]);
   const [loading, setLoading] = useState<boolean>(true);
   const [issuesLoading, setIssuesLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
@@ -1160,7 +1173,11 @@ export const WBSPage: React.FC<WBSPageProps> = ({ onSelectIssue, onOpenAuth }) =
             <select
               className="input-field"
               value={selectedProjectId || ''}
-              onChange={(e) => setSelectedProjectId(Number(e.target.value))}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setSelectedProjectId(val);
+                if (onFilterChange) onFilterChange(val);
+              }}
               style={{ width: 'auto', fontSize: '0.75rem', height: '26px', padding: '0 6px' }}
             >
               {projects.map((p) => (

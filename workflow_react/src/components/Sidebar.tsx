@@ -1,4 +1,5 @@
-﻿import React, { useState } from 'react';
+﻿// -*- coding: utf-8 -*-
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -19,14 +20,27 @@ import { useFavorites } from '../api/favorites';
 import { useAuth } from '../context/AuthContext';
 import type { Project, ChatChannel } from '../types';
 
-export type TabType = 'dashboard' | 'projects' | 'issues' | 'sprints' | 'wbs' | 'worklogs' | 'chat' | 'issue-detail' | 'project-detail' | 'settings';
+export type TabType =
+  | 'dashboard'
+  | 'projects'
+  | 'issues'
+  | 'sprints'
+  | 'wbs'
+  | 'worklogs'
+  | 'chat'
+  | 'issue-detail'
+  | 'project-detail'
+  | 'settings';
 
 interface SidebarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
+  selectedProjectId?: number | null;
+  selectedChannelId?: number | null;
   onOpenAuth?: () => void;
   onSelectProjectDetail?: (projectId: number) => void;
   onSelectProjectIssues?: (projectId: number) => void;
+  onSelectProjectSprints?: (projectId: number) => void;
   onSelectProjectWBS?: (projectId: number) => void;
   onSelectChatChannel?: (channelId: number) => void;
 }
@@ -34,9 +48,12 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
+  selectedProjectId,
+  selectedChannelId,
   onOpenAuth,
   onSelectProjectDetail,
   onSelectProjectIssues,
+  onSelectProjectSprints,
   onSelectProjectWBS,
   onSelectChatChannel,
 }) => {
@@ -49,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     projects: false,
     issues: false,
     sprints: false,
+    wbs: false,
     chat: false,
   });
 
@@ -68,6 +86,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const favoriteChatChannels: ChatChannel[] = favorites
     .filter((f) => f.targetType === 'CHAT_CHANNEL' && f.detail)
     .map((f) => f.detail);
+
+  // 상위 메뉴 활성화 여부 판정 (Routing Stack 추적 지원)
+  const isItemActive = (itemId: string): boolean => {
+    if (activeTab === itemId) return true;
+    if (itemId === 'projects' && activeTab === 'project-detail') return true;
+    if (itemId === 'issues' && activeTab === 'issue-detail') return true;
+    return false;
+  };
+
+  // 하위 즐겨찾기 항목 활성화 여부 판정
+  const isSubitemActive = (subId: number, parentId: string): boolean => {
+    if (parentId === 'projects') {
+      return selectedProjectId === subId && (activeTab === 'project-detail' || activeTab === 'projects');
+    }
+    if (parentId === 'issues') {
+      return selectedProjectId === subId && activeTab === 'issues';
+    }
+    if (parentId === 'sprints') {
+      return selectedProjectId === subId && activeTab === 'sprints';
+    }
+    if (parentId === 'chat') {
+      return selectedChannelId === subId && activeTab === 'chat';
+    }
+    return false;
+  };
 
   const navItems = [
     { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
@@ -121,7 +164,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Zap,
       subitems: favoriteProjects.map((p) => ({
         id: p.id,
-        label: `${p.name} (WBS)`,
+        label: `${p.name}`,
+        icon: '📁',
+        onClick: () => {
+          if (onSelectProjectSprints) onSelectProjectSprints(p.id);
+          else setActiveTab('sprints');
+        },
+      })),
+    },
+    {
+      id: 'wbs',
+      label: 'WBS 간트 차트',
+      icon: Layers,
+      subitems: favoriteProjects.map((p) => ({
+        id: p.id,
+        label: `${p.name}`,
         icon: '📁',
         onClick: () => {
           if (onSelectProjectWBS) onSelectProjectWBS(p.id);
@@ -129,7 +186,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
       })),
     },
-    { id: 'wbs', label: 'WBS 간트 차트', icon: Layers },
     { id: 'worklogs', label: '작업 로그', icon: Clock },
     { id: 'settings', label: '환경 설정', icon: Settings },
   ];
@@ -158,35 +214,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* AntiGravity Workflow Brand Section */}
         <div
           style={{
+            padding: '8px 8px 12px 8px',
+            borderBottom: '1px solid var(--border-light)',
+            marginBottom: '4px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '6px 8px 10px',
-            borderBottom: '1px solid var(--border-light)',
-            marginBottom: '4px',
           }}
         >
           <div
             style={{
-              width: '20px',
-              height: '20px',
+              width: '24px',
+              height: '24px',
               borderRadius: 'var(--radius-xs)',
-              background: 'var(--primary)',
+              background: 'linear-gradient(135deg, #007acc 0%, #0e639c 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0,
+              boxShadow: '0 0 8px rgba(0, 122, 204, 0.4)',
             }}
           >
-            <Code2 size={13} color="#ffffff" />
+            <Code2 size={14} color="#ffffff" />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-bright)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: 'var(--text-bright)',
+                letterSpacing: '-0.2px',
+                lineHeight: 1.2,
+              }}
+            >
               AntiGravity
             </span>
             <span
               style={{
-                fontSize: '0.7rem',
+                fontSize: '0.65rem',
                 color: 'var(--accent-cyan)',
                 background: 'rgba(0,122,204,0.15)',
                 padding: '0 4px',
@@ -203,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = isItemActive(item.id);
             const subitems = item.subitems || [];
             const hasSubitems = subitems.length > 0;
             const isSubmenuOpen = openSubmenus[item.id] ?? false;
@@ -262,7 +326,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               alignItems: 'center',
                               justifyContent: 'center',
                             }}
-                            title="@멘션 메시지 있음"
                           >
                             @
                           </span>
@@ -324,44 +387,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       marginBottom: '2px',
                     }}
                   >
-                    {subitems.map((sub) => (
-                      <button
-                        key={sub.id}
-                        type="button"
-                        onClick={sub.onClick}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '5px 8px',
-                          minHeight: '26px',
-                          borderRadius: 'var(--radius-xs)',
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#9ca3af',
-                          fontSize: '0.74rem',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'background-color 0.08s ease, color 0.08s ease',
-                          overflow: 'hidden',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                          e.currentTarget.style.color = '#ffffff';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = '#9ca3af';
-                        }}
-                        title={sub.label}
-                      >
-                        <span style={{ fontSize: '0.8rem', flexShrink: 0 }}>{sub.icon}</span>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                          {sub.label}
-                        </span>
-                        <Star size={10} fill="#eab308" color="#eab308" style={{ flexShrink: 0, opacity: 0.8 }} />
-                      </button>
-                    ))}
+                    {subitems.map((sub) => {
+                      const isSubActive = isSubitemActive(sub.id, item.id);
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={sub.onClick}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '5px 8px',
+                            minHeight: '26px',
+                            borderRadius: 'var(--radius-xs)',
+                            border: 'none',
+                            background: isSubActive ? 'rgba(0, 122, 204, 0.22)' : 'transparent',
+                            color: isSubActive ? 'var(--accent-cyan)' : '#9ca3af',
+                            fontWeight: isSubActive ? 600 : 400,
+                            fontSize: '0.74rem',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'background-color 0.08s ease, color 0.08s ease',
+                            overflow: 'hidden',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSubActive) {
+                              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                              e.currentTarget.style.color = '#ffffff';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSubActive) {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = '#9ca3af';
+                            }
+                          }}
+                          title={sub.label}
+                        >
+                          <span style={{ fontSize: '0.8rem', flexShrink: 0 }}>{sub.icon}</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                            {sub.label}
+                          </span>
+                          <Star size={10} fill="#eab308" color="#eab308" style={{ flexShrink: 0, opacity: 0.9 }} />
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -370,13 +441,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Bottom Fixed Profile Card (Always visible on screen) */}
-      <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
-        <ProfileCard
-          onOpenAuth={onOpenAuth}
-          onOpenSettings={() => setActiveTab('settings')}
-        />
-      </div>
+      {/* User Profile & Auth Trigger Section */}
+      <ProfileCard onOpenAuth={onOpenAuth} />
     </aside>
   );
 };

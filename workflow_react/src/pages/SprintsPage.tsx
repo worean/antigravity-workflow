@@ -33,10 +33,16 @@ import { formatDateOnly } from '../utils/dateUtils';
 type SprintStatusFilter = 'ALL' | 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 
 interface SprintsPageProps {
+  selectedProjectId?: number | 'ALL' | null;
+  onFilterChange?: (projectId: number | 'ALL') => void;
   onOpenAuth?: () => void;
 }
 
-export const SprintsPage: React.FC<SprintsPageProps> = ({ onOpenAuth }) => {
+export const SprintsPage: React.FC<SprintsPageProps> = ({
+  selectedProjectId: initialProjectId = 'ALL',
+  onFilterChange,
+  onOpenAuth,
+}) => {
   const { isAuthenticated } = useAuth();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -44,7 +50,13 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({ onOpenAuth }) => {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<SprintStatusFilter>('ALL');
-  const [selectedProjectId, setSelectedProjectId] = useState<number | 'ALL'>('ALL');
+  const [selectedProjectId, setSelectedProjectId] = useState<number | 'ALL'>(initialProjectId || 'ALL');
+
+  useEffect(() => {
+    if (initialProjectId !== undefined && initialProjectId !== null) {
+      setSelectedProjectId(initialProjectId);
+    }
+  }, [initialProjectId]);
 
   // Create / Edit Modal State
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
@@ -396,7 +408,11 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({ onOpenAuth }) => {
           <select
             className="input-field"
             value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+            onChange={(e) => {
+              const val = e.target.value === 'ALL' ? 'ALL' : Number(e.target.value);
+              setSelectedProjectId(val);
+              if (onFilterChange) onFilterChange(val);
+            }}
             style={{ width: 'auto', fontSize: '0.75rem', height: '26px', padding: '0 6px' }}
           >
             <option value="ALL">모든 프로젝트</option>
