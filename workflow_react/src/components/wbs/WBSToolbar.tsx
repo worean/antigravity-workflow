@@ -1,4 +1,5 @@
-﻿import React from 'react';
+﻿// -*- coding: utf-8 -*-
+import React from 'react';
 import type { Project, Sprint } from '../../types';
 import {
   Layers,
@@ -8,6 +9,7 @@ import {
   ZoomIn,
   ZoomOut,
   Loader2,
+  LogIn,
 } from 'lucide-react';
 import { Button } from '../common';
 
@@ -26,8 +28,10 @@ interface WBSToolbarProps {
   onExpandAll: () => void;
   onCollapseAll: () => void;
   onScrollToToday: () => void;
+  isAuthenticated: boolean;
+  onOpenAuth?: () => void;
   isBackgroundSyncing: boolean;
-  totalIssuesCount?: number;
+  updatingIssueId: number | null;
 }
 
 export const WBSToolbar: React.FC<WBSToolbarProps> = ({
@@ -45,8 +49,10 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
   onExpandAll,
   onCollapseAll,
   onScrollToToday,
+  isAuthenticated,
+  onOpenAuth,
   isBackgroundSyncing,
-  totalIssuesCount = 0,
+  updatingIssueId,
 }) => {
   return (
     <div
@@ -69,9 +75,6 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
           <Layers size={16} color="var(--accent-cyan)" />
           <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-bright)' }}>
             WBS 간트 차트
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)', padding: '1px 6px', borderRadius: '3px' }}>
-            총 {totalIssuesCount}개
           </span>
         </div>
 
@@ -188,25 +191,38 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
           </button>
         </div>
 
-        {/* Expand / Collapse All */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          <Button variant="secondary" size="sm" onClick={onExpandAll} title="모든 하위 이슈 펼치기" style={{ height: '26px', padding: '0 6px', fontSize: '0.72rem' }}>
-            <Maximize2 size={12} style={{ marginRight: '3px' }} /> 모두 펼치기
-          </Button>
-          <Button variant="secondary" size="sm" onClick={onCollapseAll} title="모든 하위 이슈 접기" style={{ height: '26px', padding: '0 6px', fontSize: '0.72rem' }}>
-            <Minimize2 size={12} style={{ marginRight: '3px' }} /> 모두 접기
-          </Button>
-        </div>
-
-        {/* Today Navigation */}
-        <Button variant="primary" size="sm" onClick={onScrollToToday} style={{ height: '26px', padding: '0 8px', fontSize: '0.72rem' }}>
-          <Clock size={12} style={{ marginRight: '4px' }} /> 오늘로 이동
+        <Button variant="secondary" size="sm" onClick={onScrollToToday} style={{ height: '26px', fontSize: '0.74rem' }}>
+          <Clock size={12} style={{ marginRight: '4px' }} /> 오늘
         </Button>
 
-        {/* Background Syncing Indicator */}
-        {isBackgroundSyncing && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-cyan)', fontSize: '0.7rem' }} title="서버와 최신 일정 동기화 중...">
-            <Loader2 size={13} className="spin" />
+        <Button variant="secondary" size="sm" onClick={onExpandAll} style={{ height: '26px', fontSize: '0.74rem' }}>
+          <Maximize2 size={12} style={{ marginRight: '4px' }} /> 모두 펼치기
+        </Button>
+
+        <Button variant="secondary" size="sm" onClick={onCollapseAll} style={{ height: '26px', fontSize: '0.74rem' }}>
+          <Minimize2 size={12} style={{ marginRight: '4px' }} /> 모두 접기
+        </Button>
+
+        {!isAuthenticated && onOpenAuth && (
+          <Button variant="primary" size="sm" onClick={onOpenAuth} style={{ height: '26px', fontSize: '0.74rem' }}>
+            <LogIn size={12} style={{ marginRight: '4px' }} /> 로그인
+          </Button>
+        )}
+
+        {(isBackgroundSyncing || updatingIssueId) && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '0.7rem',
+              color: 'var(--accent-cyan)',
+              background: 'rgba(0, 122, 204, 0.1)',
+              padding: '2px 6px',
+              borderRadius: '4px',
+            }}
+          >
+            <Loader2 size={12} className="animate-spin" />
             <span>동기화 중</span>
           </div>
         )}

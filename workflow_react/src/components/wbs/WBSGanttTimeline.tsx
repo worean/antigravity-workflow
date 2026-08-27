@@ -1,6 +1,7 @@
-﻿import React, { type RefObject } from 'react';
+﻿// -*- coding: utf-8 -*-
+import React, { type RefObject } from 'react';
 import type { Issue } from '../../types';
-import type { WBSItem, DragState, TimelineRange, TopHeader, BottomHeaders } from '../../types/wbs';
+import type { WBSItem, DragState, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '../../types/wbs';
 import { WBSGanttHeader } from './WBSGanttHeader';
 import { WBSGanttBar } from './WBSGanttBar';
 import { updateIssue } from '../../services/api';
@@ -15,6 +16,8 @@ interface WBSGanttTimelineProps {
   dragState: DragState | null;
   updatingIssueId: number | null;
   liveDateMap: Map<number, { start: Date | null; end: Date | null; isAffected: boolean }>;
+  todayMarker: { date: Date; dayIndex: number; leftPos: number; formattedDate: string } | null;
+  sprintDueLines: SprintDueLine[];
   ganttHeaderRef: RefObject<HTMLDivElement | null>;
   ganttBodyRef: RefObject<HTMLDivElement | null>;
   onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
@@ -26,7 +29,6 @@ interface WBSGanttTimelineProps {
     startDate: Date,
     endDate: Date
   ) => void;
-  onSelectIssue?: (issue: Issue) => void;
   setUpdatingIssueId: (id: number | null) => void;
   setErrorMessage: (msg: string | null) => void;
   loadProjectData: () => Promise<void>;
@@ -41,17 +43,18 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
   dragState,
   updatingIssueId,
   liveDateMap,
+  todayMarker,
+  sprintDueLines,
   ganttHeaderRef,
   ganttBodyRef,
   onScroll,
   getDescendantIssueIds,
   onMouseDownOnBar,
-  onSelectIssue,
   setUpdatingIssueId,
   setErrorMessage,
   loadProjectData,
 }) => {
-  // Quick Schedule on Empty Timeline Click (미등록 이슈 일정 1주일 자동 설정)
+  // Quick Schedule on Empty Timeline Click (미등록 이슈 일정 1주일 설정)
   const handleTimelineRowClick = async (e: React.MouseEvent<HTMLDivElement>, iss: Issue, isParent: boolean) => {
     if (isParent || iss.plannedStartDate || iss.dueDate || updatingIssueId || dragState) return;
 
@@ -76,6 +79,79 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
     } finally {
       setUpdatingIssueId(null);
     }
+  };
+
+  // Timeline Marker Line Rendering Helper Function
+  const renderTimelineMarkerLine = ({
+    key,
+    leftPos,
+    color,
+    lineStyle = 'solid',
+    lineWidth = 2,
+    zIndex = 5,
+    title,
+    badge,
+  }: {
+    key?: string | number;
+    leftPos: number;
+    color: string;
+    lineStyle?: 'solid' | 'dashed';
+    lineWidth?: number;
+    zIndex?: number;
+    title?: string;
+    badge?: {
+      show?: boolean;
+      label: string;
+      icon?: React.ReactNode;
+      color?: string;
+      bgColor?: string;
+      borderColor?: string;
+    };
+  }) => {
+    return (
+      <div
+        key={key}
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: `${leftPos}px`,
+          width: 0,
+          borderLeft: `${lineWidth}px ${lineStyle} ${color}`,
+          zIndex,
+          pointerEvents: 'none',
+        }}
+        title={title}
+      >
+        {badge && badge.show && (
+          <div
+            style={{
+              position: 'sticky',
+              top: '2px',
+              transform: 'translateX(-50%)',
+              background: badge.bgColor || 'rgba(24, 24, 27, 0.95)',
+              color: badge.color || color,
+              border: `1px solid ${badge.borderColor || color}`,
+              borderRadius: '3px',
+              padding: '1px 6px',
+              fontSize: '0.62rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              pointerEvents: 'auto',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              cursor: 'default',
+            }}
+            title={title}
+          >
+            {badge.icon}
+            <span>{badge.label}</span>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -135,71 +211,70 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
                   minWidth: `${dayWidth}px`,
                   height: '100%',
                   borderRight: '1px solid #282828',
-                  background: isToday ? 'rgba(0,122,204,0.06)' : isWeekend ? 'rgba(255,255,255,0.015)' : 'transparent',
-                  boxSizing: 'border-box',
+                  background: isToday ? 'rgba(0,122,204,0.08)' : isWeekend ? 'rgba(255,255,255,0.015)' : 'transparent',
+                  position: 'relative',
                 }}
               />
             );
           })}
         </div>
 
-        {/* Rows */}
-        {items.map((item) => {
-          const iss = item.issue;
-          const live = liveDateMap.get(iss.id);
-          const effectiveStart = live ? live.start : item.startDate;
-          const effectiveEnd = live ? live.end : item.endDate;
+        {/* Today Line (오늘 날짜: 라벨/아이콘/박스 없이 파란색 실선만 표시) */}
+        {todayMarker &&
+          renderTimelineMarkerLine({
+            key: 'today-line',
+            leftPos: todayMarker.leftPos,
+            color: '#007acc',
+            lineStyle: 'solid',
+            lineWidth: 2,
+            zIndex: 5,
+            title: `오늘: ${todayMarker.formattedDate}`,
+            badge: {
+              show: false,
+              label: '오늘',
+            },
+          })}
 
-          return (
-            <div
-              key={iss.id}
-              onClick={(e) => handleTimelineRowClick(e, iss, item.isParent)}
-              style={{
-                height: '38px',
-                borderBottom: '1px solid #2d2d2d',
-                position: 'relative',
-                width: `${timelineRange.totalDays * dayWidth}px`,
-                boxSizing: 'border-box',
-                cursor: !item.isParent && !effectiveStart ? 'pointer' : 'default',
-              }}
-              title={!item.isParent && !effectiveStart ? '클릭하여 1주일 일정을 바로 생성합니다' : undefined}
-            >
-              {/* Render Gantt Bar if Start & End dates exist */}
-              {effectiveStart && effectiveEnd ? (
-                <WBSGanttBar
-                  item={item}
-                  startDate={effectiveStart}
-                  endDate={effectiveEnd}
-                  timelineStart={timelineRange.start}
-                  dayWidth={dayWidth}
-                  dragState={dragState}
-                  updatingIssueId={updatingIssueId}
-                  getDescendantIssueIds={getDescendantIssueIds}
-                  onMouseDownOnBar={onMouseDownOnBar}
-                  onSelectIssue={onSelectIssue}
-                />
-              ) : (
-                !item.isParent && (
-                  <div
-                    style={{
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      paddingLeft: '12px',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.68rem',
-                      fontStyle: 'italic',
-                      opacity: 0.5,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    + 일정 미등록 (클릭하여 1주일 자동 설정)
-                  </div>
-                )
-              )}
-            </div>
-          );
-        })}
+        {/* Sprint Due Date Lines (스프린트 기한: 오렌지 점선 및 마감 뱃지 블록 표시) */}
+        {sprintDueLines.map(({ sprint, leftPos, formattedDate }) =>
+          renderTimelineMarkerLine({
+            key: `sprint-line-${sprint.id}`,
+            leftPos,
+            color: '#f59e0b',
+            lineStyle: 'dashed',
+            lineWidth: 2,
+            zIndex: 4,
+            title: `${sprint.name} 기한: ${formattedDate} (${sprint.status})`,
+            badge: {
+              show: true,
+              label: `${sprint.name} 마감`,
+              icon: <span>🚩</span>,
+              color: '#fbbf24',
+              borderColor: '#f59e0b',
+            },
+          })
+        )}
+
+        {/* Gantt Bars Rows */}
+        <div style={{ position: 'relative', zIndex: 1, width: `${timelineRange.totalDays * dayWidth}px` }}>
+          {items.map((item) => {
+            const live = liveDateMap.get(item.issue.id);
+            return (
+              <WBSGanttBar
+                key={item.issue.id}
+                item={item}
+                timelineStart={timelineRange.start}
+                dayWidth={dayWidth}
+                dragState={dragState}
+                liveStart={live?.start}
+                liveEnd={live?.end}
+                getDescendantIssueIds={getDescendantIssueIds}
+                onMouseDownOnBar={onMouseDownOnBar}
+                onTimelineRowClick={handleTimelineRowClick}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );

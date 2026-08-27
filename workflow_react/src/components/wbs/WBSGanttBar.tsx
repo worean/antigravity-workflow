@@ -3,15 +3,15 @@ import React from 'react';
 import type { Issue } from '../../types';
 import type { WBSItem, DragState } from '../../types/wbs';
 import { formatDateOnly, diffDays } from '../../utils/dateUtils';
+import { Calendar } from 'lucide-react';
 
 interface WBSGanttBarProps {
   item: WBSItem;
-  startDate: Date;
-  endDate: Date;
   timelineStart: Date;
   dayWidth: number;
   dragState: DragState | null;
-  updatingIssueId: number | null;
+  liveStart?: Date | null;
+  liveEnd?: Date | null;
   getDescendantIssueIds: (parentIssueId: number) => Set<number>;
   onMouseDownOnBar: (
     e: React.MouseEvent,
@@ -20,229 +20,225 @@ interface WBSGanttBarProps {
     startDate: Date,
     endDate: Date
   ) => void;
-  onSelectIssue?: (issue: Issue) => void;
+  onTimelineRowClick: (e: React.MouseEvent<HTMLDivElement>, iss: Issue, isParent: boolean) => void;
 }
 
 export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
   item,
-  startDate,
-  endDate,
   timelineStart,
   dayWidth,
   dragState,
-  updatingIssueId,
+  liveStart,
+  liveEnd,
   getDescendantIssueIds,
   onMouseDownOnBar,
-  onSelectIssue,
+  onTimelineRowClick,
 }) => {
   const iss = item.issue;
-  const isUpdating = updatingIssueId === iss.id;
-
-  const startOffsetDays = diffDays(startDate, timelineStart);
-  const durationDays = Math.max(1, diffDays(endDate, startDate) + 1);
-
-  const barLeft = startOffsetDays * dayWidth;
-  const barWidth = durationDays * dayWidth;
-
   const isBeingDragged = dragState?.issueId === iss.id;
-  const isAncestorBeingDragged =
+  const isDescendantOfDragged =
     dragState && !isBeingDragged
       ? getDescendantIssueIds(dragState.issueId).has(iss.id)
       : false;
 
-  const colorTheme = item.color;
+  const curStart = liveStart ?? item.startDate;
+  const curEnd = liveEnd ?? item.endDate;
 
-  // 상위 이슈 (Parent Summary Bracket Bar)
-  if (item.isParent) {
-    const isParentDragged = isBeingDragged || isAncestorBeingDragged;
-    return (
-      <div
-        onMouseDown={(e) => onMouseDownOnBar(e, iss, 'move', startDate, endDate)}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (onSelectIssue) onSelectIssue(iss);
-        }}
-        style={{
-          position: 'absolute',
-          left: `${barLeft}px`,
-          width: `${barWidth}px`,
-          top: '9px',
-          height: '20px',
-          cursor: isParentDragged ? 'grabbing' : 'grab',
-          zIndex: isParentDragged ? 10 : 2,
-          opacity: isUpdating ? 0.6 : 1,
-          transition: isParentDragged ? 'none' : 'left 0.15s, width 0.15s',
-          userSelect: 'none',
-        }}
-        title={`[상위 그룹] ${iss.title} (${formatDateOnly(startDate)} ~ ${formatDateOnly(endDate)})`}
-      >
-        {/* Top Summary Bar */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '7px',
-            background: isParentDragged ? colorTheme.dragBase : colorTheme.parentBase,
-            border: `1px solid ${isParentDragged ? colorTheme.dragBorder : colorTheme.parentBorder}`,
-            borderRadius: '3px 3px 0 0',
-            boxShadow: isParentDragged ? `0 0 8px ${colorTheme.border}` : '0 1px 3px rgba(0,0,0,0.3)',
-          }}
-        />
+  // 날짜/범위가 실제로 원래 값과 다르게 변동되었는지 여부
+  const isDatesChanged = Boolean(
+    dragState &&
+      !isBeingDragged &&
+      (curStart?.getTime() !== item.startDate?.getTime() ||
+        curEnd?.getTime() !== item.endDate?.getTime())
+  );
 
-        {/* Left End Bracket Triangle */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '7px',
-            left: 0,
-            width: 0,
-            height: 0,
-            borderLeft: '5px solid transparent',
-            borderRight: '5px solid transparent',
-            borderTop: `6px solid ${isParentDragged ? colorTheme.dragBase : colorTheme.parentBase}`,
-          }}
-        />
+  // 드래그로 인해 영향을 받아 일정이 변동되는 연관 일감(상위 부모 일감 또는 하위 자손 일감) 점선 피드백
+  const isDashedFeedback = isDescendantOfDragged || isDatesChanged;
 
-        {/* Right End Bracket Triangle */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '7px',
-            right: 0,
-            width: 0,
-            height: 0,
-            borderLeft: '5px solid transparent',
-            borderRight: '5px solid transparent',
-            borderTop: `6px solid ${isParentDragged ? colorTheme.dragBase : colorTheme.parentBase}`,
-          }}
-        />
+  let barLeft = 0;
+  let barWidth = 0;
+  let hasDates = false;
 
-        {/* Text Label next to Summary Bar */}
-        <span
-          style={{
-            position: 'absolute',
-            left: `${barWidth + 6}px`,
-            top: '2px',
-            fontSize: '0.68rem',
-            fontWeight: 600,
-            color: colorTheme.progress,
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-          }}
-        >
-          {iss.title}
-        </span>
-      </div>
-    );
+  if (curStart && curEnd) {
+    hasDates = true;
+    const diffStartDays = diffDays(curStart, timelineStart);
+    const durationDays = Math.max(1, diffDays(curEnd, curStart) + 1);
+    barLeft = diffStartDays * dayWidth;
+    barWidth = durationDays * dayWidth;
   }
 
-  // 하위 리프 이슈 (Leaf Task Bar)
-  const isLeafDragged = isBeingDragged || isAncestorBeingDragged;
-  const progressPct = iss.progress !== undefined && iss.progress !== null ? iss.progress : 0;
+  const prog = iss.progress || 0;
 
   return (
     <div
-      onMouseDown={(e) => onMouseDownOnBar(e, iss, 'move', startDate, endDate)}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (onSelectIssue) onSelectIssue(iss);
-      }}
+      onClick={(e) => onTimelineRowClick(e, iss, item.isParent)}
       style={{
-        position: 'absolute',
-        left: `${barLeft}px`,
-        width: `${barWidth}px`,
-        top: '6px',
-        height: '24px',
-        background: isLeafDragged ? colorTheme.dragBase : colorTheme.bgEmpty,
-        border: `1px solid ${isLeafDragged ? colorTheme.dragBorder : colorTheme.border}`,
-        borderRadius: 'var(--radius-xs)',
-        cursor: isLeafDragged ? 'grabbing' : 'grab',
-        zIndex: isLeafDragged ? 10 : 2,
-        opacity: isUpdating ? 0.6 : 1,
-        transition: isLeafDragged ? 'none' : 'left 0.15s, width 0.15s',
+        height: '38px',
         display: 'flex',
         alignItems: 'center',
-        boxShadow: isLeafDragged ? `0 0 10px ${colorTheme.border}` : '0 1px 3px rgba(0,0,0,0.2)',
-        overflow: 'visible',
-        userSelect: 'none',
+        borderBottom: '1px solid #282828',
+        position: 'relative',
+        cursor: !hasDates && !item.isParent ? 'crosshair' : 'default',
       }}
-      className="gantt-task-bar"
+      title={!hasDates && !item.isParent ? '클릭하여 이 시점에 1주일 일정을 생성합니다.' : undefined}
     >
-      {/* Left Resize Handle */}
-      <div
-        onMouseDown={(e) => onMouseDownOnBar(e, iss, 'resize-left', startDate, endDate)}
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: '6px',
-          cursor: 'ew-resize',
-          zIndex: 3,
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: 'var(--radius-xs) 0 0 var(--radius-xs)',
-        }}
-        title="시작일 조절"
-      />
+      {hasDates && curStart && curEnd ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${barLeft}px`,
+            width: `${Math.max(barWidth, 6)}px`,
+            height: '22px',
+            borderRadius: '4px',
+            background: item.color.bgEmpty,
+            border: isBeingDragged
+              ? `2.5px solid ${item.color.dragBorder}`
+              : isDashedFeedback
+              ? `2px dashed ${item.color.dragBorder}`
+              : `2px solid ${item.color.border}`,
+            boxShadow: isBeingDragged
+              ? `0 4px 14px ${item.color.base}88`
+              : isDashedFeedback
+              ? `0 2px 8px ${item.color.base}55`
+              : '0 2px 4px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            userSelect: 'none',
+            cursor: 'grab',
+            transition: isBeingDragged ? 'none' : 'left 0.08s ease, width 0.08s ease, box-shadow 0.15s',
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+          }}
+          onMouseDown={(e) => {
+            if (curStart && curEnd) {
+              onMouseDownOnBar(e, iss, 'move', curStart, curEnd);
+            }
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          {/* Left Resize Handle */}
+          {!item.isParent && (
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: '8px',
+                cursor: 'ew-resize',
+                zIndex: 10,
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                if (curStart && curEnd) {
+                  onMouseDownOnBar(e, iss, 'resize-left', curStart, curEnd);
+                }
+              }}
+              title="시작일 조정"
+            />
+          )}
 
-      {/* Progress Fill Bar */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: `${progressPct}%`,
-          background: isLeafDragged ? colorTheme.dragBorder : colorTheme.progress,
-          borderRadius: progressPct === 100 ? 'var(--radius-xs)' : 'var(--radius-xs) 0 0 var(--radius-xs)',
-          opacity: 0.85,
-          pointerEvents: 'none',
-        }}
-      />
+          {/* Progress Fill Bar (0%일 때는 배경 bgEmpty가 노출되고, %가 차오를수록 불투명 채우기 색상 적용) */}
+          <div
+            style={{
+              width: `${prog}%`,
+              height: '100%',
+              background: isBeingDragged ? item.color.dragBase : item.color.base,
+              opacity: 1,
+              borderRadius: prog === 100 ? '2px' : '2px 0 0 2px',
+              pointerEvents: 'none',
+              transition: isBeingDragged ? 'none' : 'width 0.2s ease',
+            }}
+          />
 
-      {/* Label on Bar */}
-      <div
-        style={{
-          position: 'absolute',
-          left: '8px',
-          right: '8px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          color: '#ffffff',
-          fontSize: '0.68rem',
-          fontWeight: 500,
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-          zIndex: 1,
-        }}
-      >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{iss.title}</span>
-        {barWidth >= 50 && <span>{progressPct}%</span>}
-      </div>
+          {/* Label on Bar (% 진척도 텍스트) */}
+          {barWidth > 28 && (
+            <span
+              style={{
+                position: 'absolute',
+                left: '6px',
+                fontSize: '0.64rem',
+                color: '#ffffff',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                textShadow: '0 1px 3px rgba(0,0,0,0.95)',
+                pointerEvents: 'none',
+                zIndex: 5,
+              }}
+            >
+              {prog}%
+            </span>
+          )}
 
-      {/* Right Resize Handle */}
-      <div
-        onMouseDown={(e) => onMouseDownOnBar(e, iss, 'resize-right', startDate, endDate)}
-        style={{
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          bottom: 0,
-          width: '6px',
-          cursor: 'ew-resize',
-          zIndex: 3,
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '0 var(--radius-xs) var(--radius-xs) 0',
-        }}
-        title="기한(종료일) 조절"
-      />
+          {/* Right Resize Handle */}
+          {!item.isParent && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: '8px',
+                cursor: 'ew-resize',
+                zIndex: 10,
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                if (curStart && curEnd) {
+                  onMouseDownOnBar(e, iss, 'resize-right', curStart, curEnd);
+                }
+              }}
+              title="기한 조정"
+            />
+          )}
+
+          {/* Floating Drag Date Tooltip */}
+          {isBeingDragged && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '-24px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#18181b',
+                color: item.color.progress,
+                border: `1.5px solid ${item.color.dragBorder}`,
+                padding: '2px 6px',
+                borderRadius: '3px',
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                zIndex: 30,
+                pointerEvents: 'none',
+                boxShadow: `0 2px 8px rgba(0,0,0,0.5)`,
+              }}
+            >
+              {formatDateOnly(curStart)} ~ {formatDateOnly(curEnd)} ({diffDays(curEnd, curStart) + 1}일)
+            </div>
+          )}
+        </div>
+      ) : (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${Math.max(0, diffDays(new Date(), timelineStart)) * dayWidth}px`,
+            padding: '2px 8px',
+            border: '1px dashed #555555',
+            borderRadius: '3px',
+            fontSize: '0.65rem',
+            color: 'var(--text-muted)',
+            background: 'rgba(255,255,255,0.03)',
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          <Calendar size={10} /> 클릭하여 1주일 일정 등록
+        </div>
+      )}
     </div>
   );
 };

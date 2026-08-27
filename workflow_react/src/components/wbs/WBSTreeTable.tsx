@@ -1,4 +1,5 @@
-﻿import React, { useState, type RefObject } from 'react';
+﻿// -*- coding: utf-8 -*-
+import React, { useState, type RefObject } from 'react';
 import type { Issue } from '../../types';
 import type { WBSItem, TreeDropTarget } from '../../types/wbs';
 import { WBSTreeRow } from './WBSTreeRow';
@@ -15,6 +16,7 @@ interface WBSTreeTableProps {
   tableBodyRef: RefObject<HTMLDivElement | null>;
   onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   leftWidth?: number;
+  updatingIssueId: number | null;
   getDescendantIssueIds: (parentIssueId: number) => Set<number>;
   setUpdatingIssueId: (id: number | null) => void;
   setErrorMessage: (msg: string | null) => void;
@@ -32,6 +34,7 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
   tableBodyRef,
   onScroll,
   leftWidth = 440,
+  updatingIssueId,
   getDescendantIssueIds,
   setUpdatingIssueId,
   setErrorMessage,
@@ -47,13 +50,13 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
     setTreeDragSourceId(issueId);
   };
 
-  const handleTreeDragOver = (e: React.DragEvent, issueId: number) => {
+  const handleTreeDragOver = (e: React.DragEvent, targetIssue: Issue) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!treeDragSourceId || treeDragSourceId === issueId) return;
+    if (!treeDragSourceId || treeDragSourceId === targetIssue.id) return;
 
     const descendantIds = getDescendantIssueIds(treeDragSourceId);
-    if (descendantIds.has(issueId)) return; // 순환 참조 방지
+    if (descendantIds.has(targetIssue.id)) return; // 순환 참조 방지
 
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
@@ -68,11 +71,17 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
       position = 'inside';
     }
 
-    setTreeDropTarget({ targetId: issueId, position });
+    e.dataTransfer.dropEffect = 'move';
+    setTreeDropTarget({ targetId: targetIssue.id, position });
   };
 
   const handleTreeDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  const handleTreeDragEnd = () => {
+    setTreeDragSourceId(null);
+    setTreeDropTarget(null);
   };
 
   const handleTreeDrop = async (e: React.DragEvent, targetIssue: Issue | 'root') => {
@@ -141,8 +150,8 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
     <div
       style={{
         width: `${leftWidth}px`,
-        minWidth: `${leftWidth}px`,
-        maxWidth: `${leftWidth}px`,
+        minWidth: '320px',
+        maxWidth: '600px',
         display: 'flex',
         flexDirection: 'column',
         borderRight: '1px solid var(--border-light)',
@@ -157,10 +166,10 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
           display: 'flex',
           alignItems: 'center',
           borderBottom: '1px solid var(--border-light)',
-          background: '#2d2d2d',
+          background: '#1e1e1e',
+          fontSize: '0.74rem',
           fontWeight: 600,
-          fontSize: '0.75rem',
-          color: 'var(--text-bright)',
+          color: 'var(--text-sub)',
           padding: '0 8px',
           userSelect: 'none',
         }}
@@ -196,39 +205,43 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
               isBeingDragged={isBeingDragged}
               isTarget={isTarget}
               treeDropTarget={treeDropTarget}
+              updatingIssueId={updatingIssueId}
               onToggleCollapse={onToggleCollapse}
               onSelectIssue={onSelectIssue}
               onDragStart={handleTreeDragStart}
               onDragOver={handleTreeDragOver}
               onDragLeave={handleTreeDragLeave}
               onDrop={handleTreeDrop}
+              onDragEnd={handleTreeDragEnd}
             />
           );
         })}
 
-        {/* Root Level Drop Zone */}
+        {/* Drop Target Zone: Move to Root (최상위 이슈로 빼기 영역) */}
         {treeDragSourceId && (
           <div
             onDragOver={(e) => {
               e.preventDefault();
+              e.stopPropagation();
+              e.dataTransfer.dropEffect = 'move';
               setTreeDropTarget({ targetId: 'root', position: 'root' });
             }}
+            onDragLeave={handleTreeDragLeave}
             onDrop={(e) => handleTreeDrop(e, 'root')}
             style={{
-              height: '34px',
               margin: '8px',
-              border: '2px dashed #007acc',
-              borderRadius: 'var(--radius-xs)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              padding: '10px 8px',
+              borderRadius: '4px',
+              border: treeDropTarget?.targetId === 'root' ? '2px dashed #007acc' : '1px dashed #3e3e3e',
+              background: treeDropTarget?.targetId === 'root' ? 'rgba(0, 122, 204, 0.2)' : 'rgba(255,255,255,0.02)',
+              textAlign: 'center',
               fontSize: '0.72rem',
-              color: '#9cdcfe',
-              background: treeDropTarget?.targetId === 'root' ? 'rgba(0, 122, 204, 0.2)' : 'transparent',
-              transition: 'background 0.15s',
+              color: treeDropTarget?.targetId === 'root' ? '#38bdf8' : 'var(--text-muted)',
+              cursor: 'copy',
+              transition: 'all 0.15s',
             }}
           >
-            최상위 루트(Root) 계층으로 이동
+            ➕ 여기에 놓으면 <strong>최상위(Root) 이슈</strong>로 변경됩니다
           </div>
         )}
       </div>

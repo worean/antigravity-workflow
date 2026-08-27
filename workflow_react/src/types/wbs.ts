@@ -1,5 +1,5 @@
 ﻿// -*- coding: utf-8 -*-
-import type { Issue } from './index';
+import type { Sprint, Issue } from './index';
 
 export interface WBSColorTheme {
   name: string;
@@ -56,3 +56,27 @@ export type BottomHeaders =
   | { type: 'month'; blocks: { label: string; daysCount: number; isCurrent: boolean }[] }
   | { type: 'week'; blocks: { label: string; daysCount: number; isCurrent: boolean }[] }
   | { type: 'day'; blocks: { date: Date; dayNum: number; dayName: string; isToday: boolean; isWeekend: boolean; daysCount: number }[] };
+
+export interface TimelineMarkerLine {
+  key: string | number;
+  leftPos: number;
+  color: string;
+  lineStyle?: 'solid' | 'dashed';
+  lineWidth?: number;
+  zIndex?: number;
+  title?: string;
+  badge?: {
+    show?: boolean;
+    label: string;
+    icon?: React.ReactNode;
+    color?: string;
+    bgColor?: string;
+    borderColor?: string;
+  };
+}
+
+export interface SprintDueLine {
+  sprint: Sprint;
+  leftPos: number;
+  formattedDate: string;
+}

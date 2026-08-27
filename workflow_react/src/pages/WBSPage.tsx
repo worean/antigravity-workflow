@@ -2,10 +2,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Issue } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Button, Spinner } from '../components/common';
-import { AlertCircle, LogIn } from 'lucide-react';
+import { Spinner } from '../components/common';
+import { AlertCircle } from 'lucide-react';
 import { diffDays } from '../utils/dateUtils';
-import { buildWBSTree, generateTimelineHeaders } from '../utils/wbsUtils';
+import {
+  buildWBSTree,
+  generateTimelineHeaders,
+  computeTodayMarker,
+  computeSprintDueLines,
+} from '../utils/wbsUtils';
 import { useWBSProjectData } from '../hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '../hooks/useWBSGanttDrag';
 import { WBSToolbar, WBSTreeTable, WBSGanttTimeline } from '../components/wbs';
@@ -105,6 +110,15 @@ export const WBSPage: React.FC<WBSPageProps> = ({
     return generateTimelineHeaders(timelineRange, currentViewScale, isSundayStart);
   }, [timelineRange, currentViewScale, isSundayStart]);
 
+  // Sprint Due Lines & Today Marker Line
+  const sprintDueLines = useMemo(() => {
+    return computeSprintDueLines(sprints, timelineRange.start, timelineRange.totalDays, dayWidth);
+  }, [sprints, timelineRange.start, timelineRange.totalDays, dayWidth]);
+
+  const todayMarker = useMemo(() => {
+    return computeTodayMarker(timelineRange.start, timelineRange.totalDays, dayWidth);
+  }, [timelineRange.start, timelineRange.totalDays, dayWidth]);
+
   // 5. Wheel Zoom Listener on Gantt Body
   useEffect(() => {
     const ganttEl = ganttBodyRef.current;
@@ -203,131 +217,103 @@ export const WBSPage: React.FC<WBSPageProps> = ({
         onExpandAll={handleExpandAll}
         onCollapseAll={handleCollapseAll}
         onScrollToToday={handleScrollToToday}
+        isAuthenticated={isAuthenticated}
+        onOpenAuth={onOpenAuth}
         isBackgroundSyncing={isBackgroundSyncing}
-        totalIssuesCount={issues.length}
+        updatingIssueId={updatingIssueId}
       />
-
-      {/* Guest Mode Notice */}
-      {!isAuthenticated && (
-        <div
-          style={{
-            background: 'rgba(0, 122, 204, 0.12)',
-            border: '1px solid rgba(0, 122, 204, 0.3)',
-            borderRadius: 'var(--radius-xs)',
-            padding: '6px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '0.72rem',
-            color: '#9cdcfe',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <LogIn size={13} />
-            <span>현재 게스트(읽기 전용) 모드입니다. WBS 일정을 드래그하여 수정하거나 관리하려면 로그인하세요.</span>
-          </div>
-          {onOpenAuth && (
-            <Button variant="primary" size="sm" onClick={onOpenAuth} style={{ height: '22px', fontSize: '0.68rem', padding: '0 8px' }}>
-              로그인
-            </Button>
-          )}
-        </div>
-      )}
 
       {/* Error Message Toast */}
       {errorMessage && (
         <div
           style={{
-            background: 'rgba(241, 76, 76, 0.15)',
-            border: '1px solid #f14c4c',
-            borderRadius: 'var(--radius-xs)',
+            background: 'rgba(244, 63, 94, 0.15)',
+            border: '1px solid #f43f5e',
+            color: '#f43f5e',
             padding: '6px 12px',
+            borderRadius: '4px',
+            fontSize: '0.78rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            fontSize: '0.72rem',
-            color: '#f14c4c',
-            flexShrink: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <AlertCircle size={13} />
+            <AlertCircle size={14} />
             <span>{errorMessage}</span>
           </div>
           <button
             onClick={() => setErrorMessage(null)}
-            style={{ background: 'none', border: 'none', color: '#f14c4c', cursor: 'pointer', fontSize: '0.8rem' }}
+            style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.8rem' }}
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Main Split Layout: Left Tree + Right Timeline */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          border: '1px solid var(--border-light)',
-          borderRadius: 'var(--radius-xs)',
-          background: 'var(--bg-panel)',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
-        {loading || (issuesLoading && isInitialLoading) ? (
-          <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Spinner size={32} label="WBS 일정 데이터 불러오는 중..." />
-          </div>
-        ) : flatWBSItems.length === 0 ? (
-          <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            <span>등록된 작업(이슈)이 없습니다.</span>
-            <span style={{ fontSize: '0.75rem' }}>이슈 관리 페이지에서 새 이슈를 생성해 보세요.</span>
-          </div>
-        ) : (
-          <>
-            {/* Left Tree Hierarchy Table */}
-            <WBSTreeTable
-              items={flatWBSItems}
-              issues={issues}
-              setIssues={setIssues}
-              collapsedIds={collapsedIds}
-              onToggleCollapse={toggleCollapse}
-              setCollapsedIds={setCollapsedIds}
-              onSelectIssue={onSelectIssue}
-              tableBodyRef={tableBodyRef}
-              onScroll={handleTableScroll}
-              leftWidth={leftWidth}
-              getDescendantIssueIds={getDescendantIssueIds}
-              setUpdatingIssueId={setUpdatingIssueId}
-              setErrorMessage={setErrorMessage}
-              loadProjectData={loadProjectData}
-            />
+      {/* Main Split Layout: Left Table + Right Gantt Timeline */}
+      {((loading && projects.length === 0) || (issuesLoading && issues.length === 0) || (isInitialLoading && issues.length === 0)) ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+          <Spinner />
+        </div>
+      ) : issues.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          선택된 프로젝트/스프린트에 등록된 이슈가 없습니다.
+        </div>
+      ) : (
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-xs)',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          {/* Left WBS Hierarchical Table */}
+          <WBSTreeTable
+            items={flatWBSItems}
+            issues={issues}
+            setIssues={setIssues}
+            collapsedIds={collapsedIds}
+            onToggleCollapse={toggleCollapse}
+            setCollapsedIds={setCollapsedIds}
+            onSelectIssue={onSelectIssue}
+            tableBodyRef={tableBodyRef}
+            onScroll={handleTableScroll}
+            leftWidth={leftWidth}
+            updatingIssueId={updatingIssueId}
+            getDescendantIssueIds={getDescendantIssueIds}
+            setUpdatingIssueId={setUpdatingIssueId}
+            setErrorMessage={setErrorMessage}
+            loadProjectData={loadProjectData}
+          />
 
-            {/* Right Gantt Timeline Grid & Bars */}
-            <WBSGanttTimeline
-              items={flatWBSItems}
-              timelineRange={timelineRange}
-              topHeaders={topHeaders}
-              bottomHeaders={bottomHeaders}
-              dayWidth={dayWidth}
-              dragState={dragState}
-              updatingIssueId={updatingIssueId}
-              liveDateMap={liveDateMap}
-              ganttHeaderRef={ganttHeaderRef}
-              ganttBodyRef={ganttBodyRef}
-              onScroll={handleGanttScroll}
-              getDescendantIssueIds={getDescendantIssueIds}
-              onMouseDownOnBar={handleMouseDownOnBar}
-              onSelectIssue={onSelectIssue}
-              setUpdatingIssueId={setUpdatingIssueId}
-              setErrorMessage={setErrorMessage}
-              loadProjectData={loadProjectData}
-            />
-          </>
-        )}
-      </div>
+          {/* Right Gantt Chart Timeline */}
+          <WBSGanttTimeline
+            items={flatWBSItems}
+            timelineRange={timelineRange}
+            topHeaders={topHeaders}
+            bottomHeaders={bottomHeaders}
+            dayWidth={dayWidth}
+            dragState={dragState}
+            updatingIssueId={updatingIssueId}
+            liveDateMap={liveDateMap}
+            todayMarker={todayMarker}
+            sprintDueLines={sprintDueLines}
+            ganttHeaderRef={ganttHeaderRef}
+            ganttBodyRef={ganttBodyRef}
+            onScroll={handleGanttScroll}
+            getDescendantIssueIds={getDescendantIssueIds}
+            onMouseDownOnBar={handleMouseDownOnBar}
+            setUpdatingIssueId={setUpdatingIssueId}
+            setErrorMessage={setErrorMessage}
+            loadProjectData={loadProjectData}
+          />
+        </div>
+      )}
     </div>
   );
 };

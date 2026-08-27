@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
-import type { Issue } from '../types';
-import type { WBSColorTheme, WBSItem, TimelineRange, TopHeader, BottomHeaders } from '../types/wbs';
-import { parseLocalDate, addDays, diffDays, getWeekNumber } from './dateUtils';
+import type { Issue, Sprint } from '../types';
+import type { WBSColorTheme, WBSItem, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '../types/wbs';
+import { parseLocalDate, formatDateOnly, addDays, diffDays, getWeekNumber } from './dateUtils';
 
 // 12가지 다채로운 WBS/간트차트 전용 색상 팔레트
 export const WBS_PALETTE: WBSColorTheme[] = [
@@ -303,50 +303,55 @@ export const generateTimelineHeaders = (
   today.setHours(0, 0, 0, 0);
 
   // Top Headers (Year or Month)
-  const topHeaders: TopHeader[] = [];
   if (currentViewScale === 'month') {
-    let curYear = -1;
+    const years: { label: string; daysCount: number }[] = [];
+    let curLabel = '';
     let curCount = 0;
 
     timelineRange.days.forEach((d) => {
-      const yr = d.getFullYear();
-      if (yr !== curYear) {
-        if (curCount > 0) {
-          topHeaders.push({ label: `${curYear}년`, daysCount: curCount });
-        }
-        curYear = yr;
+      const label = `${d.getFullYear()}년`;
+      if (label !== curLabel) {
+        if (curCount > 0) years.push({ label: curLabel, daysCount: curCount });
+        curLabel = label;
         curCount = 1;
       } else {
         curCount++;
       }
     });
-    if (curCount > 0) {
-      topHeaders.push({ label: `${curYear}년`, daysCount: curCount });
-    }
+    if (curCount > 0) years.push({ label: curLabel, daysCount: curCount });
+    return {
+      topHeaders: years,
+      bottomHeaders: generateBottomHeaders(timelineRange, currentViewScale, isSundayStart, today),
+    };
   } else {
-    let curMonthKey = '';
+    const months: { label: string; daysCount: number }[] = [];
+    let curLabel = '';
     let curCount = 0;
 
     timelineRange.days.forEach((d) => {
-      const mKey = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (mKey !== curMonthKey) {
-        if (curCount > 0) {
-          const [y, m] = curMonthKey.split('.');
-          topHeaders.push({ label: `${y}년 ${Number(m)}월`, daysCount: curCount });
-        }
-        curMonthKey = mKey;
+      const label = `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+      if (label !== curLabel) {
+        if (curCount > 0) months.push({ label: curLabel, daysCount: curCount });
+        curLabel = label;
         curCount = 1;
       } else {
         curCount++;
       }
     });
-    if (curCount > 0) {
-      const [y, m] = curMonthKey.split('.');
-      topHeaders.push({ label: `${y}년 ${Number(m)}월`, daysCount: curCount });
-    }
+    if (curCount > 0) months.push({ label: curLabel, daysCount: curCount });
+    return {
+      topHeaders: months,
+      bottomHeaders: generateBottomHeaders(timelineRange, currentViewScale, isSundayStart, today),
+    };
   }
+};
 
-  // Bottom Headers
+const generateBottomHeaders = (
+  timelineRange: TimelineRange,
+  currentViewScale: 'day' | 'week' | 'month',
+  isSundayStart: boolean,
+  today: Date
+): BottomHeaders => {
   if (currentViewScale === 'month') {
     const blocks: { label: string; daysCount: number; isCurrent: boolean }[] = [];
     let curMonthKey = '';
@@ -375,7 +380,7 @@ export const generateTimelineHeaders = (
       const monthNum = Number(curMonthKey.split('-')[1]);
       blocks.push({ label: `${monthNum}월`, daysCount: curCount, isCurrent: isCurrentMonth });
     }
-    return { topHeaders, bottomHeaders: { type: 'month', blocks } };
+    return { type: 'month', blocks };
   } else if (currentViewScale === 'week') {
     const blocks: { label: string; daysCount: number; isCurrent: boolean }[] = [];
     let curWeekNum = -1;
@@ -407,7 +412,7 @@ export const generateTimelineHeaders = (
     if (curCount > 0) {
       blocks.push({ label: `${curWeekNum}주차`, daysCount: curCount, isCurrent: isCurrentWeek });
     }
-    return { topHeaders, bottomHeaders: { type: 'week', blocks } };
+    return { type: 'week', blocks };
   } else {
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     const blocks = timelineRange.days.map((d) => {
@@ -426,6 +431,53 @@ export const generateTimelineHeaders = (
         daysCount: 1,
       };
     });
-    return { topHeaders, bottomHeaders: { type: 'day', blocks } };
+    return { type: 'day', blocks };
   }
+};
+
+export const computeSprintDueLines = (
+  sprints: Sprint[],
+  timelineStart: Date,
+  totalDays: number,
+  dayWidth: number
+): SprintDueLine[] => {
+  return sprints
+    .map((s) => {
+      if (!s.endDate) return null;
+      const endDate = parseLocalDate(s.endDate);
+      if (!endDate) return null;
+
+      const dayDiff = diffDays(endDate, timelineStart);
+      if (dayDiff < 0 || dayDiff >= totalDays) return null;
+
+      const leftPos = (dayDiff + 1) * dayWidth;
+
+      return {
+        sprint: s,
+        leftPos,
+        formattedDate: formatDateOnly(endDate),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+};
+
+export const computeTodayMarker = (
+  timelineStart: Date,
+  totalDays: number,
+  dayWidth: number
+): { date: Date; dayIndex: number; leftPos: number; formattedDate: string } | null => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dayDiff = diffDays(today, timelineStart);
+  if (dayDiff < 0 || dayDiff >= totalDays) return null;
+
+  const leftPos = dayDiff * dayWidth + dayWidth / 2;
+
+  return {
+    date: today,
+    dayIndex: dayDiff,
+    leftPos,
+    formattedDate: formatDateOnly(today),
+  };
 };

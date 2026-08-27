@@ -15,12 +15,14 @@ interface WBSTreeRowProps {
   isBeingDragged: boolean;
   isTarget: boolean;
   treeDropTarget: TreeDropTarget | null;
+  updatingIssueId: number | null;
   onToggleCollapse: (issueId: number) => void;
   onSelectIssue?: (issue: Issue) => void;
   onDragStart: (e: React.DragEvent, issueId: number) => void;
-  onDragOver: (e: React.DragEvent, issueId: number) => void;
+  onDragOver: (e: React.DragEvent, issue: Issue) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, targetIssue: Issue | 'root') => void;
+  onDragEnd: (e: React.DragEvent) => void;
 }
 
 export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
@@ -29,12 +31,14 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
   isBeingDragged,
   isTarget,
   treeDropTarget,
+  updatingIssueId,
   onToggleCollapse,
   onSelectIssue,
   onDragStart,
   onDragOver,
   onDragLeave,
   onDrop,
+  onDragEnd,
 }) => {
   const iss = item.issue;
 
@@ -43,64 +47,88 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
   let rowBorderTop: string | undefined = undefined;
   let rowBorderBottom = '1px solid #333333';
 
-  if (isTarget && treeDropTarget) {
-    if (treeDropTarget.position === 'inside') {
-      rowBg = 'rgba(0, 122, 204, 0.25)';
-      rowBoxShadow = 'inset 0 0 0 1px #007acc';
-    } else if (treeDropTarget.position === 'before') {
-      rowBorderTop = '2px solid #007acc';
-    } else if (treeDropTarget.position === 'after') {
-      rowBorderBottom = '2px solid #007acc';
+  if (isTarget) {
+    if (treeDropTarget?.position === 'inside') {
+      rowBg = 'rgba(0, 122, 204, 0.28)';
+      rowBoxShadow = 'inset 0 0 0 2px #007acc';
+    } else if (treeDropTarget?.position === 'before') {
+      rowBorderTop = '2.5px solid #38bdf8';
+    } else if (treeDropTarget?.position === 'after') {
+      rowBorderBottom = '2.5px solid #38bdf8';
     }
   }
 
   return (
     <div
-      draggable
+      key={iss.id}
+      draggable={!updatingIssueId}
       onDragStart={(e) => onDragStart(e, iss.id)}
-      onDragOver={(e) => onDragOver(e, iss.id)}
+      onDragOver={(e) => onDragOver(e, iss)}
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, iss)}
+      onDragEnd={onDragEnd}
+      onClick={() => onSelectIssue && onSelectIssue(iss)}
       style={{
+        height: '38px',
         display: 'flex',
         alignItems: 'center',
-        height: '38px',
         borderBottom: rowBorderBottom,
         borderTop: rowBorderTop,
+        fontSize: '0.74rem',
         padding: '0 8px',
-        fontSize: '0.75rem',
+        cursor: 'grab',
         background: rowBg,
         boxShadow: rowBoxShadow,
         opacity: isBeingDragged ? 0.35 : 1,
-        transition: 'background 0.15s',
-        cursor: 'default',
-        position: 'relative',
+        transition: 'background 0.1s, opacity 0.15s',
         boxSizing: 'border-box',
       }}
-      className="wbs-table-row"
+      title={
+        isTarget && treeDropTarget?.position === 'inside'
+          ? `"${iss.title}"의 하위 이슈로 배치`
+          : isTarget && treeDropTarget?.position === 'before'
+          ? `"${iss.title}"의 위쪽(동일 계층)으로 이동`
+          : isTarget && treeDropTarget?.position === 'after'
+          ? `"${iss.title}"의 아래쪽(동일 계층)으로 이동`
+          : undefined
+      }
+      onMouseEnter={(e) => {
+        if (!isTarget) e.currentTarget.style.background = '#2a2d2e';
+      }}
+      onMouseLeave={(e) => {
+        if (!isTarget) e.currentTarget.style.background = rowBg;
+      }}
     >
-      {/* Title & Hierarchy Indent */}
+      {/* Drag Grip Handle */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '14px',
+          color: 'var(--text-muted)',
+          cursor: 'grab',
+          flexShrink: 0,
+          opacity: 0.5,
+        }}
+        title="드래그하여 계층 구조를 변경합니다"
+      >
+        <GripVertical size={12} />
+      </div>
+
+      {/* Title with indent and collapse arrow */}
       <div
         style={{
           flex: 1,
           display: 'flex',
           alignItems: 'center',
-          paddingLeft: `${item.depth * 16}px`,
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          textOverflow: 'ellipsis',
           gap: '4px',
+          paddingLeft: `${item.depth * 14}px`,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
-        {/* Drag Handle */}
-        <span
-          style={{ cursor: 'grab', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', opacity: 0.6 }}
-          title="끌어서 다른 작업의 상위/하위로 계층 이동"
-        >
-          <GripVertical size={13} />
-        </span>
-
-        {/* Collapse / Expand Toggle */}
         {item.hasChildren ? (
           <button
             type="button"
@@ -111,38 +139,41 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--text-sub)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               padding: '2px',
               display: 'flex',
               alignItems: 'center',
-              borderRadius: '2px',
+              justifyContent: 'center',
             }}
           >
             {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
           </button>
         ) : (
-          <span style={{ width: '17px', display: 'inline-block' }} />
+          <span style={{ width: '13px', display: 'inline-block' }} />
         )}
 
-        {/* Issue Icon / Color Marker */}
-        <div
+        <span
           style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: item.isParent ? '2px' : '50%',
-            background: item.color.base,
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            backgroundColor: item.color.border,
+            display: 'inline-block',
             flexShrink: 0,
+            marginRight: '3px',
+            boxShadow: `0 0 4px ${item.color.border}88`,
           }}
+          title={`루트 이슈 #${item.rootIssueId} 색상 그룹`}
         />
 
-        {/* Title Text */}
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', marginRight: '2px' }}>
+          #{iss.id}
+        </span>
         <span
-          onClick={() => onSelectIssue && onSelectIssue(iss)}
           style={{
-            color: item.isParent ? 'var(--text-bright)' : 'var(--text-main)',
             fontWeight: item.isParent ? 600 : 400,
-            cursor: onSelectIssue ? 'pointer' : 'default',
+            color: item.isParent ? 'var(--text-bright)' : 'var(--text-main)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -154,24 +185,22 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
       </div>
 
       {/* Status */}
-      <div style={{ width: '70px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <StatusBadge status={iss.statusId || iss.status} size="sm" />
+      <div style={{ width: '70px', display: 'flex', justifyContent: 'center' }}>
+        <StatusBadge status={iss.status} size="sm" />
       </div>
 
       {/* Assignee */}
-      <div style={{ width: '65px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: '65px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '3px' }}>
         {iss.assignee ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} title={iss.assignee.name || iss.assignee.email}>
-            <Avatar user={iss.assignee} size={18} shape="circle" />
-          </div>
+          <Avatar user={iss.assignee} name={iss.assignee.name || ''} size={16} shape="circle" />
         ) : (
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>-</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>미지정</span>
         )}
       </div>
 
-      {/* Progress % */}
-      <div style={{ width: '55px', textAlign: 'center', flexShrink: 0, color: 'var(--text-sub)', fontSize: '0.7rem' }}>
-        {iss.progress !== undefined && iss.progress !== null ? `${iss.progress}%` : '0%'}
+      {/* Progress */}
+      <div style={{ width: '55px', textAlign: 'center', fontSize: '0.68rem', color: iss.progress === 100 ? '#89d185' : 'var(--text-sub)' }}>
+        {iss.progress || 0}%
       </div>
     </div>
   );
