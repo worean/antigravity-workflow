@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma, type PrismaTx } from '#lib/prisma.js';
 import { getIssueService } from './getIssue.service.js';
 
 const parseDateOnly = (val: any): Date | null | undefined => {
@@ -17,7 +17,12 @@ const parseDateOnly = (val: any): Date | null | undefined => {
   return new Date(`${year}-${month}-${day}T00:00:00.000Z`);
 };
 
-export const createIssueService = async (data: any, authorIdInput?: number) => {
+export const createIssueService = async (
+  data: any,
+  authorIdInput?: number,
+  tx?: PrismaTx
+) => {
+  const db = tx ?? prisma;
   const {
     title,
     description,
@@ -45,36 +50,36 @@ export const createIssueService = async (data: any, authorIdInput?: number) => {
   }
 
   // 1. IssueType 자동 존재 확인
-  let type = await prisma.issueType.findFirst();
+  let type = await db.issueType.findFirst();
   if (!type) {
-    type = await prisma.issueType.create({
+    type = await db.issueType.create({
       data: { name: 'Task', description: 'General Task', isSystem: true }
     });
   }
 
   // 2. IssuePriority 자동 존재 확인
-  let priority = await prisma.issuePriority.findFirst();
+  let priority = await db.issuePriority.findFirst();
   if (!priority) {
-    priority = await prisma.issuePriority.create({
+    priority = await db.issuePriority.create({
       data: { name: 'Medium', level: 2, isSystem: true }
     });
   }
 
   // 3. IssueStatus 자동 존재 확인
-  let status = await prisma.issueStatus.findFirst();
+  let status = await db.issueStatus.findFirst();
   if (!status) {
-    status = await prisma.issueStatus.create({
+    status = await db.issueStatus.create({
       data: { name: 'To Do', category: 'TODO', isSystem: true }
     });
   }
 
-  const maxIssue = await prisma.issue.findFirst({
+  const maxIssue = await db.issue.findFirst({
     where: { projectId: targetProjectId },
     orderBy: { issueNumber: 'desc' }
   });
   const nextIssueNumber = (maxIssue?.issueNumber || 0) + 1;
 
-  const issue = await prisma.issue.create({
+  const issue = await db.issue.create({
     data: {
       title,
       description,
@@ -99,26 +104,29 @@ export const createIssueService = async (data: any, authorIdInput?: number) => {
   // 상위 이슈가 지정된 경우, 상위 이슈의 시작계획일/기한을 자동 롤업 동기화
   if (issue.parentId) {
     const { syncParentDatesService } = await import('./syncParentDates.service.js');
-    await syncParentDatesService(issue.parentId);
+    await syncParentDatesService(issue.parentId, tx);
   }
 
   // 비관계형 활동 로그 기록
   try {
     const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
-    await createActivityLogService({
-      action: 'CREATE',
-      entityType: 'ISSUE',
-      entityId: issue.id,
-      userId: targetAuthorId,
-      summary: `이슈 #${issue.id} ('${issue.title}') 생성`,
-      details: { title: issue.title, projectId: targetProjectId, typeId: issue.typeId, priorityId: issue.priorityId }
-    });
+    await createActivityLogService(
+      {
+        action: 'CREATE',
+        entityType: 'ISSUE',
+        entityId: issue.id,
+        userId: targetAuthorId,
+        summary: `이슈 #${issue.id} ('${issue.title}') 생성`,
+        details: { title: issue.title, projectId: targetProjectId, typeId: issue.typeId, priorityId: issue.priorityId }
+      },
+      tx
+    );
   } catch {
     // 로깅 오류 안전 무시
   }
 
   // GET / PUT 조회 시의 호환 가능한 완전한 포함(Include) 객체 양식으로 리턴
-  return await getIssueService(issue.id, targetAuthorId);
+  return await getIssueService(issue.id, targetAuthorId, tx);
 };
 
 

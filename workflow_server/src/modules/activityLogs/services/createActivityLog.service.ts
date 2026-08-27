@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma, type PrismaTx } from '#lib/prisma.js';
 
 export interface CreateActivityLogParams {
   action: string;
@@ -12,7 +12,11 @@ export interface CreateActivityLogParams {
   ipAddress?: string;
 }
 
-export const createActivityLogService = async (params: CreateActivityLogParams) => {
+export const createActivityLogService = async (
+  params: CreateActivityLogParams,
+  tx?: PrismaTx
+) => {
+  const db = tx ?? prisma;
   const {
     action,
     entityType,
@@ -35,7 +39,7 @@ export const createActivityLogService = async (params: CreateActivityLogParams) 
   // 사용자 ID가 주어졌으나 이름/이메일이 없는 경우, 비관계형 스냅샷을 위해 유저 정보 조회
   if (userId && (!finalUserName || !finalUserEmail)) {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: { id: userId },
         select: { name: true, email: true }
       });
@@ -54,7 +58,7 @@ export const createActivityLogService = async (params: CreateActivityLogParams) 
       : JSON.stringify(details)
     : null;
 
-  return await prisma.activityLog.create({
+  return await db.activityLog.create({
     data: {
       action,
       entityType,

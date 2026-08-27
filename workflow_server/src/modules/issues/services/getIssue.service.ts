@@ -1,8 +1,13 @@
-﻿import { prisma } from '#lib/prisma.js';
+﻿import { prisma, type PrismaTx } from '#lib/prisma.js';
 
-export const getIssueService = async (id: number, currentUserId?: number) => {
+export const getIssueService = async (
+  id: number,
+  currentUserId?: number,
+  tx?: PrismaTx
+) => {
   if (!id) throw new Error('Issue ID is required');
-  const issue = await prisma.issue.findUnique({
+  const db = tx ?? prisma;
+  const issue = await db.issue.findUnique({
     where: { id },
     include: {
       type: true,

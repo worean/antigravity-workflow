@@ -1,4 +1,4 @@
-﻿import { prisma } from '#lib/prisma.js';
+﻿import { prisma, type PrismaTx } from '#lib/prisma.js';
 
 /**
  * 상위 이슈의 시작계획일(plannedStartDate)과 기한(dueDate)을
@@ -6,8 +6,12 @@
  * 조상 이슈(Grandparent 등)가 있는 경우 루트까지 연쇄적으로 갱신합니다.
  * (실제시작일, 실제종료일 등은 제외하고 오직 시작계획일/기한만 반영)
  */
-export const syncParentDatesService = async (targetIssueId: number | null | undefined): Promise<void> => {
+export const syncParentDatesService = async (
+  targetIssueId: number | null | undefined,
+  tx?: PrismaTx
+): Promise<void> => {
   if (!targetIssueId) return;
+  const db = tx ?? prisma;
 
   let currentId: number | null = Number(targetIssueId);
   const visited = new Set<number>();
@@ -16,7 +20,7 @@ export const syncParentDatesService = async (targetIssueId: number | null | unde
     if (visited.has(currentId)) break; // 순환 참조 방지
     visited.add(currentId);
 
-    const issue = await prisma.issue.findUnique({
+    const issue = await db.issue.findUnique({
       where: { id: currentId },
       include: { children: true }
     });
@@ -40,7 +44,7 @@ export const syncParentDatesService = async (targetIssueId: number | null | unde
       const minStartDate = startDates.length > 0 ? new Date(Math.min(...startDates)) : null;
       const maxDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates)) : null;
 
-      await prisma.issue.update({
+      await db.issue.update({
         where: { id: currentId },
         data: {
           plannedStartDate: minStartDate,

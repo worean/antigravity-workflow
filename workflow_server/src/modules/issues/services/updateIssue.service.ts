@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma, type PrismaTx } from '#lib/prisma.js';
 import { getIssueService } from './getIssue.service.js';
 
 const parseDateOnly = (val: any): Date | null | undefined => {
@@ -17,8 +17,13 @@ const parseDateOnly = (val: any): Date | null | undefined => {
   return new Date(`${year}-${month}-${day}T00:00:00.000Z`);
 };
 
-export const updateIssueService = async (issueId: number, data: any) => {
-  const currentIssue = await prisma.issue.findUnique({
+export const updateIssueService = async (
+  issueId: number,
+  data: any,
+  tx?: PrismaTx
+) => {
+  const db = tx ?? prisma;
+  const currentIssue = await db.issue.findUnique({
     where: { id: issueId },
     include: { project: true }
   });
@@ -80,7 +85,7 @@ export const updateIssueService = async (issueId: number, data: any) => {
   }
 
   if (description !== undefined && description !== currentIssue.description && userId) {
-    await prisma.issueRevision.create({
+    await db.issueRevision.create({
       data: {
         issueId,
         authorId: Number(userId),
@@ -93,18 +98,23 @@ export const updateIssueService = async (issueId: number, data: any) => {
 
   if (userId) {
     if (statusId !== undefined && statusId !== currentIssue.statusId) {
-      await prisma.issueHistory.create({
+      await db.issueHistory.create({
         data: { issueId, userId: Number(userId), field: 'statusId', oldValue: String(currentIssue.statusId), newValue: String(statusId) }
       });
     }
+    if (priorityId !== undefined && priorityId !== currentIssue.priorityId) {
+      await db.issueHistory.create({
+        data: { issueId, userId: Number(userId), field: 'priorityId', oldValue: String(currentIssue.priorityId), newValue: String(priorityId) }
+      });
+    }
     if (assigneeId !== undefined && assigneeId !== currentIssue.assigneeId) {
-      await prisma.issueHistory.create({
+      await db.issueHistory.create({
         data: { issueId, userId: Number(userId), field: 'assigneeId', oldValue: String(currentIssue.assigneeId), newValue: String(assigneeId) }
       });
     }
   }
 
-  await prisma.issue.update({
+  await db.issue.update({
     where: { id: issueId },
     data: {
       title,
@@ -130,31 +140,34 @@ export const updateIssueService = async (issueId: number, data: any) => {
   // 상위 이슈 일정 동기화 (Rollup)
   const { syncParentDatesService } = await import('./syncParentDates.service.js');
   // 1) 자기 자신에게 하위 이슈가 있다면 자기 자신의 시작계획일/기한을 하위 이슈 기준으로 강제 보정
-  await syncParentDatesService(issueId);
+  await syncParentDatesService(issueId, tx);
 
   // 2) 신규/현재 부모 이슈 일정 동기화
   const oldParentId = currentIssue.parentId;
   const newParentId = parentId !== undefined ? (parentId ? Number(parentId) : null) : oldParentId;
   if (newParentId) {
-    await syncParentDatesService(newParentId);
+    await syncParentDatesService(newParentId, tx);
   }
 
   // 3) 부모 이슈가 변경된 경우, 이전 부모 이슈 일정 동기화
   if (oldParentId && oldParentId !== newParentId) {
-    await syncParentDatesService(oldParentId);
+    await syncParentDatesService(oldParentId, tx);
   }
 
   // 비관계형 활동 로그 기록
   try {
     const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
-    await createActivityLogService({
-      action: 'UPDATE',
-      entityType: 'ISSUE',
-      entityId: issueId,
-      userId: userId ? Number(userId) : undefined,
-      summary: `이슈 #${issueId} ('${title || currentIssue.title}') 정보 수정`,
-      details: data
-    });
+    await createActivityLogService(
+      {
+        action: 'UPDATE',
+        entityType: 'ISSUE',
+        entityId: issueId,
+        userId: userId ? Number(userId) : undefined,
+        summary: `이슈 #${issueId} ('${title || currentIssue.title}') 정보 수정`,
+        details: data
+      },
+      tx
+    );
   } catch {
     // 로깅 오류 안전 무시
   }
