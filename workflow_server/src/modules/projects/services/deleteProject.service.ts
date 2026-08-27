@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const deleteProjectService = async (id: number, userId?: number) => {
   if (!id) throw new Error('Project ID is required');

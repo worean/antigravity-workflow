@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as linkPreviewsController from './linkPreviews.controller.js';
 
 export const linkPreviewRouter = Router();

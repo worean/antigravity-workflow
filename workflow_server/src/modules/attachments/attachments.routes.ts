@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as attachmentsController from './attachments.controller.js';
 
 export const attachmentRouter = Router();

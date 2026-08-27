@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const saveLinkPreviewService = async (data: any) => {
   const { url, title, description, siteName, mediaType, imageUrl, embedHtml } = data;

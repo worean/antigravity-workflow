@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { prisma } from '#lib/prisma.js';
 
 export const getGroupService = async (id: number, currentUser?: any) => {

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { getActivityLogsController, createActivityLogController } from './activityLogs.controller.js';
 import { requireAuth } from '../../common/middlewares/authMiddleware.js';
 

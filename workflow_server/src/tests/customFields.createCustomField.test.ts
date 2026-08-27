@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: customFields / Service: createCustomField]
  * - 기능: 계층형/동적 커스텀 필드 메타데이터 정의 생성 REST API 단위 테스트
  * - 경우의 수: 필수 식별 키(key)와 이름(name)으로 생성 성공 (201 Created), 필수 파라미터 누락 예외 (400 Bad Request)

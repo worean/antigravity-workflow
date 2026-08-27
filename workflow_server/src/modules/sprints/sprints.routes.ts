@@ -12,6 +12,8 @@ sprintRouter.put('/:id', sprintsController.updateSprint);
 sprintRouter.delete('/:id', sprintsController.deleteSprint);
 sprintRouter.post('/:id/issues', sprintsController.assignIssuesToSprint);
 sprintRouter.put('/:id/assign-issues', sprintsController.assignIssuesToSprint);
+sprintRouter.get('/:id/discussions', sprintsController.getSprintDiscussions);
+sprintRouter.get('/:id/worklogs', sprintsController.getSprintWorklogs);
 
 // 레거시 라우트 하위 호환 지원
 sprintRouter.get('/list', sprintsController.getSprints);

@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { describe, it, expect } from 'vitest';
 import { createUserService } from '../modules/users/services/createUser.service.js';
 import { emailLoginService } from '../modules/auth/services/emailLogin.service.js';

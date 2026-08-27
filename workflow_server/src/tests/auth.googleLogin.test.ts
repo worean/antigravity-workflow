@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: auth / Service: googleLogin]
  * - 기능: Google OAuth Access Token 기반 로그인 및 소셜 회원가입 처리 단위 테스트
  * - 경우의 수: 유효한 Google Access Token 수신 시 소셜 계정 연동 및 JWT 토큰 발급 (200 OK), 토큰 누락 예외 (400)

@@ -253,6 +253,7 @@ model Sprint {
   id        Int       @id @default(autoincrement())
   name      String
   goal      String?
+  notes     String?   // 스프린트 회의록, 데일리 스크럼 메모, 의사결정 노트 (Markdown 지원)
   startDate DateTime?
   endDate   DateTime?
   status    String    @default("PLANNED") // PLANNED, ACTIVE, COMPLETED

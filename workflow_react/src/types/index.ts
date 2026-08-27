@@ -202,6 +202,7 @@ export interface Sprint {
   id: number;
   name: string;
   goal?: string | null;
+  notes?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | string;
@@ -214,6 +215,26 @@ export interface Sprint {
   };
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface SprintDiscussionItem extends Comment {
+  issue?: {
+    id: number;
+    title: string;
+    issueNumber?: number;
+    status?: { id: number; name: string; category: string };
+    priority?: { id: number; name: string; level?: number; color?: string };
+  };
+}
+
+export interface SprintWorklogItem extends Omit<Worklog, 'issue'> {
+  timeSpentHours?: number;
+  issue?: {
+    id: number;
+    title: string;
+    issueNumber?: number;
+    status?: IssueStatus;
+  };
 }
 
 

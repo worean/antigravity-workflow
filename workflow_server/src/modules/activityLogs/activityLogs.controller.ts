@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { getActivityLogsService } from './services/getActivityLogs.service.js';
 import { createActivityLogService } from './services/createActivityLog.service.js';
 

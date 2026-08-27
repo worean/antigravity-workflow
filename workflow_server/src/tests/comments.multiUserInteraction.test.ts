@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: comments & attachments / Service: multiUserInteraction]
  * - 기능: 다중 유저(User A ↔ User B) 간의 댓글 상호작용 종합 단위/통합 테스트
  * - 검증 시나리오:

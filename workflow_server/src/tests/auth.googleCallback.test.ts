@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: auth / Service: googleCallback]
  * - 기능: Google OAuth Authorization Code 수신 및 프론트엔드 리다이렉트 처리 단위 테스트
  * - 경우의 수: code 정상 교정 시 토큰과 함께 302 Redirect, code 누락 시 에러 302 Redirect

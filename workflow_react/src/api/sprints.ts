@@ -1,6 +1,6 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
-import type { Sprint } from '../types';
+import type { Sprint, SprintDiscussionItem, SprintWorklogItem } from '../types';
 import { issueKeys } from './issues';
 
 export const getSprints = async (projectId?: number): Promise<Sprint[]> => {
@@ -16,6 +16,7 @@ export const getSprint = async (id: number): Promise<Sprint> => {
 export const createSprint = async (data: {
   name: string;
   goal?: string;
+  notes?: string;
   projectId: number;
   startDate?: string;
   endDate?: string;
@@ -32,6 +33,7 @@ export const updateSprint = async (
   data: {
     name?: string;
     goal?: string;
+    notes?: string | null;
     status?: string;
     startDate?: string | null;
     endDate?: string | null;
@@ -58,6 +60,16 @@ export const assignIssuesToSprint = async (
 ): Promise<Sprint> => {
   const res = await apiClient.post(`/sprints/${sprintId}/issues`, data);
   return res.data;
+};
+
+export const getSprintDiscussions = async (id: number): Promise<SprintDiscussionItem[]> => {
+  const res = await apiClient.get(`/sprints/${id}/discussions`);
+  return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getSprintWorklogs = async (id: number): Promise<SprintWorklogItem[]> => {
+  const res = await apiClient.get(`/sprints/${id}/worklogs`);
+  return Array.isArray(res.data) ? res.data : [];
 };
 
 export const sprintKeys = {

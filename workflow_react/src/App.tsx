@@ -358,6 +358,7 @@ const AppContent: React.FC = () => {
               key={`tab-sprints-${selectedProjectId || 'all'}-${issueRefreshKey}`}
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('sprints', pId === 'ALL' ? null : pId, null, 'view', true)}
+              onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}

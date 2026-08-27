@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: projects / Service: getProject]
  * - 기능: 단일 프로젝트 상세 정보 조회 REST API 단위 테스트
  * - 경우의 수: 존재하는 프로젝트 ID로 조회 성공 (200 OK), 존재하지 않는 프로젝트 ID 404 Not Found 예외

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: linkPreviews / Service: saveLinkPreview]
  * - 기능: 링크 프리뷰 캐시 DB 저장 REST API 단위 테스트
  * - 경우의 수: URL 및 타이틀 정보 캐시 저장 성공 (201 Created), URL 누락 예외 (400 Bad Request)

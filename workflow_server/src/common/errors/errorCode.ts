@@ -1,4 +1,4 @@
-export enum ErrorCode {
+﻿export enum ErrorCode {
   UNAUTHORIZED = 'ERR_UNAUTHORIZED',
   INVALID_INPUT = 'ERR_INVALID_INPUT',
   NOT_FOUND = 'ERR_NOT_FOUND',

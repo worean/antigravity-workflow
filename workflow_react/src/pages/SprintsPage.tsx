@@ -19,21 +19,24 @@ import {
   SprintGrid,
   SprintFormModal,
   SprintManageIssuesModal,
+  SprintDetailModal,
   type SprintStatusFilter,
 } from '../components/sprints';
 
 interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;
   onFilterChange?: (projectId: number | 'ALL') => void;
+  onOpenIssueDetail?: (issueId: number) => void;
   onOpenAuth?: () => void;
 }
 
 export const SprintsPage: React.FC<SprintsPageProps> = ({
   selectedProjectId: initialProjectId = 'ALL',
   onFilterChange,
+  onOpenIssueDetail,
   onOpenAuth,
 }) => {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -58,6 +61,10 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   const [formEndDate, setFormEndDate] = useState<string>('');
   const [formStatus, setFormStatus] = useState<string>('PLANNED');
   const [formSubmitting, setFormSubmitting] = useState<boolean>(false);
+
+  // Collaboration Hub / Detail Modal State
+  const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
+  const [detailSprint, setDetailSprint] = useState<Sprint | null>(null);
 
   // Issue Management Modal State
   const [showManageModal, setShowManageModal] = useState<boolean>(false);
@@ -112,6 +119,12 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     setFormEndDate(formatDateOnly(sprint.endDate) || '');
     setFormStatus(sprint.status || 'PLANNED');
     setShowFormModal(true);
+  };
+
+  // Open Collaboration Hub / Detail Modal
+  const handleOpenDetailModal = (sprint: Sprint) => {
+    setDetailSprint(sprint);
+    setShowDetailModal(true);
   };
 
   // Quick Preset Date Helpers (1주, 2주, 4주)
@@ -401,6 +414,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         getDDayBadge={getDDayBadge}
         handleQuickStatusChange={handleQuickStatusChange}
         handleOpenManageModal={handleOpenManageModal}
+        handleOpenDetailModal={handleOpenDetailModal}
         handleOpenEditModal={handleOpenEditModal}
         handleDeleteSprint={handleDeleteSprint}
         fetchData={fetchData}
@@ -446,6 +460,19 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         handleSyncSprintDates={handleSyncSprintDates}
         handleRemoveIssueFromSprint={handleRemoveIssueFromSprint}
         handleAddIssueToSprint={handleAddIssueToSprint}
+      />
+
+      {/* 6. Sprint Collaboration Hub / Detail Modal */}
+      <SprintDetailModal
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        sprint={detailSprint}
+        currentUser={user}
+        isAuthenticated={isAuthenticated}
+        onSprintUpdated={() => fetchData()}
+        onOpenIssueDetail={onOpenIssueDetail}
+        onOpenManageIssuesModal={(s) => handleOpenManageModal(s)}
+        onOpenAuth={onOpenAuth}
       />
     </div>
   );

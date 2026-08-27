@@ -3,7 +3,7 @@ import { prisma } from '#lib/prisma.js';
 
 export const updateSprintService = async (id: number, data: any) => {
   if (!id) throw new Error('Sprint ID is required');
-  const { name, goal, status, startDate, endDate, autoCalculateDates } = data;
+  const { name, goal, notes, status, startDate, endDate, autoCalculateDates } = data;
 
   let sDate = startDate !== undefined ? (startDate ? new Date(startDate) : null) : undefined;
   let eDate = endDate !== undefined ? (endDate ? new Date(endDate) : null) : undefined;
@@ -34,6 +34,7 @@ export const updateSprintService = async (id: number, data: any) => {
   const updateData: any = {};
   if (name !== undefined) updateData.name = name;
   if (goal !== undefined) updateData.goal = goal;
+  if (notes !== undefined) updateData.notes = notes;
   if (status !== undefined) updateData.status = status;
   if (sDate !== undefined) updateData.startDate = sDate;
   if (eDate !== undefined) updateData.endDate = eDate;

@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const deleteUserService = async (id: number) => {
   if (!id) throw new Error('User ID is required');

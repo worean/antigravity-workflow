@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const addReactionService = async (commentId: number, userId: number, emoji: string) => {
   if (!commentId || !userId || !emoji) throw new Error('commentId, userId, and emoji are required');

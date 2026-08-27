@@ -21,6 +21,7 @@ interface SprintCardProps {
   getDDayBadge: (sprint: Sprint) => React.ReactNode;
   handleQuickStatusChange: (sprintId: number, newStatus: string) => Promise<void>;
   handleOpenManageModal: (sprint: Sprint) => void;
+  handleOpenDetailModal?: (sprint: Sprint) => void;
   handleOpenEditModal: (sprint: Sprint) => void;
   handleDeleteSprint: (sprintId: number) => Promise<void>;
   fetchData: () => Promise<void>;
@@ -34,6 +35,7 @@ export const SprintCard: React.FC<SprintCardProps> = ({
   getDDayBadge,
   handleQuickStatusChange,
   handleOpenManageModal,
+  handleOpenDetailModal,
   handleOpenEditModal,
   handleDeleteSprint,
   fetchData,
@@ -85,7 +87,16 @@ export const SprintCard: React.FC<SprintCardProps> = ({
       {/* Card Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-bright)' }}>
+          <span
+            onClick={() => handleOpenDetailModal && handleOpenDetailModal(sprint)}
+            style={{
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              color: 'var(--text-bright)',
+              cursor: handleOpenDetailModal ? 'pointer' : 'default',
+            }}
+            title="스프린트 협업 허브 열기"
+          >
             {sprint.name}
           </span>
           <ProjectBadge project={sprint.project} projectId={sprint.projectId} size="sm" />
@@ -119,42 +130,41 @@ export const SprintCard: React.FC<SprintCardProps> = ({
           padding: '5px 8px',
           borderRadius: 'var(--radius-xs)',
           fontSize: '0.72rem',
-          color: 'var(--text-sub)',
+          color: 'var(--text-muted)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Calendar size={12} color="var(--text-muted)" />
           <span>
-            {formatDateOnly(sprint.startDate) || '시작일 미정'} ~ {formatDateOnly(sprint.endDate) || '기한 미정'}
+            {formatDateOnly(sprint.startDate) || '미정'} ~ {formatDateOnly(sprint.endDate) || '미정'}
           </span>
         </div>
         {getDDayBadge(sprint)}
       </div>
 
-      {/* Progress Bar & Issue Counts */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-          <span>진척도 ({prog.rate}%)</span>
-          <span>완료 {prog.done} / 전체 {prog.total}개 이슈</span>
+      {/* Progress Bar & Rate */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-sub)', marginBottom: '3px' }}>
+          <span>진척도 ({prog.done}/{prog.total}개 완료)</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{prog.rate}%</span>
         </div>
-        <div style={{ width: '100%', height: '5px', background: '#333333', borderRadius: '3px', overflow: 'hidden', display: 'flex' }}>
-          <div style={{ width: `${prog.rate}%`, background: '#89d185', transition: 'width 0.3s' }} />
+        <div style={{ width: '100%', height: '5px', background: '#333', borderRadius: '3px', overflow: 'hidden' }}>
+          <div
+            style={{
+              width: `${prog.rate}%`,
+              height: '100%',
+              background: prog.rate === 100 ? 'var(--status-done)' : 'var(--primary)',
+              borderRadius: '3px',
+              transition: 'width 0.3s ease',
+            }}
+          />
         </div>
       </div>
 
-      {/* Action Toolbar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderTop: '1px solid #383838',
-          paddingTop: '8px',
-          marginTop: '4px',
-        }}
-      >
-        {/* Status Change Buttons */}
-        <div style={{ display: 'flex', gap: '4px' }}>
+      {/* Card Action Buttons */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '4px' }}>
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {/* Quick Status Toggle */}
           {isPlanned && isAuthenticated && (
             <button
               onClick={() => handleQuickStatusChange(sprint.id, 'ACTIVE')}
@@ -183,6 +193,28 @@ export const SprintCard: React.FC<SprintCardProps> = ({
               title="다시 진행 중으로 변경"
             >
               <RotateCcw size={10} /> 다시 열기
+            </button>
+          )}
+
+          {/* Collaboration Hub Button */}
+          {handleOpenDetailModal && (
+            <button
+              onClick={() => handleOpenDetailModal(sprint)}
+              className="btn btn-secondary btn-sm"
+              style={{
+                height: '22px',
+                fontSize: '0.68rem',
+                padding: '0 6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+                background: 'rgba(59, 130, 246, 0.15)',
+                color: '#60a5fa',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+              }}
+              title="스프린트 실시간 논의, 작업 일지 및 회의록 열기"
+            >
+              💬 협업 허브 & 회의록
             </button>
           )}
 

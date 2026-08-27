@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { Request, Response } from 'express';
 import { createSprintService } from './services/createSprint.service.js';
 import { getSprintsService } from './services/getSprints.service.js';
@@ -6,6 +6,8 @@ import { getSprintService } from './services/getSprint.service.js';
 import { updateSprintService } from './services/updateSprint.service.js';
 import { deleteSprintService } from './services/deleteSprint.service.js';
 import { assignIssuesToSprintService } from './services/assignIssuesToSprint.service.js';
+import { getSprintDiscussionsService } from './services/getSprintDiscussions.service.js';
+import { getSprintWorklogsService } from './services/getSprintWorklogs.service.js';
 
 export const createSprint = async (req: Request, res: Response) => {
   try {
@@ -58,6 +60,24 @@ export const assignIssuesToSprint = async (req: Request, res: Response) => {
   try {
     const sprint = await assignIssuesToSprintService(Number(req.params.id), req.body);
     res.json(sprint);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const getSprintDiscussions = async (req: Request, res: Response) => {
+  try {
+    const discussions = await getSprintDiscussionsService(Number(req.params.id));
+    res.json(discussions);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const getSprintWorklogs = async (req: Request, res: Response) => {
+  try {
+    const worklogs = await getSprintWorklogsService(Number(req.params.id));
+    res.json(worklogs);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }

@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const createAttachmentService = async (data: any) => {
   const { filename, originalName, mimeType, size, url, thumbnailUrl, mediaType, width, height, duration, issueId, commentId, uploaderId } = data;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: auth & projects / Service: googleLogin & createProject Integration]
  * - 기능: 구글 계정 로그인 후 발급된 JWT 토큰 기반으로 프로젝트 신규 생성 E2E 통합 테스트
  * - 경우의 수: Google 로그인 ➔ JWT 토큰 발급 ➔ 토큰 기반 프로젝트 생성 ➔ ownerId가 구글 사용자로 지정됨

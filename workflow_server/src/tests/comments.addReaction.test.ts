@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: comments / Service: addReaction]
  * - 기능: 댓글 이모지 리액션 추가/토글 REST API 단위 테스트
  * - 경우의 수: 유효한 이모지 추가 성공 (201 Created), 필수 파라미터 누락 예외 (400 Bad Request)

@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const createCustomFieldService = async (data: any) => {
   const { key, name, description, fieldType, schemaJson, defaultValue, isRequired, isGlobal, projectId } = data;

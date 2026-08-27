@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: issues / Service: toggleLikeIssue]
  * - 기능: 단일 이슈 좋아요 토글 REST API 단위 테스트 (POST /api/issues/toggle-like)
  * - 경우의 수:

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: projects / Service: addMember]
  * - 기능: 프로젝트에 신규 멤버(역할 지정) 추가 REST API 단위 테스트
  * - 경우의 수: 프로젝트 멤버(MEMBER) 정상 추가 (201 Created), 필수 파라미터 누락 예외 (400 Bad Request)

@@ -15,6 +15,7 @@ interface SprintGridProps {
   getDDayBadge: (sprint: Sprint) => React.ReactNode;
   handleQuickStatusChange: (sprintId: number, newStatus: string) => Promise<void>;
   handleOpenManageModal: (sprint: Sprint) => void;
+  handleOpenDetailModal?: (sprint: Sprint) => void;
   handleOpenEditModal: (sprint: Sprint) => void;
   handleDeleteSprint: (sprintId: number) => Promise<void>;
   fetchData: () => Promise<void>;
@@ -31,6 +32,7 @@ export const SprintGrid: React.FC<SprintGridProps> = ({
   getDDayBadge,
   handleQuickStatusChange,
   handleOpenManageModal,
+  handleOpenDetailModal,
   handleOpenEditModal,
   handleDeleteSprint,
   fetchData,
@@ -59,6 +61,7 @@ export const SprintGrid: React.FC<SprintGridProps> = ({
           getDDayBadge={getDDayBadge}
           handleQuickStatusChange={handleQuickStatusChange}
           handleOpenManageModal={handleOpenManageModal}
+          handleOpenDetailModal={handleOpenDetailModal}
           handleOpenEditModal={handleOpenEditModal}
           handleDeleteSprint={handleDeleteSprint}
           fetchData={fetchData}

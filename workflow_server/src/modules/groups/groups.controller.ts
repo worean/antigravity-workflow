@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { Request, Response } from 'express';
 import { createGroupService } from './services/createGroup.service.js';
 import { getGroupsService } from './services/getGroups.service.js';

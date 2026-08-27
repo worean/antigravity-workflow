@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import http from 'http';
 import https from 'https';
 import fs from 'fs';

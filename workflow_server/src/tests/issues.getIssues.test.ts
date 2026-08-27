@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 /**
  * 🧪 [Domain: issues / Service: getIssues]
  * - 기능: 전체 이슈 목록 조회 REST API 단위 테스트

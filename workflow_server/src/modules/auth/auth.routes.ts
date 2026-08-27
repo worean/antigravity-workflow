@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as authController from './auth.controller.js';
 import { requireAuth } from '../../common/middlewares/authMiddleware.js';
 

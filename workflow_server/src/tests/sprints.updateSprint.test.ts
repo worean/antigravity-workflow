@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: sprints / Service: updateSprint]
  * - 기능: 스프린트 정보 수정 및 상태(PLANNED ➔ ACTIVE) 변경 REST API 단위 테스트
  * - 경우의 수: 스프린트 상태 변경 성공 (200 OK), 존재하지 않는 스프린트 ID 수정 요청 예외 (400 Bad Request)

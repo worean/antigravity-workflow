@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: comments / Service: getComments]
  * - 기능: 특정 이슈에 등록된 댓글 목록 조회 REST API 단위 테스트
  * - 경우의 수: 이슈 ID 경로로 댓글 목록 성공 조회 (200 OK 배열 반환)

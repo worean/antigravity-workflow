@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const likeIssueService = async (issueId: number, userId: number) => {
   if (!issueId || !userId) {

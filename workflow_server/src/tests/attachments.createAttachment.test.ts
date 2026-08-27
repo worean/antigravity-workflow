@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: attachments / Service: createAttachment]
  * - 기능: 첨부파일 메타데이터(파일명, URL, 파일크기, 업로더 등) 등록 REST API 단위 테스트
  * - 경우의 수: 유효한 파일 정보 등록 성공 (201 Created) / 필수 파라미터 누락 예외 (400 Bad Request)

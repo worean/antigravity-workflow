@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+﻿// -*- coding: utf-8 -*-
 import { Router } from 'express';
 import * as commentsController from './comments.controller.js';
 import { requireAuth } from '../../common/middlewares/authMiddleware.js';
