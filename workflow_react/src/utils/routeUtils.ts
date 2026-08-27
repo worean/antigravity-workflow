@@ -12,13 +12,15 @@ export type RootTabType =
 export type ActiveTabType =
   | RootTabType
   | 'project-detail'
-  | 'issue-detail';
+  | 'issue-detail'
+  | 'sprint-detail';
 
 export interface RouteInfo {
   rootTab: RootTabType;
   tab: ActiveTabType;
   projectId: number | null;
   issueId: number | null;
+  sprintId: number | null;
   channelId: number | null;
   mode: 'view' | 'edit';
   assigneeId: number | 'ALL' | 'MY';
@@ -27,15 +29,6 @@ export interface RouteInfo {
 
 /**
  * URL Hash로부터 계층형 RouteInfo 파싱
- * 계층 구조 지원:
- * - #/projects/1097, #/projects/1097/detail -> rootTab: 'projects', tab: 'project-detail', projectId: 1097
- * - #/projects/1097/issues -> rootTab: 'issues', tab: 'issues', projectId: 1097
- * - #/projects/1097/sprints -> rootTab: 'sprints', tab: 'sprints', projectId: 1097
- * - #/projects/1097/wbs -> rootTab: 'wbs', tab: 'wbs', projectId: 1097
- * - #/projects/1097/issues/42 -> rootTab: 'issues', tab: 'issue-detail', projectId: 1097, issueId: 42
- * - #/issues/42 -> rootTab: 'issues', tab: 'issue-detail', issueId: 42
- * - #/chat/5 -> rootTab: 'chat', tab: 'chat', channelId: 5
- * - 기존 레거시 포맷 (#project-detail?projectId=1097 등) 완벽 하위 호환
  */
 export function parseRouteFromHash(rawHash: string): RouteInfo {
   const defaultRoute: RouteInfo = {
@@ -43,6 +36,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
     tab: 'dashboard',
     projectId: null,
     issueId: null,
+    sprintId: null,
     channelId: null,
     mode: 'view',
     assigneeId: 'ALL',
@@ -58,6 +52,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
 
     const queryProjectId = queryParams.get('projectId') ? Number(queryParams.get('projectId')) : null;
     const queryIssueId = queryParams.get('issueId') ? Number(queryParams.get('issueId')) : null;
+    const querySprintId = queryParams.get('sprintId') ? Number(queryParams.get('sprintId')) : null;
     const queryChannelId = queryParams.get('channelId') ? Number(queryParams.get('channelId')) : null;
     const rawAssignee = queryParams.get('assigneeId');
     const assigneeId = rawAssignee === 'MY' ? 'MY' : rawAssignee && !isNaN(Number(rawAssignee)) ? Number(rawAssignee) : 'ALL';
@@ -66,13 +61,14 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
 
     const segments = pathPart.split('/').filter(Boolean);
 
-    // 1. 레거시 단일 탭 매칭 (#project-detail, #issue-detail 등)
+    // 1. 레거시 단일 탭 매칭 (#project-detail, #issue-detail, #sprint-detail 등)
     if (segments.length === 1 && segments[0] === 'project-detail') {
       return {
         rootTab: 'projects',
         tab: 'project-detail',
         projectId: queryProjectId,
         issueId: null,
+        sprintId: null,
         channelId: null,
         mode,
         assigneeId,
@@ -85,6 +81,20 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
         tab: 'issue-detail',
         projectId: queryProjectId,
         issueId: queryIssueId,
+        sprintId: null,
+        channelId: null,
+        mode,
+        assigneeId,
+        search,
+      };
+    }
+    if (segments.length === 1 && segments[0] === 'sprint-detail') {
+      return {
+        rootTab: 'sprints',
+        tab: 'sprint-detail',
+        projectId: queryProjectId,
+        issueId: null,
+        sprintId: querySprintId,
         channelId: null,
         mode,
         assigneeId,
@@ -103,6 +113,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
           tab: 'projects',
           projectId: queryProjectId,
           issueId: null,
+          sprintId: null,
           channelId: null,
           mode,
           assigneeId,
@@ -120,6 +131,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
               tab: 'issue-detail',
               projectId: pId,
               issueId: subIssueId,
+              sprintId: null,
               channelId: null,
               mode,
               assigneeId,
@@ -131,6 +143,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
             tab: 'issues',
             projectId: pId,
             issueId: null,
+            sprintId: null,
             channelId: null,
             mode,
             assigneeId,
@@ -138,11 +151,26 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
           };
         }
         if (sub === 'sprints') {
+          const subSprintId = segments[3] ? Number(segments[3]) : null;
+          if (subSprintId && !isNaN(subSprintId)) {
+            return {
+              rootTab: 'sprints',
+              tab: 'sprint-detail',
+              projectId: pId,
+              issueId: null,
+              sprintId: subSprintId,
+              channelId: null,
+              mode,
+              assigneeId,
+              search,
+            };
+          }
           return {
             rootTab: 'sprints',
             tab: 'sprints',
             projectId: pId,
             issueId: null,
+            sprintId: null,
             channelId: null,
             mode,
             assigneeId,
@@ -155,6 +183,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
             tab: 'wbs',
             projectId: pId,
             issueId: null,
+            sprintId: null,
             channelId: null,
             mode,
             assigneeId,
@@ -167,6 +196,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
           tab: 'project-detail',
           projectId: pId,
           issueId: null,
+          sprintId: null,
           channelId: null,
           mode,
           assigneeId,
@@ -185,6 +215,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
             tab: 'issue-detail',
             projectId: queryProjectId,
             issueId: iId,
+            sprintId: null,
             channelId: null,
             mode,
             assigneeId,
@@ -197,6 +228,38 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
         tab: 'issues',
         projectId: queryProjectId,
         issueId: null,
+        sprintId: null,
+        channelId: null,
+        mode,
+        assigneeId,
+        search,
+      };
+    }
+
+    // #/sprints/...
+    if (root === 'sprints') {
+      if (segments.length > 1) {
+        const sId = Number(segments[1]);
+        if (!isNaN(sId)) {
+          return {
+            rootTab: 'sprints',
+            tab: 'sprint-detail',
+            projectId: queryProjectId,
+            issueId: null,
+            sprintId: sId,
+            channelId: null,
+            mode,
+            assigneeId,
+            search,
+          };
+        }
+      }
+      return {
+        rootTab: 'sprints',
+        tab: 'sprints',
+        projectId: queryProjectId,
+        issueId: null,
+        sprintId: null,
         channelId: null,
         mode,
         assigneeId,
@@ -212,6 +275,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
         tab: 'chat',
         projectId: null,
         issueId: null,
+        sprintId: null,
         channelId: cId && !isNaN(cId) ? cId : null,
         mode,
         assigneeId,
@@ -219,7 +283,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
       };
     }
 
-    // #/sprints, #/wbs, #/worklogs, #/dashboard, #/settings
+    // #/wbs, #/worklogs, #/dashboard, #/settings
     const validRoots: RootTabType[] = ['dashboard', 'projects', 'issues', 'sprints', 'wbs', 'worklogs', 'chat', 'settings'];
     const matchedRoot = validRoots.includes(root) ? root : 'dashboard';
 
@@ -228,6 +292,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
       tab: matchedRoot,
       projectId: queryProjectId,
       issueId: queryIssueId,
+      sprintId: querySprintId,
       channelId: queryChannelId,
       mode,
       assigneeId,
@@ -245,12 +310,13 @@ export function buildHashFromRoute(route: {
   tab: ActiveTabType;
   projectId?: number | null;
   issueId?: number | null;
+  sprintId?: number | null;
   channelId?: number | null;
   mode?: 'view' | 'edit';
   assigneeId?: number | 'ALL' | 'MY';
   search?: string;
 }): string {
-  const { tab, projectId, issueId, channelId, mode = 'view', assigneeId = 'ALL', search = '' } = route;
+  const { tab, projectId, issueId, sprintId, channelId, mode = 'view', assigneeId = 'ALL', search = '' } = route;
 
   let path = '';
   const params = new URLSearchParams();
@@ -262,6 +328,12 @@ export function buildHashFromRoute(route: {
       path = `/projects/${projectId}/issues/${issueId}`;
     } else {
       path = `/issues/${issueId}`;
+    }
+  } else if (tab === 'sprint-detail' && sprintId) {
+    if (projectId) {
+      path = `/projects/${projectId}/sprints/${sprintId}`;
+    } else {
+      path = `/sprints/${sprintId}`;
     }
   } else if (tab === 'issues' && projectId) {
     path = `/projects/${projectId}/issues`;

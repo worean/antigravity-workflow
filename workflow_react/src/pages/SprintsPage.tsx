@@ -26,6 +26,7 @@ import {
 interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;
   onFilterChange?: (projectId: number | 'ALL') => void;
+  onSelectSprint?: (sprintId: number) => void;
   onOpenIssueDetail?: (issueId: number) => void;
   onOpenAuth?: () => void;
 }
@@ -33,6 +34,7 @@ interface SprintsPageProps {
 export const SprintsPage: React.FC<SprintsPageProps> = ({
   selectedProjectId: initialProjectId = 'ALL',
   onFilterChange,
+  onSelectSprint,
   onOpenIssueDetail,
   onOpenAuth,
 }) => {
@@ -121,10 +123,14 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     setShowFormModal(true);
   };
 
-  // Open Collaboration Hub / Detail Modal
+  // Open Collaboration Hub / Detail Page
   const handleOpenDetailModal = (sprint: Sprint) => {
-    setDetailSprint(sprint);
-    setShowDetailModal(true);
+    if (onSelectSprint) {
+      onSelectSprint(sprint.id);
+    } else {
+      setDetailSprint(sprint);
+      setShowDetailModal(true);
+    }
   };
 
   // Quick Preset Date Helpers (1주, 2주, 4주)

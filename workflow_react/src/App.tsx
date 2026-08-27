@@ -12,6 +12,7 @@ import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { IssuesPage } from './pages/IssuesPage';
 import { IssueDetailPage } from './pages/IssueDetailPage';
 import { SprintsPage } from './pages/SprintsPage';
+import { SprintDetailPage } from './pages/SprintDetailPage';
 import { WBSPage } from './pages/WBSPage';
 import { WorklogsPage } from './pages/WorklogsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -38,6 +39,7 @@ const AppContent: React.FC = () => {
   const [selectedAssigneeId, setSelectedAssigneeIdState] = useState<number | 'ALL' | 'MY'>(initialRoute.assigneeId);
   const [searchTerm, setSearchTermState] = useState<string>(initialRoute.search);
   const [selectedIssueId, setSelectedIssueIdState] = useState<number | null>(initialRoute.issueId);
+  const [selectedSprintId, setSelectedSprintIdState] = useState<number | null>(initialRoute.sprintId);
   const [selectedChannelId, setSelectedChannelIdState] = useState<number | null>(initialRoute.channelId);
   const [issueDetailMode, setIssueDetailModeState] = useState<IssueDetailMode>(initialRoute.mode);
 
@@ -66,26 +68,30 @@ const AppContent: React.FC = () => {
       issueId: number | null = null,
       mode: IssueDetailMode = 'view',
       replace: boolean = false,
-      extra?: { assigneeId?: number | 'ALL' | 'MY'; search?: string; channelId?: number | null }
+      extra?: { assigneeId?: number | 'ALL' | 'MY'; search?: string; channelId?: number | null; sprintId?: number | null }
     ) => {
       localStorage.setItem('activeTab', tab);
       if (projId) {
         localStorage.setItem('selectedProjectId', String(projId));
       }
 
+      const targetSprintId = extra?.sprintId ?? (tab === 'sprint-detail' ? issueId : null);
+
       setActiveTabState(tab);
       setSelectedProjectIdState(projId);
       if (extra?.assigneeId !== undefined) setSelectedAssigneeIdState(extra.assigneeId);
       if (extra?.search !== undefined) setSearchTermState(extra.search);
       if (extra?.channelId !== undefined) setSelectedChannelIdState(extra.channelId);
-      setSelectedIssueIdState(issueId);
+      setSelectedSprintIdState(targetSprintId);
+      setSelectedIssueIdState(tab === 'sprint-detail' ? null : issueId);
       setIssueDetailModeState(mode);
 
       // Build RESTful Hierarchical Hash URL
       const newHash = buildHashFromRoute({
         tab: tab as ActiveTabType,
         projectId: projId,
-        issueId,
+        issueId: tab === 'sprint-detail' ? null : issueId,
+        sprintId: targetSprintId,
         channelId: extra?.channelId ?? (tab === 'chat' ? selectedChannelId : null),
         mode,
         assigneeId: extra?.assigneeId ?? selectedAssigneeId,
@@ -127,6 +133,7 @@ const AppContent: React.FC = () => {
       setSelectedAssigneeIdState(route.assigneeId);
       setSearchTermState(route.search);
       setSelectedIssueIdState(route.issueId);
+      setSelectedSprintIdState(route.sprintId);
       setSelectedChannelIdState(route.channelId);
       setIssueDetailModeState(route.mode);
     };
@@ -227,6 +234,12 @@ const AppContent: React.FC = () => {
           ];
         }
         return [{ label: '스프린트 관리' }];
+      case 'sprint-detail':
+        return [
+          { label: '스프린트 관리', onClick: () => navigate('sprints', selectedProjectId) },
+          ...(currentProject ? [{ label: `${currentProject.name} (${currentProject.key})`, onClick: () => navigate('sprints', currentProject.id) }] : []),
+          { label: `스프린트 #${selectedSprintId}` },
+        ];
       case 'wbs':
         if (currentProject) {
           return [
@@ -358,6 +371,18 @@ const AppContent: React.FC = () => {
               key={`tab-sprints-${selectedProjectId || 'all'}-${issueRefreshKey}`}
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('sprints', pId === 'ALL' ? null : pId, null, 'view', true)}
+              onSelectSprint={(sId) => navigate('sprint-detail', selectedProjectId, sId, 'view', false)}
+              onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
+            />
+          )}
+
+          {activeTab === 'sprint-detail' && (
+            <SprintDetailPage
+              key={`tab-sprint-detail-${selectedSprintId}-${issueRefreshKey}`}
+              sprintId={selectedSprintId}
+              projectId={selectedProjectId}
+              onBack={() => navigate('sprints', selectedProjectId, null, 'view', false)}
               onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />

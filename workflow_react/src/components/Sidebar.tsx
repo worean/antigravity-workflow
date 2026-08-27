@@ -30,6 +30,7 @@ export type TabType =
   | 'chat'
   | 'issue-detail'
   | 'project-detail'
+  | 'sprint-detail'
   | 'settings';
 
 interface SidebarProps {
