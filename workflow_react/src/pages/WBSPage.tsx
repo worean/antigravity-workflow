@@ -13,7 +13,7 @@ import {
 } from '../utils/wbsUtils';
 import { useWBSProjectData } from '../hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '../hooks/useWBSGanttDrag';
-import { WBSToolbar, WBSTreeTable, WBSGanttTimeline } from '../components/wbs';
+import { WBSToolbar, WBSMainSplitView } from '../components/wbs';
 
 interface WBSPageProps {
   selectedProjectId?: number | null;
@@ -261,58 +261,35 @@ export const WBSPage: React.FC<WBSPageProps> = ({
           선택된 프로젝트/스프린트에 등록된 이슈가 없습니다.
         </div>
       ) : (
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-xs)',
-            overflow: 'hidden',
-            position: 'relative',
-          }}
-        >
-          {/* Left WBS Hierarchical Table */}
-          <WBSTreeTable
-            items={flatWBSItems}
-            issues={issues}
-            setIssues={setIssues}
-            collapsedIds={collapsedIds}
-            onToggleCollapse={toggleCollapse}
-            setCollapsedIds={setCollapsedIds}
-            onSelectIssue={onSelectIssue}
-            tableBodyRef={tableBodyRef}
-            onScroll={handleTableScroll}
-            leftWidth={leftWidth}
-            updatingIssueId={updatingIssueId}
-            getDescendantIssueIds={getDescendantIssueIds}
-            setUpdatingIssueId={setUpdatingIssueId}
-            setErrorMessage={setErrorMessage}
-            loadProjectData={loadProjectData}
-          />
-
-          {/* Right Gantt Chart Timeline */}
-          <WBSGanttTimeline
-            items={flatWBSItems}
-            timelineRange={timelineRange}
-            topHeaders={topHeaders}
-            bottomHeaders={bottomHeaders}
-            dayWidth={dayWidth}
-            dragState={dragState}
-            updatingIssueId={updatingIssueId}
-            liveDateMap={liveDateMap}
-            todayMarker={todayMarker}
-            sprintDueLines={sprintDueLines}
-            ganttHeaderRef={ganttHeaderRef}
-            ganttBodyRef={ganttBodyRef}
-            onScroll={handleGanttScroll}
-            getDescendantIssueIds={getDescendantIssueIds}
-            onMouseDownOnBar={handleMouseDownOnBar}
-            setUpdatingIssueId={setUpdatingIssueId}
-            setErrorMessage={setErrorMessage}
-            loadProjectData={loadProjectData}
-          />
-        </div>
+        <WBSMainSplitView
+          items={flatWBSItems}
+          issues={issues}
+          setIssues={setIssues}
+          collapsedIds={collapsedIds}
+          onToggleCollapse={toggleCollapse}
+          setCollapsedIds={setCollapsedIds}
+          onSelectIssue={onSelectIssue}
+          tableBodyRef={tableBodyRef}
+          onTableScroll={handleTableScroll}
+          leftWidth={leftWidth}
+          updatingIssueId={updatingIssueId}
+          getDescendantIssueIds={getDescendantIssueIds}
+          setUpdatingIssueId={setUpdatingIssueId}
+          setErrorMessage={setErrorMessage}
+          loadProjectData={loadProjectData}
+          timelineRange={timelineRange}
+          topHeaders={topHeaders}
+          bottomHeaders={bottomHeaders}
+          dayWidth={dayWidth}
+          dragState={dragState}
+          liveDateMap={liveDateMap}
+          todayMarker={todayMarker}
+          sprintDueLines={sprintDueLines}
+          ganttHeaderRef={ganttHeaderRef}
+          ganttBodyRef={ganttBodyRef}
+          onGanttScroll={handleGanttScroll}
+          onMouseDownOnBar={handleMouseDownOnBar}
+        />
       )}
     </div>
   );

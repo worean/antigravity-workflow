@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+﻿import React, { useRef } from 'react';
 
 /**
  * 팝업 오버레이(배경)를 마우스로 직접 누르고 뗐을 때만 모달이 닫히도록 제어하는 커스텀 훅.

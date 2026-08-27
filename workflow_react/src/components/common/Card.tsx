@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'glass' | 'glass-hover' | 'solid' | 'gradient';

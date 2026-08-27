@@ -154,7 +154,8 @@ export const getWBSColorByRootId = (rootId: number): WBSColorTheme => {
  */
 export const buildWBSTree = (
   issues: Issue[],
-  collapsedIds: Set<number>
+  collapsedIds: Set<number>,
+  projectDates?: { plannedStartDate?: string | null; dueDate?: string | null } | null
 ): { flatWBSItems: WBSItem[]; timelineRange: TimelineRange } => {
   const issueMap = new Map<number, Issue>();
   const childrenMap = new Map<number, Issue[]>();
@@ -222,20 +223,11 @@ export const buildWBSTree = (
   };
 
   const flatList: WBSItem[] = [];
-  let minDate: Date | null = null;
-  let maxDate: Date | null = null;
 
   const traverse = (iss: Issue, depth: number, isHiddenByParent: boolean, rootId: number) => {
     const children = childrenMap.get(iss.id) || [];
     const hasChildren = children.length > 0;
     const { start, end } = computeDates(iss);
-
-    if (start) {
-      if (!minDate || start < minDate) minDate = new Date(start);
-    }
-    if (end) {
-      if (!maxDate || end > maxDate) maxDate = new Date(end);
-    }
 
     if (!isHiddenByParent) {
       flatList.push({
@@ -262,11 +254,56 @@ export const buildWBSTree = (
   const sortedRootIssues = [...rootIssues].sort(compareWBSOrder);
   sortedRootIssues.forEach((root) => traverse(root, 0, false, root.id));
 
+  // 이슈들의 최소 시작일 및 최대 마감일 추출
+  let issueMinDate: Date | null = null;
+  let issueMaxDate: Date | null = null;
+
+  for (const item of flatList) {
+    if (item.startDate) {
+      if (!issueMinDate || item.startDate.getTime() < issueMinDate.getTime()) {
+        issueMinDate = item.startDate;
+      }
+    }
+    if (item.endDate) {
+      if (!issueMaxDate || item.endDate.getTime() > issueMaxDate.getTime()) {
+        issueMaxDate = item.endDate;
+      }
+    }
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const rangeStart = minDate ? new Date(minDate) : addDays(today, -7);
-  const rangeEnd = maxDate ? new Date(maxDate) : addDays(today, 21);
+  const projStart = parseLocalDate(projectDates?.plannedStartDate);
+  const projEnd = parseLocalDate(projectDates?.dueDate);
+
+  // 기본 범위: 프로젝트 시작계획일 ~ 기한 기준
+  // 프로젝트 범위 밖으로 이슈 일정이 설정된 경우, 더 이른 시작일/더 늦은 마감일을 포함하도록 확장
+  let rangeStart: Date;
+  if (projStart && issueMinDate) {
+    rangeStart = projStart.getTime() < issueMinDate.getTime() ? new Date(projStart) : new Date(issueMinDate);
+  } else if (projStart) {
+    rangeStart = new Date(projStart);
+  } else if (issueMinDate) {
+    rangeStart = new Date(issueMinDate);
+  } else {
+    rangeStart = addDays(today, -7);
+  }
+
+  let rangeEnd: Date;
+  if (projEnd && issueMaxDate) {
+    rangeEnd = projEnd.getTime() > issueMaxDate.getTime() ? new Date(projEnd) : new Date(issueMaxDate);
+  } else if (projEnd) {
+    rangeEnd = new Date(projEnd);
+  } else if (issueMaxDate) {
+    rangeEnd = new Date(issueMaxDate);
+  } else {
+    rangeEnd = addDays(today, 21);
+  }
+
+  if (rangeStart > rangeEnd) {
+    rangeEnd = addDays(rangeStart, 14);
+  }
 
   const paddedStart = addDays(rangeStart, -7);
   const paddedEnd = addDays(rangeEnd, 14);

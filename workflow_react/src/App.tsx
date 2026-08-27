@@ -267,6 +267,7 @@ const AppContent: React.FC = () => {
         <main style={{ flex: 1, height: '100%', padding: '12px 16px', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
           {activeTab === 'dashboard' && (
             <DashboardPage
+              key="tab-dashboard"
               onNavigate={(tab) => navigate(tab, selectedProjectId, null, 'view', false)}
               onOpenCreateIssue={handleOpenCreateIssue}
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
@@ -278,6 +279,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'projects' && (
             <ProjectsPage
+              key="tab-projects"
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
               onSelectProject={handleSelectProject}
               projects={projects}
@@ -288,6 +290,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'project-detail' && selectedProjectId && (
             <ProjectDetailPage
+              key={`tab-project-detail-${selectedProjectId}`}
               projectId={selectedProjectId}
               onBack={() => navigate('projects')}
               onGoToBoard={(pId) => {
@@ -315,6 +318,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'issues' && (
             <IssuesPage
+              key={`tab-issues-${selectedProjectId || 'all'}-${issueRefreshKey}`}
               onOpenCreateIssue={handleOpenCreateIssue}
               onSelectIssue={handleSelectIssue}
               selectedProjectId={selectedProjectId}
@@ -328,6 +332,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'issue-detail' && (
             <IssueDetailPage
+              key={`tab-issue-detail-${selectedIssueId}`}
               issueId={selectedIssueId}
               projectId={selectedProjectId}
               mode={issueDetailMode}
@@ -341,7 +346,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'chat' && (
             <ChatPage
-              key={`chat-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
+              key={`tab-chat-${isAuthenticated ? user?.id : 'guest'}-${selectedChannelId || 'none'}-${issueRefreshKey}`}
               selectedChannelId={selectedChannelId}
               onSelectChannel={(cId) => navigate('chat', null, null, 'view', true, { channelId: cId })}
               onOpenAuth={() => setIsAuthModalOpen(true)}
@@ -350,7 +355,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'sprints' && (
             <SprintsPage
-              key={`sprints-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
+              key={`tab-sprints-${selectedProjectId || 'all'}-${issueRefreshKey}`}
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('sprints', pId === 'ALL' ? null : pId, null, 'view', true)}
               onOpenAuth={() => setIsAuthModalOpen(true)}
@@ -359,7 +364,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'wbs' && (
             <WBSPage
-              key={`wbs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
+              key={`tab-wbs-${selectedProjectId || 'all'}-${issueRefreshKey}`}
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('wbs', pId, null, 'view', true)}
               onSelectIssue={handleSelectIssue}
@@ -369,14 +374,14 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'worklogs' && (
             <WorklogsPage
-              key={`worklogs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
+              key={`tab-worklogs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
           {activeTab === 'settings' && (
             <SettingsPage
-              key={`settings-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
+              key={`tab-settings-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}

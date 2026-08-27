@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertOctagon, X } from 'lucide-react';
 import type { ErrorModalState } from '../hooks/useActionFeedback';
 import { useOverlayClickClose } from '../hooks/useOverlayClickClose';

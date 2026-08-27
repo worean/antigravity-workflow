@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AntiGravity Workflow - Universal Desktop & Web Notification Utility
  */
 

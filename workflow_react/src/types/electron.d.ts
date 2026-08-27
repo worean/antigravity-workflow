@@ -1,4 +1,4 @@
-export interface ElectronNotificationOptions {
+﻿export interface ElectronNotificationOptions {
   title: string;
   body: string;
   urgency?: 'normal' | 'critical' | 'low';

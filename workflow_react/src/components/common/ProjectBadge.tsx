@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { FolderKanban } from 'lucide-react';
 import type { Project } from '../../types';
 

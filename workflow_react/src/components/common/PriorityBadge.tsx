@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import type { IssuePriority } from '../../types';
 import { getPriorityMeta, PRIORITY_LIST } from '../../utils/statusUtils';
 

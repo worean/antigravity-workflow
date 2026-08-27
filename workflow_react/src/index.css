@@ -1,4 +1,4 @@
-/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
+﻿/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
 
 :root {
   /* VS Code Core Colors */
@@ -420,7 +420,8 @@ textarea.input-field {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.25s ease-out forwards;
+  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
 }
 
 .transition-pending {

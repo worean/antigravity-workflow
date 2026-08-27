@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿// -*- coding: utf-8 -*-
+import React, { useState, useEffect } from 'react';
 import type { Issue } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -9,12 +10,9 @@ import {
   useDeleteIssue,
   useToggleLikeIssue,
 } from '../api';
-import { Plus, Heart, Trash2, Search, Calendar, Filter, GripVertical } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
-import { getProjectMembers } from '../utils/projectMembers';
-import { PriorityBadge, IssueTypeBadge, UserBadge, FavoriteButton } from '../components/common';
-import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
-import { STATUS_LIST, STATUS_CONFIG, parseStatusCategory, parsePriorityLevel } from '../utils/statusUtils';
+import { STATUS_CONFIG, parseStatusCategory } from '../utils/statusUtils';
+import { KanbanFilterBar, KanbanBoard } from '../components/kanban';
 
 interface IssuesPageProps {
   onOpenCreateIssue: () => void;
@@ -51,7 +49,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   const { data: projects = [] } = useProjects({ limit: 50 });
   const { data: users = [] } = useUsers();
 
-  // 2. Issues Query (TanStack Query with automatic caching & debounced filters)
+  // 2. Issues Query
   const queryProjectId = filterProjectId === 'ALL' ? undefined : filterProjectId;
   const queryAssigneeId = filterAssigneeId === 'MY' ? 'my' : filterAssigneeId === 'ALL' ? undefined : Number(filterAssigneeId);
 
@@ -59,7 +57,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     projectId: queryProjectId,
     assigneeId: queryAssigneeId,
     search: searchTerm.trim() || undefined,
-    all: true, // 보드 뷰에서는 전체 항목 표시
+    all: true,
   });
 
   // Mutations
@@ -208,15 +206,9 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     }
   };
 
-  const getIssuesByColumn = (columnKey: string) => {
-    return issues.filter((issue) => {
-      const cat = parseStatusCategory(issue.statusId || issue.status);
-      return cat === columnKey;
-    });
-  };
-
   return (
     <div
+      className="animate-fade-in"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -228,399 +220,42 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         boxSizing: 'border-box',
       }}
     >
-      {/* Top Filter Bar (Compact & Integrated) */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          flexWrap: 'wrap',
-          background: 'var(--bg-card)',
-          padding: '6px 10px',
-          borderRadius: 'var(--radius-xs)',
-          border: '1px solid var(--border-light)',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-sub)', fontSize: '0.78rem' }}>
-          <Filter size={13} color="var(--primary)" />
-          <span>필터:</span>
-        </div>
+      {/* 1. Top Filter Bar */}
+      <KanbanFilterBar
+        filterProjectId={filterProjectId}
+        handleProjectFilterChange={handleProjectFilterChange}
+        filterAssigneeId={filterAssigneeId}
+        handleAssigneeFilterChange={handleAssigneeFilterChange}
+        searchTerm={searchTerm}
+        handleSearchChange={handleSearchChange}
+        projects={projects}
+        users={users}
+        isAuthenticated={isAuthenticated}
+        onOpenCreateIssue={onOpenCreateIssue}
+        onOpenAuth={onOpenAuth}
+      />
 
-        {/* Project Filter */}
-        <select
-          value={filterProjectId}
-          onChange={(e) => handleProjectFilterChange(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-          className="input-field"
-          style={{ width: 'auto', minWidth: '140px' }}
-        >
-          <option value="ALL">전체 프로젝트 ({projects.length})</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.key})
-            </option>
-          ))}
-        </select>
+      {/* 2. Kanban Board Columns */}
+      <KanbanBoard
+        issues={issues}
+        loading={loading}
+        dragOverColumn={dragOverColumn}
+        draggedIssueId={draggedIssueId}
+        currentUser={user}
+        isAuthenticated={isAuthenticated}
+        handleDragOverColumn={handleDragOverColumn}
+        handleDragLeaveColumn={handleDragLeaveColumn}
+        handleDropOnColumn={handleDropOnColumn}
+        handleDragStart={handleDragStart}
+        handleDragEnd={handleDragEnd}
+        handleStatusChange={handleStatusChange}
+        handleOpenDeleteConfirm={handleOpenDeleteConfirm}
+        handleToggleLike={handleToggleLike}
+        onSelectIssue={onSelectIssue}
+        onOpenAuth={onOpenAuth}
+      />
 
-        {/* Assignee Filter */}
-        <select
-          value={filterAssigneeId}
-          onChange={(e) =>
-            handleAssigneeFilterChange(
-              e.target.value === 'MY' ? 'MY' : e.target.value === 'ALL' ? 'ALL' : Number(e.target.value)
-            )
-          }
-          className="input-field"
-          style={{ width: 'auto', minWidth: '130px' }}
-        >
-          <option value="ALL">전체 담당자</option>
-          {isAuthenticated && <option value="MY">내 담당 일감 (My Tasks)</option>}
-          {getProjectMembers(
-            filterProjectId !== 'ALL' ? projects.find((p) => p.id === filterProjectId) : undefined,
-            users
-          ).map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name ? `${u.name} (${u.email})` : u.email}
-            </option>
-          ))}
-        </select>
-
-        {/* Search Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: '160px' }}>
-          <Search size={13} color="var(--text-muted)" />
-          <input
-            type="text"
-            className="input-field"
-            placeholder="이슈 검색 (제목/설명)..."
-            value={searchTerm}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
-        </div>
-
-        {/* Auth Buttons */}
-        {!isAuthenticated && onOpenAuth && (
-          <button className="btn btn-primary btn-sm" onClick={onOpenAuth}>
-            로그인
-          </button>
-        )}
-        {isAuthenticated && (
-          <button className="btn btn-primary btn-sm" onClick={onOpenCreateIssue}>
-            <Plus size={13} /> 이슈 생성
-          </button>
-        )}
-      </div>
-
-      {/* Kanban Board Grid (100% Height to bottom) */}
-      {loading && issues.length === 0 ? (
-        <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          이슈 불러오는 중...
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(240px, 1fr))',
-            gap: '8px',
-            flex: 1,
-            height: '100%',
-            minHeight: 0,
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            alignItems: 'stretch',
-          }}
-        >
-          {STATUS_LIST.map((col) => {
-            const columnIssues = getIssuesByColumn(col.key);
-            const isColumnHovered = dragOverColumn === col.key;
-
-            return (
-              <div
-                key={col.key}
-                onDragOver={(e) => handleDragOverColumn(e, col.key)}
-                onDragEnter={(e) => handleDragOverColumn(e, col.key)}
-                onDragLeave={handleDragLeaveColumn}
-                onDrop={(e) => handleDropOnColumn(e, col.key)}
-                style={{
-                  background: isColumnHovered ? '#2a2d2e' : 'var(--bg-card)',
-                  borderRadius: 'var(--radius-xs)',
-                  border: isColumnHovered ? '1px solid var(--primary)' : '1px solid var(--border-light)',
-                  boxShadow: isColumnHovered ? 'inset 0 0 0 1px var(--primary)' : 'none',
-                  padding: '8px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
-                  height: '100%',
-                  minHeight: 0,
-                  overflow: 'hidden',
-                  boxSizing: 'border-box',
-                  transition: 'background-color 0.1s ease, border-color 0.1s ease',
-                }}
-              >
-                {/* Column Header (VS Code Tab/Pane style) */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: '6px',
-                    borderBottom: `2px solid ${col.color}`,
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: 'var(--text-bright)' }}>
-                      {col.fullLabel}
-                    </span>
-                    {isColumnHovered && (
-                      <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)', background: 'rgba(0,122,204,0.2)', padding: '1px 4px', borderRadius: '2px' }}>
-                        여기에 놓기
-                      </span>
-                    )}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      background: '#333333',
-                      color: 'var(--text-main)',
-                      padding: '1px 6px',
-                      borderRadius: '10px',
-                    }}
-                  >
-                    {columnIssues.length}
-                  </span>
-                </div>
-
-                {/* Column Cards Area (Scrolls internally if overflowed) */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '5px',
-                    flex: 1,
-                    overflowY: 'auto',
-                    minHeight: 0,
-                    paddingRight: '2px',
-                  }}
-                >
-                  {columnIssues.length === 0 ? (
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        color: isColumnHovered ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                        textAlign: 'center',
-                        padding: '24px 0',
-                        border: isColumnHovered ? '1px dashed var(--primary)' : 'none',
-                        borderRadius: 'var(--radius-xs)',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {isColumnHovered ? '이곳으로 드롭하세요' : '항목 없음'}
-                    </div>
-                  ) : (
-                    columnIssues.map((issue) => {
-                      const isThisCardDragged = draggedIssueId === issue.id;
-                      const priorityLevel = parsePriorityLevel(issue.priorityId || issue.priority);
-                      const isCritical = priorityLevel === 'CRITICAL';
-                      const isHigh = priorityLevel === 'HIGH';
-                      const isMedium = priorityLevel === 'MEDIUM';
-                      const priorityClass = isCritical
-                        ? 'card-priority-critical'
-                        : isHigh
-                        ? 'card-priority-high'
-                        : isMedium
-                        ? 'card-priority-medium'
-                        : 'card-priority-low';
-
-                      return (
-                        <div
-                          key={issue.id}
-                          draggable={true}
-                          onDragStart={(e) => handleDragStart(e, issue)}
-                          onDragEnd={handleDragEnd}
-                          className={`glass-panel glass-panel-hover ${priorityClass}`}
-                          style={{
-                            padding: '6px 8px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '5px',
-                            cursor: 'grab',
-                            background: '#2d2d2d',
-                            border: isThisCardDragged ? '1px dashed var(--primary)' : undefined,
-                            borderRadius: 'var(--radius-xs)',
-                            opacity: isThisCardDragged ? 0.4 : 1,
-                            userSelect: 'none',
-                            flexShrink: 0,
-                            transition: 'opacity 0.15s ease, transform 0.1s ease',
-                          }}
-                          onClick={() => onSelectIssue(issue)}
-                        >
-
-
-                          {/* Header: ID, Type, Priority, Drag Handle & Delete */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <GripVertical size={11} color="var(--text-muted)" style={{ cursor: 'grab' }} />
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)' }}>
-                                #{issue.id}
-                              </span>
-                              <IssueTypeBadge type={issue.typeId || issue.type} size="sm" />
-                              <PriorityBadge priority={issue.priorityId || issue.priority} size="sm" />
-                            </div>
-                            {isAuthenticated && (
-                              <button
-                                onClick={(e) => handleOpenDeleteConfirm(e, issue)}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-                                title="삭제"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Issue Title (Crisp) */}
-                          <div
-                            style={{
-                              fontSize: '0.82rem',
-                              fontWeight: 600,
-                              color: 'var(--text-bright)',
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                            }}
-                          >
-                            {issue.title}
-                          </div>
-
-                          {/* Project & Assignee info */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }}>
-                              📁 {issue.project?.name || `Prj #${issue.projectId}`}
-                            </span>
-                            <UserBadge user={issue.assignee} currentUserId={user?.id} size="sm" />
-                          </div>
-
-                          {/* Due Date Indicator (Compact) */}
-                          {issue.dueDate && (
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                background: '#252526',
-                                padding: '2px 5px',
-                                borderRadius: '2px',
-                                fontSize: '0.7rem',
-                                border: '1px solid #383838',
-                              }}
-                            >
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#9cdcfe' }}>
-                                <Calendar size={11} /> {formatDateOnly(issue.dueDate)}
-                              </span>
-                              {(() => {
-                                const dday = getDDayStatus(issue.dueDate);
-                                if (!dday) return null;
-                                return (
-                                  <span
-                                    style={{
-                                      fontWeight: 700,
-                                      fontSize: '0.65rem',
-                                      padding: '0 4px',
-                                      borderRadius: '2px',
-                                      color: dday.color,
-                                      background: dday.bg,
-                                    }}
-                                  >
-                                    {dday.label}
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          )}
-
-                          {/* Footer: Quick Status Switch & Likes */}
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              borderTop: '1px solid #383838',
-                              paddingTop: '4px',
-                              marginTop: '2px',
-                            }}
-                          >
-                            <select
-                              value={col.key}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(issue.id, e.target.value);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              style={{
-                                background: '#252526',
-                                border: '1px solid #3c3c3c',
-                                color: 'var(--text-sub)',
-                                fontSize: '0.7rem',
-                                borderRadius: '2px',
-                                padding: '1px 4px',
-                                outline: 'none',
-                                height: '20px',
-                              }}
-                            >
-                              {STATUS_LIST.map((s) => (
-                                <option key={s.key} value={s.key}>
-                                  {s.key}
-                                </option>
-                              ))}
-                            </select>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <FavoriteButton
-                                targetType="ISSUE"
-                                targetId={issue.id}
-                                isFavorite={issue.isFavorite}
-                                size="xs"
-                                onOpenAuth={onOpenAuth}
-                              />
-
-                              <button
-                                onClick={(e) => handleToggleLike(e, issue)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: issue.isLiked ? '#f14c4c' : 'var(--text-muted)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '2px',
-                                  fontSize: '0.7rem',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <Heart size={11} fill={issue.isLiked ? '#f14c4c' : 'none'} />
-                                {issue.likesCount || 0}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Delete Confirm Modal */}
+      {/* 3. Delete Confirm Modal */}
       <ConfirmModal
         isOpen={!!deletingIssue}
         title="이슈 삭제"
