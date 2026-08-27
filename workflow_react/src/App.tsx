@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Header } from './components/Header';
 
 import { Sidebar, type TabType } from './components/Sidebar';
@@ -34,6 +34,7 @@ interface RouteState {
 }
 
 const AppContent: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
   const parseRouteFromUrl = (): RouteState => {
     try {
       const hash = window.location.hash.replace(/^#/, '');
@@ -52,11 +53,11 @@ const AppContent: React.FC = () => {
 
         return { tab, projectId, assigneeId, search, issueId, mode };
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // fallback
     }
 
-    const savedTab = localStorage.getItem('activeTab') as TabType;
+    const savedTab = (localStorage.getItem('activeTab') as TabType) || 'dashboard';
     const savedProjectId = localStorage.getItem('selectedProjectId');
     const validTabs: TabType[] = ['dashboard', 'chat', 'projects', 'project-detail', 'issues', 'sprints', 'wbs', 'worklogs', 'issue-detail', 'settings'];
 
@@ -89,6 +90,12 @@ const AppContent: React.FC = () => {
   const handleIssueRefreshed = useCallback(() => {
     setIssueRefreshKey(Date.now());
   }, []);
+
+  // 로그인 및 로그아웃 시 전체 프로젝트 목록 및 화면 상태 리프레시
+  useEffect(() => {
+    fetchProjects();
+    setIssueRefreshKey(Date.now());
+  }, [isAuthenticated, user?.id]);
 
   const navigate = useCallback(
     (
@@ -298,12 +305,12 @@ const AppContent: React.FC = () => {
           )}
 
 
-          {activeTab === 'chat' && <ChatPage />}
-          {activeTab === 'sprints' && <SprintsPage />}
-          {activeTab === 'wbs' && <WBSPage onSelectIssue={handleSelectIssue} />}
-          {activeTab === 'worklogs' && <WorklogsPage />}
+          {activeTab === 'chat' && <ChatPage key={`chat-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} />}
+          {activeTab === 'sprints' && <SprintsPage key={`sprints-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} />}
+          {activeTab === 'wbs' && <WBSPage key={`wbs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onSelectIssue={handleSelectIssue} />}
+          {activeTab === 'worklogs' && <WorklogsPage key={`worklogs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} />}
 
-          {activeTab === 'settings' && <SettingsPage onOpenAuth={() => setIsAuthModalOpen(true)} />}
+          {activeTab === 'settings' && <SettingsPage key={`settings-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`} onOpenAuth={() => setIsAuthModalOpen(true)} />}
         </main>
       </div>
 

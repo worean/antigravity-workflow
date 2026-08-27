@@ -1,6 +1,8 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../types';
 import { getMe, loginEmail, registerUser } from '../services/api';
+import { queryClient } from '../lib/queryClient';
+import { disconnectSocket, getSocket } from '../lib/socketClient';
 
 interface AuthContextType {
   user: User | null;
@@ -48,10 +50,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const res = await getMe();
           setUser(res.user);
+          localStorage.setItem('user', JSON.stringify(res.user));
           syncPreferencesToStorage(res.user);
         } catch (err) {
           console.error('Failed to restore user session:', err);
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+          disconnectSocket();
           setToken(null);
           setUser(null);
         }
@@ -66,9 +71,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await loginEmail(email, password);
     if (res.token) {
       localStorage.setItem('auth_token', res.token);
+      localStorage.setItem('user', JSON.stringify(res.user));
       setToken(res.token);
       setUser(res.user);
       syncPreferencesToStorage(res.user);
+
+      // 소켓 재연결 및 쿼리 캐시 무효화/리패치
+      disconnectSocket();
+      getSocket(res.token);
+      queryClient.clear();
+      queryClient.invalidateQueries();
     }
   };
 
@@ -80,8 +92,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    disconnectSocket();
     setToken(null);
     setUser(null);
+    queryClient.clear();
+    queryClient.resetQueries();
   };
 
   const updateUserLocal = (updated: User) => {
