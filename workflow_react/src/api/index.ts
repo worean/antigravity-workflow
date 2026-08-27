@@ -7,3 +7,5 @@ export * from './sprints';
 export * from './customFields';
 export * from './worklogs';
 export * from './groups';
+export * from './favorites';
+

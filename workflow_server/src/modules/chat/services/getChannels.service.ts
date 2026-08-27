@@ -133,6 +133,12 @@ export const getChannelsService = async (userId: number, tx?: PrismaTx) => {
     orderBy: { createdAt: 'asc' },
   });
 
+  const favList = await db.favorite.findMany({
+    where: { userId, targetType: 'CHAT_CHANNEL' },
+    select: { targetId: true },
+  });
+  const favSet = new Set(favList.map((f) => f.targetId));
+
   // 5. 각 채널별 unreadCount 및 사용자 멤버십 메타데이터 가공
   const enrichedChannels = await Promise.all(
     channels.map(async (channel) => {
@@ -174,6 +180,7 @@ export const getChannelsService = async (userId: number, tx?: PrismaTx) => {
         topic: channel.topic,
         icon: channel.icon,
         isPrivate: channel.isPrivate,
+        isFavorite: favSet.has(channel.id),
         projectId: channel.projectId,
         project: channel.project,
         groupId: channel.groupId,
@@ -216,6 +223,12 @@ export const getChannelsService = async (userId: number, tx?: PrismaTx) => {
       };
     })
   );
+
+  // ⭐ 즐겨찾기 항목 최우선 상단 정렬
+  enrichedChannels.sort((a, b) => {
+    if (a.isFavorite === b.isFavorite) return 0;
+    return a.isFavorite ? -1 : 1;
+  });
 
   return enrichedChannels;
 };

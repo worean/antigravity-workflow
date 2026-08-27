@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const getProjectsService = async (query: any = {}, currentUserId?: number) => {
   const {
@@ -82,7 +82,7 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
     ? Math.max(0, Number(skipQuery ?? offset))
     : undefined;
 
-  return await prisma.project.findMany({
+  const projects = await prisma.project.findMany({
     where,
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
@@ -96,4 +96,27 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
     take,
     skip
   });
+
+  if (!currentUserId) {
+    return projects.map((p) => ({ ...p, isFavorite: false }));
+  }
+
+  const favList = await prisma.favorite.findMany({
+    where: { userId: currentUserId, targetType: 'PROJECT' },
+    select: { targetId: true },
+  });
+  const favSet = new Set(favList.map((f) => f.targetId));
+
+  const listWithFav = projects.map((p) => ({
+    ...p,
+    isFavorite: favSet.has(p.id),
+  }));
+
+  // ⭐ 즐겨찾기 항목 최우선 상단 정렬
+  listWithFav.sort((a, b) => {
+    if (a.isFavorite === b.isFavorite) return 0;
+    return a.isFavorite ? -1 : 1;
+  });
+
+  return listWithFav;
 };

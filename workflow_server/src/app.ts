@@ -15,6 +15,7 @@ import { worklogRouter } from './modules/worklogs/worklogs.routes.js';
 import { activityLogRouter } from './modules/activityLogs/activityLogs.routes.js';
 import { groupRouter } from './modules/groups/groups.routes.js';
 import { chatRouter } from './modules/chat/chat.routes.js';
+import { favoriteRouter } from './modules/favorites/favorites.routes.js';
 
 dotenv.config();
 
@@ -50,5 +51,7 @@ app.use('/api/link-previews', linkPreviewRouter);
 app.use('/api/worklogs', worklogRouter);
 app.use('/api/activity-logs', activityLogRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/favorites', favoriteRouter);
+
 
 

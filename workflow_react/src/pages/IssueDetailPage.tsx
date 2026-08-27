@@ -38,7 +38,9 @@ import {
   GitBranch,
   CornerDownRight,
   ChevronRight,
+  Star,
 } from 'lucide-react';
+import { useToggleFavorite } from '../api/favorites';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { IssueModal } from '../components/IssueModal';
 import { useActionFeedback } from '../hooks/useActionFeedback';
@@ -84,6 +86,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
 
 
   const { user, isAuthenticated } = useAuth();
+  const toggleFavoriteMutation = useToggleFavorite();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
 
   const [issue, setIssue] = useState<Issue | null>(null);
@@ -511,6 +514,36 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
       {/* Main Detail & Edit Panel */}
       <div className="glass-panel" style={{ padding: '14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (issue) {
+                toggleFavoriteMutation.mutate(
+                  { targetType: 'ISSUE', targetId: issue.id },
+                  {
+                    onSuccess: (data) => {
+                      setIssue((prev) => (prev ? { ...prev, isFavorite: data.isFavorite } : prev));
+                    },
+                  }
+                );
+              }
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            title={issue.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
+          >
+            <Star
+              size={15}
+              fill={issue.isFavorite ? '#eab308' : 'none'}
+              color={issue.isFavorite ? '#eab308' : 'var(--text-muted)'}
+            />
+          </button>
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>
             #{issue.id}
           </span>

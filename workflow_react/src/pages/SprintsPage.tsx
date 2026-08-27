@@ -25,10 +25,12 @@ import {
   Layers,
   Sparkles,
   X,
+  Star,
+  LogIn,
 } from 'lucide-react';
+import { useToggleFavorite } from '../api/favorites';
 import { Button, Card, Spinner, StatusBadge, ProjectBadge, Avatar } from '../components/common';
 import { formatDateOnly } from '../utils/dateUtils';
-import { LogIn } from 'lucide-react';
 
 type SprintStatusFilter = 'ALL' | 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 
@@ -38,6 +40,7 @@ interface SprintsPageProps {
 
 export const SprintsPage: React.FC<SprintsPageProps> = ({ onOpenAuth }) => {
   const { isAuthenticated } = useAuth();
+  const toggleFavoriteMutation = useToggleFavorite();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -65,6 +68,25 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({ onOpenAuth }) => {
   const [manageLoading, setManageLoading] = useState<boolean>(false);
   const [backlogSearch, setBacklogSearch] = useState<string>('');
   const [autoCalculating, setAutoCalculating] = useState<boolean>(false);
+
+  const handleToggleFavorite = (e: React.MouseEvent, sprint: Sprint) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    toggleFavoriteMutation.mutate(
+      {
+        targetType: 'SPRINT',
+        targetId: sprint.id,
+      },
+      {
+        onSuccess: () => {
+          fetchData();
+        },
+      }
+    );
+  };
 
   const fetchData = async (showLoading: boolean = false) => {
     if (showLoading) setLoading(true);
@@ -464,6 +486,26 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({ onOpenAuth }) => {
                     <ProjectBadge project={s.project} projectId={s.projectId} size="sm" />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleFavorite(e, s)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title={s.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
+                    >
+                      <Star
+                        size={13}
+                        fill={s.isFavorite ? '#eab308' : 'none'}
+                        color={s.isFavorite ? '#eab308' : 'var(--text-muted)'}
+                      />
+                    </button>
                     <StatusBadge status={s.status} size="sm" />
                   </div>
                 </div>

@@ -29,7 +29,9 @@ import {
   AlertCircle,
   Crown,
   X,
+  Star,
 } from 'lucide-react';
+import { useToggleFavorite } from '../api/favorites';
 import { Button, Spinner, Avatar, MarkdownViewer, MarkdownEditor, StatusBadge, PriorityBadge } from '../components/common';
 import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
 import { useActionFeedback } from '../hooks/useActionFeedback';
@@ -44,6 +46,7 @@ interface ProjectDetailPageProps {
   onGoToSprints?: (projectId: number) => void;
   onProjectUpdated?: (project: Project) => void;
   onProjectDeleted?: (projectId: number) => void;
+  onOpenAuth?: () => void;
 }
 
 export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
@@ -54,8 +57,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   onGoToSprints,
   onProjectUpdated,
   onProjectDeleted,
+  onOpenAuth,
 }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const toggleFavoriteMutation = useToggleFavorite();
   const { errorState, closeErrorModal, executeAction } = useActionFeedback();
 
   const [project, setProject] = useState<Project | null>(null);
@@ -375,6 +380,41 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
           <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-bright)' }}>
             {project.name}
           </span>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAuthenticated) {
+                if (onOpenAuth) onOpenAuth();
+                return;
+              }
+              if (project) {
+                toggleFavoriteMutation.mutate(
+                  { targetType: 'PROJECT', targetId: project.id },
+                  {
+                    onSuccess: (data) => {
+                      setProject((prev) => (prev ? { ...prev, isFavorite: data.isFavorite } : prev));
+                    },
+                  }
+                );
+              }
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            title={project.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
+          >
+            <Star
+              size={16}
+              fill={project.isFavorite ? '#eab308' : 'none'}
+              color={project.isFavorite ? '#eab308' : 'var(--text-muted)'}
+            />
+          </button>
         </div>
 
         {/* Right: Quick Links & Actions */}

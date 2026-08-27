@@ -62,6 +62,15 @@ export interface ProjectGroup {
   createdAt?: string;
 }
 
+export interface Favorite {
+  id: number;
+  userId?: number;
+  targetType: 'PROJECT' | 'ISSUE' | 'SPRINT' | 'CHAT_CHANNEL';
+  targetId: number;
+  createdAt: string;
+  detail?: any;
+}
+
 export interface Project {
   id: number;
   name: string;
@@ -77,6 +86,7 @@ export interface Project {
   dueDate?: string | null;
   actualStartDate?: string | null;
   actualEndDate?: string | null;
+  isFavorite?: boolean;
   members?: ProjectMember[];
   groups?: ProjectGroup[];
   sprints?: Sprint[];
@@ -149,6 +159,7 @@ export interface Issue {
   customFields?: any;
   progress?: number;
   isLiked?: boolean;
+  isFavorite?: boolean;
   likesCount?: number;
   commentsCount?: number;
   attachmentsCount?: number;
@@ -196,6 +207,7 @@ export interface Sprint {
   status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | string;
   projectId: number;
   project?: Project;
+  isFavorite?: boolean;
   issues?: Issue[];
   _count?: {
     issues?: number;
@@ -245,6 +257,7 @@ export interface ChatChannel {
   topic?: string | null;
   icon?: string | null;
   isPrivate?: boolean;
+  isFavorite?: boolean;
   projectId?: number | null;
   project?: { id: number; name: string; key: string } | null;
   groupId?: number | null;

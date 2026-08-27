@@ -232,6 +232,10 @@ const AppContent: React.FC = () => {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onOpenAuth={() => setIsAuthModalOpen(true)}
+          onSelectProjectDetail={(pId) => navigate('project-detail', pId, null, 'view', false)}
+          onSelectProjectIssues={(pId) => navigate('issues', pId, null, 'view', false, { assigneeId: 'ALL', search: '' })}
+          onSelectProjectWBS={(pId) => navigate('wbs', pId, null, 'view', false)}
+          onSelectChatChannel={() => navigate('chat', null, null, 'view', false)}
         />
 
         <main style={{ flex: 1, height: '100%', padding: '12px 16px', overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
@@ -279,6 +283,7 @@ const AppContent: React.FC = () => {
                 setProjects((prev) => prev.filter((p) => p.id !== delId));
                 navigate('projects');
               }}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 

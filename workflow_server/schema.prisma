@@ -131,6 +131,8 @@ model User {
   chatMessages     ChatMessage[]
   chatReactions    ChatMessageReaction[]
 
+  favorites        Favorite[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -825,5 +827,20 @@ model ChatMessageReaction {
   @@unique([messageId, userId, emoji])
   @@index([messageId])
 }
+
+// 🌟 즐겨찾기 (Favorites / Stars - 프로젝트, 이슈, 스프린트, 채팅방)
+model Favorite {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType String   // "PROJECT" | "ISSUE" | "SPRINT" | "CHAT_CHANNEL"
+  targetId   Int
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId, targetType])
+  @@index([targetType, targetId])
+}
+
 
 

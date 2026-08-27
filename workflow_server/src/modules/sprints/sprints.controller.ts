@@ -1,4 +1,4 @@
-﻿// -*- coding: utf-8 -*-
+// -*- coding: utf-8 -*-
 import { Request, Response } from 'express';
 import { createSprintService } from './services/createSprint.service.js';
 import { getSprintsService } from './services/getSprints.service.js';
@@ -19,7 +19,8 @@ export const createSprint = async (req: Request, res: Response) => {
 export const getSprints = async (req: Request, res: Response) => {
   try {
     const pId = req.query.projectId ? Number(req.query.projectId) : undefined;
-    const sprints = await getSprintsService(pId);
+    const currentUserId = req.user ? req.user.id : undefined;
+    const sprints = await getSprintsService(pId, currentUserId);
     res.json(sprints);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export interface PaginatedIssuesResult {
   items: any[];
@@ -128,15 +128,33 @@ export const getIssuesService = async (query: any = {}, currentUserId?: number) 
     })
   ]);
 
+  let favSet = new Set<number>();
+  if (currentUserId) {
+    const favList = await prisma.favorite.findMany({
+      where: { userId: currentUserId, targetType: 'ISSUE' },
+      select: { targetId: true },
+    });
+    favSet = new Set(favList.map((f) => f.targetId));
+  }
+
   const items = issues.map(item => ({
     ...item,
     isLiked: currentUserId && Array.isArray(item.likes) ? item.likes.length > 0 : false,
+    isFavorite: favSet.has(item.id),
     likesCount: item._count?.likes ?? (Array.isArray(item.likes) ? item.likes.length : 0),
     commentsCount: item._count?.comments ?? 0,
     attachmentsCount: item._count?.attachments ?? 0,
     childrenCount: item._count?.children ?? 0,
     customFields: item.customFields ? JSON.parse(item.customFields) : null
   }));
+
+  // ⭐ 즐겨찾기 항목 최우선 상단 정렬
+  if (currentUserId) {
+    items.sort((a, b) => {
+      if (a.isFavorite === b.isFavorite) return 0;
+      return a.isFavorite ? -1 : 1;
+    });
+  }
 
   const effectiveLimit = take ?? totalCount;
   const totalPages = effectiveLimit > 0 ? Math.ceil(totalCount / effectiveLimit) : 1;

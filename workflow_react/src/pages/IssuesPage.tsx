@@ -8,8 +8,9 @@ import {
   useUpdateIssue,
   useDeleteIssue,
   useToggleLikeIssue,
+  useToggleFavorite,
 } from '../api';
-import { Plus, Heart, Trash2, Search, Calendar, Filter, GripVertical } from 'lucide-react';
+import { Plus, Heart, Trash2, Search, Calendar, Filter, GripVertical, Star } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { getProjectMembers } from '../utils/projectMembers';
 import { PriorityBadge, IssueTypeBadge, UserBadge } from '../components/common';
@@ -66,6 +67,19 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   const updateIssueMutation = useUpdateIssue();
   const deleteIssueMutation = useDeleteIssue();
   const toggleLikeMutation = useToggleLikeIssue();
+  const toggleFavoriteMutation = useToggleFavorite();
+
+  const handleToggleFavorite = (e: React.MouseEvent, issue: Issue) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    toggleFavoriteMutation.mutate({
+      targetType: 'ISSUE',
+      targetId: issue.id,
+    });
+  };
 
   // Drag and Drop States
   const [draggedIssueId, setDraggedIssueId] = useState<number | null>(null);
@@ -583,6 +597,25 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
                             </select>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => handleToggleFavorite(e, issue)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: issue.isFavorite ? '#eab308' : 'var(--text-muted)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '2px',
+                                  fontSize: '0.7rem',
+                                  cursor: 'pointer',
+                                  padding: '2px',
+                                }}
+                                title={issue.isFavorite ? '즐겨찾기 해제' : '즐겨찾기 등록'}
+                              >
+                                <Star size={11} fill={issue.isFavorite ? '#eab308' : 'none'} color={issue.isFavorite ? '#eab308' : '#9ca3af'} />
+                              </button>
+
                               <button
                                 onClick={(e) => handleToggleLike(e, issue)}
                                 style={{
