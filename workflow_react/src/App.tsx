@@ -241,6 +241,7 @@ const AppContent: React.FC = () => {
               onOpenCreateIssue={handleOpenCreateIssue}
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
               onSelectIssue={handleSelectIssue}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
               refreshKey={issueRefreshKey}
             />
           )}

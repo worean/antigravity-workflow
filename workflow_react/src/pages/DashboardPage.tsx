@@ -1,16 +1,15 @@
-import React, { Suspense, useTransition } from 'react';
+﻿import React, { useState } from 'react';
 import type { Issue } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSuspenseProjects, useSuspenseIssues, useIssues, issueKeys, projectKeys } from '../api';
-import { FolderKanban, CheckSquare, Clock, CheckCircle2, ArrowUpRight, Plus, RefreshCw, Terminal } from 'lucide-react';
+import { useProjects, useIssues, issueKeys, projectKeys } from '../api';
+import { FolderKanban, CheckSquare, Clock, CheckCircle2, ArrowUpRight, Plus, RefreshCw, Terminal, LogIn } from 'lucide-react';
 import {
   Button,
   CountBadge,
   StatusBadge,
   ProjectBadge,
   Avatar,
-  SkeletonDashboard,
 } from '../components/common';
 import { formatDateOnly } from '../utils/dateUtils';
 import { parseStatusCategory } from '../utils/statusUtils';
@@ -20,37 +19,36 @@ interface DashboardPageProps {
   onOpenCreateIssue: () => void;
   onOpenCreateProject: () => void;
   onSelectIssue?: (issue: Issue) => void;
+  onOpenAuth?: () => void;
   refreshKey?: number;
 }
 
-const DashboardContent: React.FC<DashboardPageProps> = ({
+export const DashboardPage: React.FC<DashboardPageProps> = ({
   onNavigate,
   onOpenCreateIssue,
   onOpenCreateProject,
   onSelectIssue,
+  onOpenAuth,
 }) => {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const [isPending, startTransition] = useTransition();
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // 1. useSuspenseQuery를 활용한 선언적 데이터 로딩 (Suspense 연동)
-  const { data: projects = [] } = useSuspenseProjects({
-    limit: 30,
-    sortBy: 'updatedAt',
-    order: 'desc',
-  });
+  // 1. 일반 useQuery를 사용하여 비로그인(게스트) 시에도 에러 throw 없이 안전하게 기본값 처리
+  const { data: projects = [] } = useProjects(
+    { limit: 30, sortBy: 'updatedAt', order: 'desc' },
+    { enabled: isAuthenticated }
+  );
 
-  const { data: recentIssues = [] } = useSuspenseIssues({
-    limit: 6,
-    sortBy: 'id',
-    order: 'desc',
-  });
+  const { data: recentIssues = [] } = useIssues(
+    { limit: 6, sortBy: 'id', order: 'desc' },
+    { enabled: isAuthenticated }
+  );
 
-  const { data: statsIssues = [] } = useSuspenseIssues({
-    limit: 100,
-    sortBy: 'id',
-    order: 'desc',
-  });
+  const { data: statsIssues = [] } = useIssues(
+    { limit: 100, sortBy: 'id', order: 'desc' },
+    { enabled: isAuthenticated }
+  );
 
   // 내 담당 이슈는 로그인 여부에 따라 조건부 조회
   const { data: myAssignedIssues = [] } = useIssues(
@@ -58,12 +56,16 @@ const DashboardContent: React.FC<DashboardPageProps> = ({
     { enabled: isAuthenticated }
   );
 
-  // useTransition을 활용한 부드러운(Smooth) 백그라운드 새로고침
-  const handleRefresh = () => {
-    startTransition(() => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
-    });
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: issueKeys.all }),
+        queryClient.invalidateQueries({ queryKey: projectKeys.all }),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const inProgressCount = statsIssues.filter((i) => {
@@ -92,8 +94,39 @@ const DashboardContent: React.FC<DashboardPageProps> = ({
   return (
     <div
       style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-      className={`animate-fade-in ${isPending ? 'transition-pending' : ''}`}
+      className={`animate-fade-in ${isRefreshing ? 'transition-pending' : ''}`}
     >
+      {/* Guest Mode Banner */}
+      {!isAuthenticated && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.12))',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
+            borderRadius: 'var(--radius-xs)',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-bright)' }}>
+              👋 게스트 모드로 접속 중입니다
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+              로그인하시면 프로젝트 생성, 일감 관리, 실시간 통계 및 실시간 채팅을 자유롭게 이용하실 수 있습니다.
+            </div>
+          </div>
+          {onOpenAuth && (
+            <Button variant="primary" size="sm" icon={<LogIn size={13} />} onClick={onOpenAuth}>
+              로그인 / 회원가입
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Top Compact Summary Toolbar */}
       <div
         style={{
@@ -120,9 +153,14 @@ const DashboardContent: React.FC<DashboardPageProps> = ({
         </div>
 
         <div style={{ display: 'flex', gap: '6px' }}>
-          <Button variant="secondary" size="sm" icon={<RefreshCw size={12} />} onClick={handleRefresh}>
+          <Button variant="secondary" size="sm" icon={<RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />} onClick={handleRefresh}>
             새로고침
           </Button>
+          {!isAuthenticated && onOpenAuth && (
+            <Button variant="primary" size="sm" icon={<LogIn size={12} />} onClick={onOpenAuth}>
+              로그인
+            </Button>
+          )}
           {isAuthenticated && (
             <>
               <Button variant="secondary" size="sm" icon={<Plus size={12} />} onClick={onOpenCreateProject}>
@@ -365,13 +403,5 @@ function DashboardIssueCard(issue: Issue) {
     <ProjectBadge project={issue.project} projectId={issue.projectId} size="sm" />
   </div>;
 }
-
-export const DashboardPage: React.FC<DashboardPageProps> = (props) => {
-  return (
-    <Suspense fallback={<SkeletonDashboard />}>
-      <DashboardContent {...props} />
-    </Suspense>
-  );
-};
 
 
