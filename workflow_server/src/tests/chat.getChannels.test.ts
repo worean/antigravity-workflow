@@ -55,4 +55,33 @@ describe('💬 [Chat: getChannels] Unit Tests', () => {
     expect(u1Channels.some((c) => c.id === dm.id)).toBe(true);
     expect(u2Channels.some((c) => c.id === dm.id)).toBe(true);
   });
+
+  it('3. 유저가 소유하거나 참여한 프로젝트 채널이 자동으로 프로비저닝되어 조회되어야 합니다.', async () => {
+    const channels = await getChannelsService(user1.id);
+    const projChannel = channels.find((c) => c.type === 'PROJECT' && c.projectId === project.id);
+
+    expect(projChannel).toBeDefined();
+    expect(projChannel?.name).toBe('Chat Test Project');
+  });
+
+  it('4. 그룹 생성 및 그룹 채널 생성이 정상 동작해야 합니다.', async () => {
+    const group = await prisma.group.create({
+      data: {
+        name: '개발 1팀',
+        code: `DEV_${Date.now()}`,
+        members: {
+          create: [
+            { userId: user1.id, role: 'LEADER' },
+            { userId: user2.id, role: 'MEMBER' },
+          ],
+        },
+      },
+    });
+
+    const channels = await getChannelsService(user1.id);
+    const groupChannel = channels.find((c) => c.type === 'GROUP' && c.groupId === group.id);
+
+    expect(groupChannel).toBeDefined();
+    expect(groupChannel?.name).toBe('개발 1팀');
+  });
 });

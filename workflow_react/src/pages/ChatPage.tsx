@@ -28,8 +28,8 @@ import {
 } from '../api/chat';
 import { getSocket } from '../lib/socketClient';
 import { Avatar, Button, Spinner } from '../components/common';
-import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User } from '../types';
-import { getUsers } from '../services/api';
+import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '../types';
+import { getUsers, getProjects, getGroups } from '../services/api';
 
 const QUICK_EMOJIS = ['👍', '❤️', '🔥', '🎉', '🚀', '👀', '😄', '💯'];
 
@@ -59,11 +59,15 @@ export const ChatPage: React.FC = () => {
   const [showEmojiPickerForMsgId, setShowEmojiPickerForMsgId] = useState<number | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [allWorkspaceUsers, setAllWorkspaceUsers] = useState<User[]>([]);
+  const [allWorkspaceProjects, setAllWorkspaceProjects] = useState<Project[]>([]);
+  const [allWorkspaceGroups, setAllWorkspaceGroups] = useState<Group[]>([]);
 
   const [createType, setCreateType] = useState<ChannelType>('GLOBAL');
   const [createName, setCreateName] = useState<string>('');
   const [createTopic, setCreateTopic] = useState<string>('');
   const [createTargetUserId, setCreateTargetUserId] = useState<number | null>(null);
+  const [createProjectId, setCreateProjectId] = useState<number | null>(null);
+  const [createGroupId, setCreateGroupId] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<any>(null);
@@ -83,6 +87,14 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     fetchChannels();
     getUsers().then(setAllWorkspaceUsers).catch(console.error);
+    getProjects().then((projs) => {
+      setAllWorkspaceProjects(projs);
+      if (projs.length > 0) setCreateProjectId(projs[0].id);
+    }).catch(console.error);
+    getGroups(false).then((grps) => {
+      setAllWorkspaceGroups(grps);
+      if (grps.length > 0) setCreateGroupId(grps[0].id);
+    }).catch(console.error);
   }, []);
 
   const currentChannel = useMemo(() => {
@@ -337,6 +349,8 @@ export const ChatPage: React.FC = () => {
         type: createType,
         name: createName,
         topic: createTopic,
+        projectId: createType === 'PROJECT' ? (createProjectId || undefined) : undefined,
+        groupId: createType === 'GROUP' ? (createGroupId || undefined) : undefined,
         targetUserId: createType === 'DM' ? (createTargetUserId || undefined) : undefined,
       };
 
@@ -1146,34 +1160,51 @@ export const ChatPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateChannelSubmit}>
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '14px' }}>
                 <label style={{ fontSize: '0.76rem', color: '#b5bac1', display: 'block', marginBottom: '6px' }}>채널 유형</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {(['GLOBAL', 'DM'] as ChannelType[]).map((t) => (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+                  {[
+                    { type: 'GLOBAL' as ChannelType, label: '📢 공용 채널' },
+                    { type: 'PROJECT' as ChannelType, label: '📁 프로젝트 채널' },
+                    { type: 'GROUP' as ChannelType, label: '👥 그룹 채널' },
+                    { type: 'DM' as ChannelType, label: '💬 1:1 DM' },
+                  ].map((item) => (
                     <button
-                      key={t}
+                      key={item.type}
                       type="button"
-                      onClick={() => setCreateType(t)}
+                      onClick={() => {
+                        setCreateType(item.type);
+                        if (item.type === 'PROJECT' && allWorkspaceProjects.length > 0) {
+                          setCreateProjectId(allWorkspaceProjects[0].id);
+                          setCreateName(allWorkspaceProjects[0].name);
+                        } else if (item.type === 'GROUP' && allWorkspaceGroups.length > 0) {
+                          setCreateGroupId(allWorkspaceGroups[0].id);
+                          setCreateName(allWorkspaceGroups[0].name);
+                        } else if (item.type === 'GLOBAL') {
+                          setCreateName('');
+                        }
+                      }}
                       style={{
-                        flex: 1,
-                        padding: '8px',
+                        padding: '8px 6px',
                         borderRadius: '4px',
-                        border: createType === t ? '1px solid var(--primary)' : '1px solid #3f4147',
-                        background: createType === t ? 'rgba(59, 130, 246, 0.15)' : '#2b2d31',
-                        color: createType === t ? '#fff' : '#949ba4',
+                        border: createType === item.type ? '1px solid var(--primary)' : '1px solid #3f4147',
+                        background: createType === item.type ? 'rgba(59, 130, 246, 0.15)' : '#2b2d31',
+                        color: createType === item.type ? '#fff' : '#949ba4',
                         cursor: 'pointer',
-                        fontSize: '0.8rem',
+                        fontSize: '0.78rem',
                         fontWeight: 600,
+                        textAlign: 'center',
                       }}
                     >
-                      {t === 'GLOBAL' ? '📢 공용 채널' : '💬 1:1 DM'}
+                      {item.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {createType === 'DM' ? (
-                <div style={{ marginBottom: '12px' }}>
+              {/* 1:1 DM Selection */}
+              {createType === 'DM' && (
+                <div style={{ marginBottom: '14px' }}>
                   <label style={{ fontSize: '0.76rem', color: '#b5bac1', display: 'block', marginBottom: '6px' }}>상대방 선택</label>
                   <select
                     value={createTargetUserId || ''}
@@ -1199,13 +1230,84 @@ export const ChatPage: React.FC = () => {
                       ))}
                   </select>
                 </div>
-              ) : (
+              )}
+
+              {/* PROJECT Selection */}
+              {createType === 'PROJECT' && (
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '0.76rem', color: '#b5bac1', display: 'block', marginBottom: '6px' }}>프로젝트 선택</label>
+                  <select
+                    value={createProjectId || ''}
+                    onChange={(e) => {
+                      const pId = Number(e.target.value);
+                      setCreateProjectId(pId);
+                      const proj = allWorkspaceProjects.find((p) => p.id === pId);
+                      if (proj) setCreateName(proj.name);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      background: '#1e1f22',
+                      border: '1px solid #3f4147',
+                      color: '#fff',
+                      borderRadius: '4px',
+                      fontSize: '0.82rem',
+                    }}
+                    required
+                  >
+                    <option value="">연동할 프로젝트를 선택하세요</option>
+                    {allWorkspaceProjects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.key})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* GROUP Selection */}
+              {createType === 'GROUP' && (
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '0.76rem', color: '#b5bac1', display: 'block', marginBottom: '6px' }}>그룹/부서 선택</label>
+                  <select
+                    value={createGroupId || ''}
+                    onChange={(e) => {
+                      const gId = Number(e.target.value);
+                      setCreateGroupId(gId);
+                      const grp = allWorkspaceGroups.find((g) => g.id === gId);
+                      if (grp) setCreateName(grp.name);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      background: '#1e1f22',
+                      border: '1px solid #3f4147',
+                      color: '#fff',
+                      borderRadius: '4px',
+                      fontSize: '0.82rem',
+                    }}
+                    required
+                  >
+                    <option value="">연동할 그룹을 선택하세요</option>
+                    {allWorkspaceGroups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} ({g.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Common Channel Name and Topic (For GLOBAL, PROJECT, GROUP) */}
+              {createType !== 'DM' && (
                 <>
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '0.76rem', color: '#b5bac1', display: 'block', marginBottom: '6px' }}>채널명</label>
+                    <label style={{ fontSize: '0.76rem', color: '#b5bac1', display: 'block', marginBottom: '6px' }}>
+                      {createType === 'PROJECT' ? '프로젝트 채널명' : createType === 'GROUP' ? '그룹 채널명' : '채널명'}
+                    </label>
                     <input
                       type="text"
-                      placeholder="예: 프로젝트-아이디어, 자유수다"
+                      placeholder={createType === 'PROJECT' ? '예: 프로젝트-개발, 기획' : '예: 채널 이름'}
                       value={createName}
                       onChange={(e) => setCreateName(e.target.value)}
                       style={{
@@ -1226,7 +1328,7 @@ export const ChatPage: React.FC = () => {
                     <label style={{ fontSize: '0.76rem', color: '#b5bac1', display: 'block', marginBottom: '6px' }}>채널 설명 (선택)</label>
                     <input
                       type="text"
-                      placeholder="채널의 목적을 간단히 적어주세요"
+                      placeholder="채널의 목적이나 안내 사항을 적어주세요"
                       value={createTopic}
                       onChange={(e) => setCreateTopic(e.target.value)}
                       style={{
