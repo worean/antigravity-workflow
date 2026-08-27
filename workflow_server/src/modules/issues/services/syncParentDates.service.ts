@@ -20,19 +20,19 @@ export const syncParentDatesService = async (
     if (visited.has(currentId)) break; // 순환 참조 방지
     visited.add(currentId);
 
-    const issue = await db.issue.findUnique({
+    const targetIssue: any = await db.issue.findUnique({
       where: { id: currentId },
       include: { children: true }
     });
 
-    if (!issue) break;
+    if (!targetIssue) break;
 
     // 하위 이슈(children)가 존재하는 경우에만 하위 이슈들의 날짜를 기반으로 계산
-    if (issue.children && issue.children.length > 0) {
+    if (targetIssue.children && targetIssue.children.length > 0) {
       const startDates: number[] = [];
       const dueDates: number[] = [];
 
-      for (const child of issue.children) {
+      for (const child of targetIssue.children) {
         if (child.plannedStartDate) {
           startDates.push(new Date(child.plannedStartDate).getTime());
         }
@@ -54,6 +54,6 @@ export const syncParentDatesService = async (
     }
 
     // 상위 부모가 있다면 부모로 올라가며 연쇄 갱신
-    currentId = issue.parentId ? Number(issue.parentId) : null;
+    currentId = targetIssue.parentId ? Number(targetIssue.parentId) : null;
   }
 };
