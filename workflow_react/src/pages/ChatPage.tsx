@@ -15,6 +15,8 @@ import {
   Paperclip,
   CheckCircle2,
   X,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {
   getChannels,
@@ -33,6 +35,19 @@ import { getUsers, getProjects, getGroups } from '../services/api';
 
 const QUICK_EMOJIS = ['👍', '❤️', '🔥', '🎉', '🚀', '👀', '😄', '💯'];
 
+interface CategoryConfig {
+  type: ChannelType;
+  label: string;
+  icon: string;
+}
+
+const CATEGORY_CONFIGS: CategoryConfig[] = [
+  { type: 'GLOBAL', label: '공용 채널', icon: '📢' },
+  { type: 'PROJECT', label: '프로젝트 채널', icon: '📁' },
+  { type: 'GROUP', label: '그룹 / 부서 채널', icon: '👥' },
+  { type: 'DM', label: '다이렉트 메시지', icon: '💬' },
+];
+
 export const ChatPage: React.FC = () => {
   const currentUser = useMemo(() => {
     try {
@@ -47,6 +62,12 @@ export const ChatPage: React.FC = () => {
   const [channels, setChannels] = useState<ChatChannel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'GLOBAL' | 'PROJECT' | 'GROUP' | 'DM'>('ALL');
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<ChannelType, boolean>>({
+    GLOBAL: false,
+    PROJECT: false,
+    GROUP: false,
+    DM: false,
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
   const [inputText, setInputText] = useState<string>('');
@@ -367,6 +388,133 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const toggleCategoryCollapse = (type: ChannelType) => {
+    setCollapsedCategories((prev) => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
+  };
+
+  const handleOpenCreateForCategory = (type: ChannelType, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCreateType(type);
+    if (type === 'PROJECT' && allWorkspaceProjects.length > 0) {
+      setCreateProjectId(allWorkspaceProjects[0].id);
+      setCreateName(allWorkspaceProjects[0].name);
+    } else if (type === 'GROUP' && allWorkspaceGroups.length > 0) {
+      setCreateGroupId(allWorkspaceGroups[0].id);
+      setCreateName(allWorkspaceGroups[0].name);
+    } else if (type === 'GLOBAL') {
+      setCreateName('');
+    }
+    setShowCreateModal(true);
+  };
+
+  const renderChannelItem = (channel: ChatChannel) => {
+    const isSelected = channel.id === selectedChannelId;
+    const isMuted = channel.mySettings?.notificationLevel === 'MUTED';
+    const isMentionsOnly = channel.mySettings?.notificationLevel === 'MENTIONS_ONLY';
+
+    return (
+      <div
+        key={channel.id}
+        onClick={() => setSelectedChannelId(channel.id)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '7px 8px',
+          borderRadius: '4px',
+          marginBottom: '2px',
+          cursor: 'pointer',
+          background: isSelected ? '#393c43' : 'transparent',
+          color: isSelected ? '#fff' : isMuted ? '#72767d' : '#8e9297',
+          transition: 'background 0.1s',
+        }}
+        onMouseEnter={(e) => {
+          if (!isSelected) e.currentTarget.style.background = '#2f3136';
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected) e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+          {channel.type === 'DM' ? (
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <Avatar
+                user={channel.otherUser || undefined}
+                name={channel.name}
+                size={22}
+                shape="circle"
+              />
+            </div>
+          ) : (
+            <span style={{ fontSize: '0.95rem', flexShrink: 0 }}>
+              {channel.icon || (channel.type === 'GLOBAL' ? '📢' : channel.type === 'PROJECT' ? '📁' : '👥')}
+            </span>
+          )}
+
+          <div style={{ overflow: 'hidden' }}>
+            <div
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: channel.unreadCount > 0 ? 600 : 400,
+                color: channel.unreadCount > 0 ? '#fff' : isMuted ? '#72767d' : '#dcddde',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {channel.name}
+            </div>
+            {channel.lastMessage && (
+              <div
+                style={{
+                  fontSize: '0.68rem',
+                  color: '#72767d',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {channel.lastMessage.content}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {isMuted && (
+            <span title="음소거됨" style={{ display: 'flex' }}>
+              <BellOff size={12} color="#72767d" />
+            </span>
+          )}
+          {isMentionsOnly && (
+            <span title="@멘션만 수신" style={{ display: 'flex' }}>
+              <AtSign size={12} color="#3b82f6" />
+            </span>
+          )}
+          {channel.unreadCount > 0 && (
+            <span
+              style={{
+                background: isMuted ? '#4f545c' : '#f43f5e',
+                color: '#fff',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                padding: '1px 6px',
+                borderRadius: '10px',
+                minWidth: '16px',
+                textAlign: 'center',
+              }}
+            >
+              {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const filteredChannels = useMemo(() => {
     return channels.filter((c) => {
       if (activeCategory !== 'ALL' && c.type !== activeCategory) return false;
@@ -595,115 +743,104 @@ export const ChatPage: React.FC = () => {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
-          {filteredChannels.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px 10px', color: '#72767d', fontSize: '0.76rem' }}>
-              참여 가능한 채널이 없습니다.
-            </div>
-          ) : (
-            filteredChannels.map((channel) => {
-              const isSelected = channel.id === selectedChannelId;
-              const isMuted = channel.mySettings?.notificationLevel === 'MUTED';
-              const isMentionsOnly = channel.mySettings?.notificationLevel === 'MENTIONS_ONLY';
+          {activeCategory === 'ALL' ? (
+            CATEGORY_CONFIGS.map((cat) => {
+              const catChannels = filteredChannels.filter((c) => c.type === cat.type);
+              const isCollapsed = collapsedCategories[cat.type];
+              const totalUnread = catChannels.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
 
               return (
-                <div
-                  key={channel.id}
-                  onClick={() => setSelectedChannelId(channel.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 10px',
-                    borderRadius: '4px',
-                    marginBottom: '2px',
-                    cursor: 'pointer',
-                    background: isSelected ? '#393c43' : 'transparent',
-                    color: isSelected ? '#fff' : isMuted ? '#72767d' : '#8e9297',
-                    transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = '#2f3136';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    {channel.type === 'DM' ? (
-                      <div style={{ position: 'relative' }}>
-                        <Avatar
-                          user={channel.otherUser || undefined}
-                          name={channel.name}
-                          size={24}
-                          shape="circle"
-                        />
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: '1rem', flexShrink: 0 }}>
-                        {channel.icon || (channel.type === 'GLOBAL' ? '📢' : channel.type === 'PROJECT' ? '📁' : '👥')}
+                <div key={cat.type} style={{ marginBottom: '14px' }}>
+                  {/* Category Splitter & Accordion Header */}
+                  <div
+                    onClick={() => toggleCategoryCollapse(cat.type)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '4px 6px 6px 6px',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      color: '#949ba4',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      marginBottom: '6px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#dcddde')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#949ba4')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                      <span>{cat.icon} {cat.label}</span>
+                      <span style={{ fontSize: '0.68rem', color: '#6d727b', fontWeight: 500 }}>
+                        ({catChannels.length})
                       </span>
-                    )}
+                    </div>
 
-                    <div style={{ overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          fontSize: '0.82rem',
-                          fontWeight: channel.unreadCount > 0 ? 600 : 400,
-                          color: channel.unreadCount > 0 ? '#fff' : isMuted ? '#72767d' : '#dcddde',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {channel.name}
-                      </div>
-                      {channel.lastMessage && (
-                        <div
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {isCollapsed && totalUnread > 0 && (
+                        <span
                           style={{
-                            fontSize: '0.68rem',
-                            color: '#72767d',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                            background: '#f43f5e',
+                            color: '#fff',
+                            fontSize: '0.6rem',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: '8px',
                           }}
                         >
-                          {channel.lastMessage.content}
-                        </div>
+                          {totalUnread > 99 ? '99+' : totalUnread}
+                        </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenCreateForCategory(cat.type, e)}
+                        title={`${cat.label} 추가`}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#949ba4',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#949ba4')}
+                      >
+                        <Plus size={14} />
+                      </button>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {isMuted && (
-                      <span title="음소거됨" style={{ display: 'flex' }}>
-                        <BellOff size={12} color="#72767d" />
-                      </span>
-                    )}
-                    {isMentionsOnly && (
-                      <span title="@멘션만 수신" style={{ display: 'flex' }}>
-                        <AtSign size={12} color="#3b82f6" />
-                      </span>
-                    )}
-                    {channel.unreadCount > 0 && (
-                      <span
-                        style={{
-                          background: isMuted ? '#4f545c' : '#f43f5e',
-                          color: '#fff',
-                          fontSize: '0.65rem',
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          borderRadius: '10px',
-                          minWidth: '16px',
-                          textAlign: 'center',
-                        }}
-                      >
-                        {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
-                      </span>
-                    )}
-                  </div>
+                  {/* Channels under category */}
+                  {!isCollapsed && (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {catChannels.length === 0 ? (
+                        <div style={{ padding: '6px 12px', color: '#72767d', fontSize: '0.72rem', fontStyle: 'italic', opacity: 0.7 }}>
+                          등록된 대화방이 없습니다
+                        </div>
+                      ) : (
+                        catChannels.map(renderChannelItem)
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })
+          ) : (
+            <div>
+              {filteredChannels.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 10px', color: '#72767d', fontSize: '0.76rem' }}>
+                  참여 가능한 채널이 없습니다.
+                </div>
+              ) : (
+                filteredChannels.map(renderChannelItem)
+              )}
+            </div>
           )}
         </div>
       </div>
