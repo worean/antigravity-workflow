@@ -201,6 +201,7 @@ interface DragState {
   issueId: number;
   type: 'move' | 'resize-left' | 'resize-right';
   startX: number;
+  initialScrollLeft: number;
   originalStartDate: Date;
   originalDueDate: Date;
   currentStartDate: Date;
@@ -259,10 +260,12 @@ export const WBSPage: React.FC<WBSPageProps> = ({
   // Left table width
   const leftWidth = 440;
 
-  // Scroll Sync Refs
+  // Scroll Sync Refs & Drag Auto-Scroll Refs
   const tableBodyRef = useRef<HTMLDivElement>(null);
   const ganttBodyRef = useRef<HTMLDivElement>(null);
   const ganttHeaderRef = useRef<HTMLDivElement>(null);
+  const lastMousePosRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const autoScrollFrameRef = useRef<number | null>(null);
 
   // 1. Initial Load: Projects
   useEffect(() => {
@@ -623,10 +626,14 @@ export const WBSPage: React.FC<WBSPageProps> = ({
     e.stopPropagation();
     if (updatingIssueId) return;
 
+    const initialScrollLeft = ganttBodyRef.current?.scrollLeft || 0;
+    lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
+
     setDragState({
       issueId: iss.id,
       type,
       startX: e.clientX,
+      initialScrollLeft,
       originalStartDate: new Date(startDate),
       originalDueDate: new Date(endDate),
       currentStartDate: new Date(startDate),
@@ -739,32 +746,149 @@ export const WBSPage: React.FC<WBSPageProps> = ({
     return map;
   }, [issues, dragState, getDescendantIssueIds]);
 
-  // Global Mouse Move & Mouse Up for Dragging
+  // 날짜 계산 헬퍼 함수 (마우스 이동량 + 스크롤 변화량을 합산하여 스냅 계산)
+  const updateDatesFromMouseAndScroll = useCallback(
+    (
+      currentDrag: DragState,
+      clientX: number,
+      scrollLeft: number
+    ): { nextStart: Date; nextDue: Date } => {
+      const deltaMouse = clientX - currentDrag.startX;
+      const deltaScroll = scrollLeft - currentDrag.initialScrollLeft;
+      const totalDeltaX = deltaMouse + deltaScroll;
+      const snapDays = Math.round(totalDeltaX / dayWidth);
+
+      let nextStart = currentDrag.originalStartDate;
+      let nextDue = currentDrag.originalDueDate;
+
+      if (currentDrag.type === 'move') {
+        nextStart = addDays(currentDrag.originalStartDate, snapDays);
+        nextDue = addDays(currentDrag.originalDueDate, snapDays);
+      } else if (currentDrag.type === 'resize-left') {
+        const candidateStart = addDays(currentDrag.originalStartDate, snapDays);
+        if (candidateStart <= currentDrag.originalDueDate) {
+          nextStart = candidateStart;
+        } else {
+          nextStart = currentDrag.originalDueDate;
+        }
+        nextDue = currentDrag.originalDueDate;
+      } else if (currentDrag.type === 'resize-right') {
+        const candidateDue = addDays(currentDrag.originalDueDate, snapDays);
+        if (candidateDue >= currentDrag.originalStartDate) {
+          nextDue = candidateDue;
+        } else {
+          nextDue = currentDrag.originalStartDate;
+        }
+        nextStart = currentDrag.originalStartDate;
+      }
+
+      return { nextStart, nextDue };
+    },
+    [dayWidth]
+  );
+
+  // Global Mouse Move & Mouse Up for Dragging with Edge Zone Auto-Scroll
   useEffect(() => {
-    if (!dragState) return;
+    if (!dragState) {
+      if (autoScrollFrameRef.current) {
+        cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
+      }
+      return;
+    }
+
+    const EDGE_ZONE = 70; // 가장자리 감지 영역 (px)
+    const MAX_SCROLL_SPEED = 12; // 최대 스크롤 속도 (px / frame)
 
     const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - dragState.startX;
-      const snapDays = Math.round(deltaX / dayWidth);
+      lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
 
-      if (dragState.type === 'move') {
-        const nextStart = addDays(dragState.originalStartDate, snapDays);
-        const nextDue = addDays(dragState.originalDueDate, snapDays);
-        setDragState((prev) => (prev ? { ...prev, currentStartDate: nextStart, currentDueDate: nextDue } : null));
-      } else if (dragState.type === 'resize-left') {
-        const nextStart = addDays(dragState.originalStartDate, snapDays);
-        if (nextStart <= dragState.originalDueDate) {
-          setDragState((prev) => (prev ? { ...prev, currentStartDate: nextStart } : null));
+      const scrollLeft = ganttBodyRef.current?.scrollLeft || 0;
+      const { nextStart, nextDue } = updateDatesFromMouseAndScroll(dragState, e.clientX, scrollLeft);
+
+      setDragState((prev) => {
+        if (!prev) return null;
+        if (
+          prev.currentStartDate.getTime() === nextStart.getTime() &&
+          prev.currentDueDate.getTime() === nextDue.getTime()
+        ) {
+          return prev;
         }
-      } else if (dragState.type === 'resize-right') {
-        const nextDue = addDays(dragState.originalDueDate, snapDays);
-        if (nextDue >= dragState.originalStartDate) {
-          setDragState((prev) => (prev ? { ...prev, currentDueDate: nextDue } : null));
-        }
-      }
+        return {
+          ...prev,
+          currentStartDate: nextStart,
+          currentDueDate: nextDue,
+        };
+      });
     };
 
+    // Auto-scroll loop using requestAnimationFrame
+    const autoScrollLoop = () => {
+      if (!dragState || !ganttBodyRef.current || !lastMousePosRef.current) {
+        autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
+        return;
+      }
+
+      const rect = ganttBodyRef.current.getBoundingClientRect();
+      const clientX = lastMousePosRef.current.clientX;
+
+      let scrollDelta = 0;
+
+      // 좌측 엣지 감지 (rect.left ~ rect.left + EDGE_ZONE)
+      if (clientX < rect.left + EDGE_ZONE && clientX >= rect.left - 60) {
+        const dist = (rect.left + EDGE_ZONE) - clientX;
+        const ratio = Math.min(1, Math.max(0.15, dist / EDGE_ZONE));
+        scrollDelta = -Math.round(ratio * MAX_SCROLL_SPEED);
+      }
+      // 우측 엣지 감지 (rect.right - EDGE_ZONE ~ rect.right + 60)
+      else if (clientX > rect.right - EDGE_ZONE && clientX <= rect.right + 60) {
+        const dist = clientX - (rect.right - EDGE_ZONE);
+        const ratio = Math.min(1, Math.max(0.15, dist / EDGE_ZONE));
+        scrollDelta = Math.round(ratio * MAX_SCROLL_SPEED);
+      }
+
+      if (scrollDelta !== 0) {
+        const currentScroll = ganttBodyRef.current.scrollLeft;
+        const maxScroll = ganttBodyRef.current.scrollWidth - ganttBodyRef.current.clientWidth;
+        const targetScroll = Math.max(0, Math.min(maxScroll, currentScroll + scrollDelta));
+
+        if (targetScroll !== currentScroll) {
+          ganttBodyRef.current.scrollLeft = targetScroll;
+          if (ganttHeaderRef.current) {
+            ganttHeaderRef.current.scrollLeft = targetScroll;
+          }
+
+          // 스크롤이 발생함에 따라 날짜도 즉시 재계산 및 갱신!
+          const { nextStart, nextDue } = updateDatesFromMouseAndScroll(dragState, clientX, targetScroll);
+          setDragState((prev) => {
+            if (!prev) return null;
+            if (
+              prev.currentStartDate.getTime() === nextStart.getTime() &&
+              prev.currentDueDate.getTime() === nextDue.getTime()
+            ) {
+              return prev;
+            }
+            return {
+              ...prev,
+              currentStartDate: nextStart,
+              currentDueDate: nextDue,
+            };
+          });
+        }
+      }
+
+      autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
+    };
+
+    autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
+
     const handleMouseUp = async () => {
+      if (autoScrollFrameRef.current) {
+        cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
+      }
+      lastMousePosRef.current = null;
+
       const current = dragState;
       if (!current) return;
 
@@ -848,10 +972,14 @@ export const WBSPage: React.FC<WBSPageProps> = ({
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
+      if (autoScrollFrameRef.current) {
+        cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
+      }
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, dayWidth, loadProjectData, getDescendantIssueIds, issues, liveDateMap]);
+  }, [dragState, dayWidth, loadProjectData, getDescendantIssueIds, issues, liveDateMap, updateDatesFromMouseAndScroll]);
 
   // ----------------------------------------------------
   // 6. TreeList Drag & Drop Handlers (좌측 트리 계층 변경 & 재배치)
