@@ -9,8 +9,10 @@ import {
   UserPlus,
   Trash2,
   Users,
+  X,
 } from 'lucide-react';
 import { Button, Spinner, Avatar } from '@/components/common';
+import { GroupModal } from '@/components/GroupModal';
 
 interface SettingsOrgTabProps {
   isAuthenticated: boolean;
@@ -64,11 +66,11 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
   setShowGroupForm,
   groupParentId,
   setGroupParentId,
-  newGroupName,
+  newGroupName: _newGroupName,
   setNewGroupName,
-  newGroupCode,
+  newGroupCode: _newGroupCode,
   setNewGroupCode,
-  newGroupDesc,
+  newGroupDesc: _newGroupDesc,
   setNewGroupDesc,
   showMemberForm,
   setShowMemberForm,
@@ -482,91 +484,101 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
         </div>
       )}
 
-      {/* Create Group Modal */}
-      {showGroupForm && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{ width: '420px' }}>
-            <div className="modal-header">
-              <h3 className="modal-title">
-                {groupParentId ? '하위 서브그룹/팀 추가' : '최상위 그룹 추가'}
-              </h3>
-            </div>
-            <form onSubmit={handleCreateGroup} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="form-group">
-                <label className="form-label">그룹/부서명 *</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="예: 플랫폼개발본부, 백엔드팀"
-                  required
-                />
-              </div>
+      {/* 1. Group Create / Edit Modal (IssueModal 표준) */}
+      <GroupModal
+        isOpen={showGroupForm}
+        onClose={() => setShowGroupForm(false)}
+        parentId={groupParentId}
+        flatGroups={flatGroups}
+        onSuccess={() => {
+          if (handleCreateGroup) {
+            handleCreateGroup({ preventDefault: () => {} } as any);
+          }
+        }}
+      />
 
-              <div className="form-group">
-                <label className="form-label">그룹 식별 코드 (영문/숫자)</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={newGroupCode}
-                  onChange={(e) => setNewGroupCode(e.target.value.toUpperCase())}
-                  placeholder="예: PLATFORM, BE_DEV"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">상위 그룹</label>
-                <select
-                  className="input-field"
-                  value={groupParentId || ''}
-                  onChange={(e) => setGroupParentId(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">-- 없음 (최상위 그룹) --</option>
-                  {flatGroups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name} ({g.code || `ID:${g.id}`})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">설명</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={newGroupDesc}
-                  onChange={(e) => setNewGroupDesc(e.target.value)}
-                  placeholder="부서 또는 팀의 주요 업무 설명"
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setShowGroupForm(false)}>
-                  취소
-                </Button>
-                <Button type="submit" variant="primary" size="sm" isLoading={isPending}>
-                  생성 완료
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Member Modal */}
+      {/* 2. Add Member Modal (IssueModal 표준 화면 중앙 정렬) */}
       {showMemberForm && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{ width: '420px' }}>
-            <div className="modal-header">
-              <h3 className="modal-title">
-                '{selectedGroup?.name}' 멤버 배정
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(2px)',
+          }}
+          onClick={() => setShowMemberForm(false)}
+        >
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '440px',
+              width: '92%',
+              padding: '16px 20px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
+              margin: 'auto',
+              borderRadius: '6px',
+              background: '#252526',
+              border: '1px solid #454545',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '14px',
+                borderBottom: '1px solid var(--border-light, #3c3c3c)',
+                paddingBottom: '8px',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  margin: 0,
+                  color: 'var(--text-bright, #fff)',
+                }}
+              >
+                <UserPlus size={16} color="var(--primary, #007acc)" />
+                <span>'{selectedGroup?.name}' 멤버 배정</span>
               </h3>
+              <button
+                onClick={() => setShowMemberForm(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted, #888)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                aria-label="Close modal"
+              >
+                <X size={16} />
+              </button>
             </div>
+
             <form onSubmit={handleAddMember} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="form-group">
-                <label className="form-label">배정할 사용자 *</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                  배정할 사용자 <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
                 <select
                   className="input-field"
                   value={newMemberUserId}
@@ -582,8 +594,10 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">그룹(조직) 내 권한 *</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                  그룹(조직) 내 권한 <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
                 <select
                   className="input-field"
                   value={newMemberRole}
@@ -605,8 +619,10 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">직책 (Title)</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                  직책 (Title)
+                </label>
                 <input
                   type="text"
                   className="input-field"
@@ -616,13 +632,24 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setShowMemberForm(false)}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowMemberForm(false)}
+                  disabled={isPending}
+                  style={{ flex: 1 }}
+                >
                   취소
-                </Button>
-                <Button type="submit" variant="primary" size="sm">
-                  배정 완료
-                </Button>
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isPending}
+                  style={{ flex: 1 }}
+                >
+                  {isPending ? '배정 중...' : '배정 완료'}
+                </button>
               </div>
             </form>
           </div>

@@ -2,13 +2,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   getChannels,
-  createChannel,
   getMessages,
   sendMessage,
   markAsRead,
   updateMemberSettings,
   toggleReaction,
-  type CreateChannelParams,
 } from '@/api/chat';
 import { getSocket } from '@/lib/socketClient';
 import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '@/types';
@@ -77,12 +75,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
 
   // Channel Create Modal
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
-  const [createType, setCreateType] = useState<ChannelType>('GLOBAL');
-  const [createName, setCreateName] = useState<string>('');
-  const [createTopic, setCreateTopic] = useState<string>('');
-  const [createTargetUserId, setCreateTargetUserId] = useState<number | null>(null);
-  const [createProjectId, setCreateProjectId] = useState<number | null>(null);
-  const [createGroupId, setCreateGroupId] = useState<number | null>(null);
+  const [createModalType, setCreateModalType] = useState<ChannelType>('GLOBAL');
 
   // 1. Fetch Channels
   const fetchChannels = useCallback(async () => {
@@ -247,15 +240,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({
 
   const handleOpenCreateForCategory = useCallback((type: ChannelType, e: React.MouseEvent) => {
     e.stopPropagation();
-    setCreateType(type);
-    setCreateName('');
-    setCreateTopic('');
+    setCreateModalType(type);
     setShowCreateModal(true);
   }, []);
 
   const handleOpenCreateModal = useCallback(() => {
-    setCreateType('GLOBAL');
-    setCreateName('');
+    setCreateModalType('GLOBAL');
     setShowCreateModal(true);
   }, []);
 
@@ -375,31 +365,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     }
   }, [selectedChannelId, currentUserId]);
 
-  const handleCreateChannel = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const params: CreateChannelParams = {
-        type: createType,
-        name: createName.trim() || undefined,
-        topic: createTopic.trim() || undefined,
-        targetUserId: createType === 'DM' ? createTargetUserId || undefined : undefined,
-        projectId: createType === 'PROJECT' ? createProjectId || undefined : undefined,
-        groupId: createType === 'GROUP' ? createGroupId || undefined : undefined,
-      };
-
-      const newChan = await createChannel(params);
-      setShowCreateModal(false);
-      setCreateName('');
-      setCreateTopic('');
-      setCreateTargetUserId(null);
-
-      await fetchChannels();
-      setSelectedChannelId(newChan.id);
-    } catch (err) {
-      console.error('Failed to create channel:', err);
-    }
-  }, [createType, createName, createTopic, createTargetUserId, createProjectId, createGroupId, fetchChannels]);
-
   // 5. Memoized Derived Values
   const currentChannel = useMemo(() => {
     return channels.find((c) => c.id === selectedChannelId) || null;
@@ -491,27 +456,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         allWorkspaceUsers={allWorkspaceUsers}
       />
 
-      {/* 5. Create Channel Modal */}
+      {/* 5. Create Channel Modal (IssueModal 표준) */}
       <ChatCreateModal
-        showCreateModal={showCreateModal}
-        setShowCreateModal={setShowCreateModal}
-        createType={createType}
-        setCreateType={setCreateType}
-        createName={createName}
-        setCreateName={setCreateName}
-        createTopic={createTopic}
-        setCreateTopic={setCreateTopic}
-        createTargetUserId={createTargetUserId}
-        setCreateTargetUserId={setCreateTargetUserId}
-        createProjectId={createProjectId}
-        setCreateProjectId={setCreateProjectId}
-        createGroupId={createGroupId}
-        setCreateGroupId={setCreateGroupId}
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        initialType={createModalType}
         allWorkspaceUsers={allWorkspaceUsers}
         allWorkspaceProjects={allWorkspaceProjects}
         allWorkspaceGroups={allWorkspaceGroups}
         currentUserId={currentUserId}
-        handleCreateChannel={handleCreateChannel}
+        onSuccess={(newChan) => {
+          fetchChannels();
+          setSelectedChannelId(newChan.id);
+          setWsChannelId(newChan.id);
+        }}
       />
     </div>
   );
