@@ -142,6 +142,10 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const workspaceId = localStorage.getItem('active_workspace_id');
+  if (workspaceId) {
+    config.headers['x-workspace-id'] = workspaceId;
+  }
   return config;
 });
 
