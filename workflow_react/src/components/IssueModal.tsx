@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Project, User, Issue, CustomFieldDefinition, Comment } from '@/types';
 import {
   createIssue,
@@ -15,6 +16,7 @@ import {
   getWorklogs,
   createWorklog,
 } from '@/services/api';
+import { issueKeys } from '@/api/issues';
 import type { Worklog } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
@@ -86,6 +88,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   const { user, isAuthenticated } = useAuth();
   const { getIssueDraft, saveIssueDraft, clearIssueDraft } = useWorkspace();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
+  const queryClient = useQueryClient();
   const overlayProps = useOverlayClickClose(onClose);
 
   const draftKey = selectedIssue ? `edit_${selectedIssue.id}` : 'new';
@@ -399,6 +402,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           setIsEditing(false);
           clearIssueDraft(draftKey);
           setDraftBanner(null);
+          queryClient.invalidateQueries({ queryKey: issueKeys.all });
           if (!selectedIssue && res) {
             sendDesktopNotification({
               title: '신규 이슈 등록',

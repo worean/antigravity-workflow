@@ -34,6 +34,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   selectedAssigneeId = 'ALL',
   searchTermProp = '',
   onFilterChange,
+  refreshKey,
   onIssueUpdatedDirectly,
   onIssueDeletedDirectly,
   onOpenAuth,
@@ -53,12 +54,18 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   const queryProjectId = filterProjectId === 'ALL' ? undefined : filterProjectId;
   const queryAssigneeId = filterAssigneeId === 'MY' ? 'my' : filterAssigneeId === 'ALL' ? undefined : Number(filterAssigneeId);
 
-  const { data: issues = [], isLoading: loading } = useIssues({
+  const { data: issues = [], isLoading: loading, refetch: refetchIssues } = useIssues({
     projectId: queryProjectId,
     assigneeId: queryAssigneeId,
     search: searchTerm.trim() || undefined,
     all: true,
   });
+
+  useEffect(() => {
+    if (refreshKey) {
+      refetchIssues();
+    }
+  }, [refreshKey, refetchIssues]);
 
   // Mutations
   const updateIssueMutation = useUpdateIssue();

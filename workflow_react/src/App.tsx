@@ -24,6 +24,7 @@ import { ProjectModal } from '@/components/ProjectModal';
 import { IssueModal } from '@/components/IssueModal';
 import { IssueDetailDrawer } from '@/components/issueDetail';
 import { getProjects } from '@/services/api';
+import { issueKeys } from '@/api/issues';
 import type { Project, Issue } from '@/types';
 import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/utils/routeUtils';
 
@@ -55,6 +56,7 @@ const AppContent: React.FC = () => {
 
   const handleIssueRefreshed = useCallback(() => {
     setIssueRefreshKey(Date.now());
+    queryClient.invalidateQueries({ queryKey: issueKeys.all });
   }, []);
 
   // 로그인 및 로그아웃 시 전체 프로젝트 목록 및 화면 상태 리프레시

@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import {
   getIssue,
@@ -15,6 +16,7 @@ import {
   getWorklogs,
   createWorklog,
 } from '@/services/api';
+import { issueKeys } from '@/api/issues';
 import type { Issue, Project, User, CustomFieldDefinition, Comment, Worklog } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { formatDateOnly } from '@/utils/dateUtils';
@@ -55,6 +57,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
 }) => {
   const { user, isAuthenticated } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
+  const queryClient = useQueryClient();
 
   const [issue, setIssue] = useState<Issue | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -211,6 +214,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
       const res = await toggleLikeIssue(issue.id);
       setIsLiked(res.isLiked);
       setLikesCount(res.likesCount);
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
       if (onIssueUpdated) onIssueUpdated();
     } catch (err) {
       console.error('Failed to toggle like:', err);
@@ -251,6 +255,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
         onSuccess: (updated) => {
           setIssue(updated);
           setIsEditing(false);
+          queryClient.invalidateQueries({ queryKey: issueKeys.all });
           if (onModeChange) onModeChange('view');
           if (onIssueUpdated) onIssueUpdated();
           loadIssueData();
@@ -268,6 +273,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
       {
         onSuccess: () => {
           setShowDeleteConfirm(false);
+          queryClient.invalidateQueries({ queryKey: issueKeys.all });
           if (onIssueUpdated) onIssueUpdated();
           onClose();
         },
