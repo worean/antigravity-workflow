@@ -10,7 +10,6 @@ import {
   assignIssuesToSprint,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
-import { formatDateOnly } from '@/utils/dateUtils';
 import { Spinner, Card } from '@/components/common';
 import {
   SprintDetailHeader,
@@ -49,13 +48,6 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
-  const [formName, setFormName] = useState<string>('');
-  const [formGoal, setFormGoal] = useState<string>('');
-  const [formProjectId, setFormProjectId] = useState<number>(1);
-  const [formStartDate, setFormStartDate] = useState<string>('');
-  const [formEndDate, setFormEndDate] = useState<string>('');
-  const [formStatus, setFormStatus] = useState<string>('PLANNED');
-  const [formSubmitting, setFormSubmitting] = useState<boolean>(false);
 
   // Manage Issues Modal State
   const [showManageModal, setShowManageModal] = useState<boolean>(false);
@@ -95,68 +87,8 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
     }
   };
 
-  const handleOpenEditModal = (s: Sprint) => {
-    setFormName(s.name);
-    setFormGoal(s.goal || '');
-    setFormProjectId(s.projectId);
-    setFormStartDate(formatDateOnly(s.startDate) || '');
-    setFormEndDate(formatDateOnly(s.endDate) || '');
-    setFormStatus(s.status || 'PLANNED');
+  const handleOpenEditModal = () => {
     setShowEditModal(true);
-  };
-
-  const applyDatePreset = (weeks: number) => {
-    const start = formStartDate ? new Date(formStartDate) : new Date();
-    const end = new Date(start.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
-    setFormEndDate(end.toISOString().slice(0, 10));
-  };
-
-  const handleAutoFillDatesFromProject = async () => {
-    try {
-      const projIssues = await getIssues({ projectId: formProjectId });
-      if (!projIssues || projIssues.length === 0) {
-        alert('해당 프로젝트에 등록된 이슈가 없습니다.');
-        return;
-      }
-      let minStart: Date | null = null;
-      let maxDue: Date | null = null;
-      projIssues.forEach((issue) => {
-        if (issue.plannedStartDate) {
-          const s = new Date(issue.plannedStartDate);
-          if (!minStart || s < minStart) minStart = s;
-        }
-        if (issue.dueDate) {
-          const d = new Date(issue.dueDate);
-          if (!maxDue || d > maxDue) maxDue = d;
-        }
-      });
-      if (minStart) setFormStartDate((minStart as Date).toISOString().slice(0, 10));
-      if (maxDue) setFormEndDate((maxDue as Date).toISOString().slice(0, 10));
-    } catch (err) {
-      console.error('Failed to calculate project dates:', err);
-    }
-  };
-
-  const handleUpdateSprintSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!sprint) return;
-    setFormSubmitting(true);
-    try {
-      await updateSprint(sprint.id, {
-        name: formName,
-        goal: formGoal || undefined,
-        startDate: formStartDate ? new Date(formStartDate).toISOString() : null,
-        endDate: formEndDate ? new Date(formEndDate).toISOString() : null,
-        status: formStatus,
-      });
-      setShowEditModal(false);
-      await fetchSprintData();
-    } catch (err: any) {
-      console.error('Failed to update sprint:', err);
-      alert(err.response?.data?.error || '스프린트 수정 실패');
-    } finally {
-      setFormSubmitting(false);
-    }
   };
 
   const handleDeleteSprint = async (sId: number) => {
@@ -327,28 +259,13 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
         )}
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Modal (IssueModal 방식) */}
       <SprintFormModal
-        showFormModal={showEditModal}
-        setShowFormModal={setShowEditModal}
-        editingSprint={sprint}
-        formName={formName}
-        setFormName={setFormName}
-        formGoal={formGoal}
-        setFormGoal={setFormGoal}
-        formProjectId={formProjectId}
-        setFormProjectId={setFormProjectId}
-        formStartDate={formStartDate}
-        setFormStartDate={setFormStartDate}
-        formEndDate={formEndDate}
-        setFormEndDate={setFormEndDate}
-        formStatus={formStatus}
-        setFormStatus={setFormStatus}
-        formSubmitting={formSubmitting}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        sprint={sprint}
         projects={projects}
-        applyDatePreset={applyDatePreset}
-        handleAutoFillDatesFromProject={handleAutoFillDatesFromProject}
-        handleSubmitForm={handleUpdateSprintSubmit}
+        onSuccess={() => fetchSprintData()}
       />
 
       {/* Manage Issues Modal */}
