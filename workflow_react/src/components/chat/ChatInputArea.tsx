@@ -48,6 +48,30 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     adjustHeight();
   }, [inputText, adjustHeight]);
 
+  // 🎯 채널 변경 시 또는 메시지 전송 완료 시 포커스를 inputarea에 지속 유지
+  useEffect(() => {
+    if (isAuthenticated && !isSendingMessage) {
+      textareaRef.current?.focus();
+    }
+  }, [currentChannel?.id, isSendingMessage, isAuthenticated]);
+
+  const onSelectMentionWithFocus = (item: { id: string | number; name: string; type: string }) => {
+    handleSelectMention(item);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+  };
+
+  const onSubmitForm = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSendingMessage) return;
+    handleSendMessage(e);
+    // 전송 후에도 포커스를 입력창에 즉시 유지
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+  };
+
   if (!isAuthenticated) {
     return (
       <div
@@ -111,7 +135,10 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             <span>멤버 멘션</span>
             <button
               type="button"
-              onClick={() => setMentionQuery(null)}
+              onClick={() => {
+                setMentionQuery(null);
+                textareaRef.current?.focus();
+              }}
               style={{ background: 'none', border: 'none', color: '#8e9297', cursor: 'pointer' }}
             >
               <X size={10} />
@@ -121,7 +148,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             <button
               key={`${item.type}-${item.id}`}
               type="button"
-              onClick={() => handleSelectMention(item)}
+              onClick={() => onSelectMentionWithFocus(item)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -154,7 +181,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 
       {/* 💬 Auto-Expanding Chat Input Box (Min 3-rows, Max 45vh with Scrollbar) */}
       <form
-        onSubmit={handleSendMessage}
+        onSubmit={onSubmitForm}
         style={{
           background: isSendingMessage ? '#2f3136' : '#383a40',
           borderRadius: '8px',
@@ -199,16 +226,18 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           </button>
         </div>
 
-        {/* 📝 Auto-Expanding Textarea (No Manual Resize, Max 45vh) */}
+        {/* 📝 Auto-Expanding Textarea (Focus Kept On Send, No Manual Resize, Max 45vh) */}
         <textarea
           ref={textareaRef}
           value={inputText}
-          disabled={isSendingMessage}
+          readOnly={isSendingMessage}
           onChange={(e) => {
             setInputText(e.target.value);
             adjustHeight();
           }}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => {
+            handleKeyDown(e);
+          }}
           placeholder={
             isSendingMessage
               ? '메시지를 전송하고 응답을 기다리는 중입니다...'
