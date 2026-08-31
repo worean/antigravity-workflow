@@ -20,8 +20,8 @@ describe('🧪 [projects.deleteProject] Service & REST API Unit Tests', () => {
   beforeAll(async () => {
     testUser = await prisma.user.upsert({
       where: { email: 'delete-project-tester@example.com' },
-      update: {},
-      create: { email: 'delete-project-tester@example.com', name: 'DeleteProj Tester' }
+      update: { role: 'ADMIN' },
+      create: { email: 'delete-project-tester@example.com', name: 'DeleteProj Tester', role: 'ADMIN' }
     });
     authToken = jwt.sign({ userId: testUser.id, email: testUser.email }, jwtSecret, { expiresIn: '1h' });
 
@@ -33,13 +33,21 @@ describe('🧪 [projects.deleteProject] Service & REST API Unit Tests', () => {
     const proj = await prisma.project.create({
       data: {
         name: 'Project to Delete',
-        key: `DEL_${Date.now()}`,
+        key: `DEL_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         ownerId: testUser.id,
         statusId: status.id,
         priorityId: priority.id
       }
     });
     targetProjectId = proj.id;
+
+    await prisma.projectMember.create({
+      data: {
+        projectId: proj.id,
+        userId: testUser.id,
+        role: 'ADMIN'
+      }
+    });
   });
 
   afterAll(async () => {

@@ -68,35 +68,39 @@ export const initSocketServer = (server: http.Server | https.Server): SocketIOSe
     io?.emit('presence:update', { userId, status: 'ONLINE' });
 
     // 채널 룸 입장 (In-Room)
-    socket.on('chat:join_channel', (channelId: number) => {
-      if (!channelId) return;
+    socket.on('chat:join_channel', (payload: any) => {
+      const channelId = typeof payload === 'object' && payload !== null ? Number(payload.channelId) : Number(payload);
+      if (!channelId || isNaN(channelId)) return;
       const roomName = `channel_${channelId}`;
       socket.join(roomName);
-      socketActiveChannelsMap.get(socket.id)?.add(Number(channelId));
+      socketActiveChannelsMap.get(socket.id)?.add(channelId);
     });
 
     // 채널 룸 퇴장
-    socket.on('chat:leave_channel', (channelId: number) => {
-      if (!channelId) return;
+    socket.on('chat:leave_channel', (payload: any) => {
+      const channelId = typeof payload === 'object' && payload !== null ? Number(payload.channelId) : Number(payload);
+      if (!channelId || isNaN(channelId)) return;
       const roomName = `channel_${channelId}`;
       socket.leave(roomName);
-      socketActiveChannelsMap.get(socket.id)?.delete(Number(channelId));
+      socketActiveChannelsMap.get(socket.id)?.delete(channelId);
     });
 
     // 실시간 타이핑 인디케이터
-    socket.on('chat:typing', (data: { channelId: number; userName: string }) => {
-      if (!data?.channelId) return;
-      socket.to(`channel_${data.channelId}`).emit('chat:user_typing', {
-        channelId: data.channelId,
+    socket.on('chat:typing', (data: any) => {
+      const channelId = typeof data === 'object' && data !== null ? Number(data.channelId) : Number(data);
+      if (!channelId || isNaN(channelId)) return;
+      socket.to(`channel_${channelId}`).emit('chat:user_typing', {
+        channelId,
         userId,
-        userName: data.userName,
+        userName: data?.userName,
       });
     });
 
-    socket.on('chat:stop_typing', (data: { channelId: number }) => {
-      if (!data?.channelId) return;
-      socket.to(`channel_${data.channelId}`).emit('chat:user_stop_typing', {
-        channelId: data.channelId,
+    socket.on('chat:stop_typing', (data: any) => {
+      const channelId = typeof data === 'object' && data !== null ? Number(data.channelId) : Number(data);
+      if (!channelId || isNaN(channelId)) return;
+      socket.to(`channel_${channelId}`).emit('chat:user_stop_typing', {
+        channelId,
         userId,
       });
     });

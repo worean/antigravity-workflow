@@ -56,6 +56,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   // Messages
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
+  const [isSendingMessage, setIsSendingMessage] = useState<boolean>(false);
   const [inputText, setInputText] = useState<string>('');
   const [typingUsers, setTypingUsers] = useState<Map<number, string>>(new Map());
   const typingTimeoutRef = useRef<any>(null);
@@ -217,7 +218,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || !selectedChannelId) return;
+    if (!inputText.trim() || !selectedChannelId || isSendingMessage) return;
 
     if (!isAuthenticated) {
       if (onOpenAuth) onOpenAuth();
@@ -225,24 +226,36 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     }
 
     const content = inputText;
-    setInputText('');
+    setIsSendingMessage(true);
     setMentionQuery(null);
 
     const socket = getSocket();
     socket.emit('chat:stop_typing', { channelId: selectedChannelId });
 
     try {
-      await sendMessage(selectedChannelId, { content });
+      const savedMsg = await sendMessage(selectedChannelId, { content });
+      if (savedMsg) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === savedMsg.id)) return prev;
+          return [...prev, savedMsg];
+        });
+        setInputText('');
+      }
     } catch (err) {
       console.error('Failed to send message:', err);
+      // 실패 시 입력 내용 복원
       setInputText(content);
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (!isSendingMessage) {
+        handleSendMessage();
+      }
       return;
     }
 
@@ -447,6 +460,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         handleTogglePin={handleTogglePin}
         handleReplyToMessage={handleReplyToMessage}
         isAuthenticated={isAuthenticated}
+        isSendingMessage={isSendingMessage}
         inputText={inputText}
         setInputText={setInputText}
         handleSendMessage={handleSendMessage}

@@ -21,7 +21,7 @@ describe('favorites.getFavorites.test.ts', () => {
     proj1 = await prisma.project.create({
       data: {
         name: `Normal Project ${Date.now()}`,
-        key: `NORM${Math.floor(Math.random() * 1000)}`,
+        key: `NRM_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         ownerId: testUser.id,
       },
     });
@@ -29,7 +29,7 @@ describe('favorites.getFavorites.test.ts', () => {
     proj2 = await prisma.project.create({
       data: {
         name: `Starred Project ${Date.now()}`,
-        key: `STAR${Math.floor(Math.random() * 1000)}`,
+        key: `STR_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         ownerId: testUser.id,
       },
     });

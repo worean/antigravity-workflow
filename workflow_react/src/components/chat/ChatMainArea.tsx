@@ -25,9 +25,10 @@ interface ChatMainAreaProps {
   handleTogglePin: (messageId: number, currentPinned?: boolean) => Promise<void>;
   handleReplyToMessage: (msg: ChatMessage) => void;
   isAuthenticated: boolean;
+  isSendingMessage: boolean;
   inputText: string;
   setInputText: (val: string) => void;
-  handleSendMessage: (e: React.FormEvent) => void;
+  handleSendMessage: (e?: React.FormEvent) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   mentionSuggestions: { id: string | number; name: string; type: string }[];
   mentionQuery: string | null;
@@ -56,6 +57,7 @@ export const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   handleTogglePin,
   handleReplyToMessage,
   isAuthenticated,
+  isSendingMessage,
   inputText,
   setInputText,
   handleSendMessage,
@@ -106,10 +108,11 @@ export const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         handleReplyToMessage={handleReplyToMessage}
       />
 
-      {/* 3. Input Area */}
+      {/* 3. Message Input */}
       <ChatInputArea
         currentChannel={currentChannel}
         isAuthenticated={isAuthenticated}
+        isSendingMessage={isSendingMessage}
         inputText={inputText}
         setInputText={setInputText}
         handleSendMessage={handleSendMessage}
