@@ -22,12 +22,13 @@ import { AuthModal } from '@/components/AuthModal';
 
 import { ProjectModal } from '@/components/ProjectModal';
 import { IssueModal } from '@/components/IssueModal';
+import { SprintModal } from '@/components/SprintModal';
 import { IssueDetailDrawer } from '@/components/issueDetail';
 import { getProjects } from '@/services/api';
 import { issueKeys } from '@/api/issues';
 import { getSocket } from '@/lib/socketClient';
 import { sendDesktopNotification } from '@/utils/notificationUtils';
-import type { Project, Issue } from '@/types';
+import type { Project, Issue, Sprint } from '@/types';
 import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/utils/routeUtils';
 
 type IssueDetailMode = 'view' | 'edit';
@@ -52,6 +53,8 @@ const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState<boolean>(false);
   const [isIssueModalOpen, setIsIssueModalOpen] = useState<boolean>(false);
+  const [isSprintModalOpen, setIsSprintModalOpen] = useState<boolean>(false);
+  const [selectedSprintForEdit, setSelectedSprintForEdit] = useState<Sprint | null>(null);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [issueRefreshKey, setIssueRefreshKey] = useState<number>(Date.now());
@@ -59,6 +62,21 @@ const AppContent: React.FC = () => {
   const handleIssueRefreshed = useCallback(() => {
     setIssueRefreshKey(Date.now());
     queryClient.invalidateQueries({ queryKey: issueKeys.all });
+  }, []);
+
+  const handleSprintRefreshed = useCallback(() => {
+    setIssueRefreshKey(Date.now());
+    queryClient.invalidateQueries({ queryKey: ['sprints'] });
+  }, []);
+
+  const handleOpenCreateSprint = useCallback(() => {
+    setSelectedSprintForEdit(null);
+    setIsSprintModalOpen(true);
+  }, []);
+
+  const handleOpenEditSprint = useCallback((sprint: Sprint) => {
+    setSelectedSprintForEdit(sprint);
+    setIsSprintModalOpen(true);
   }, []);
 
   // 로그인 및 로그아웃 시 전체 프로젝트 목록 및 화면 상태 리프레시
@@ -417,6 +435,8 @@ const AppContent: React.FC = () => {
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('sprints', pId === 'ALL' ? null : pId, null, 'view', true)}
               onSelectSprint={(sId) => navigate('sprint-detail', selectedProjectId, sId, 'view', false)}
+              onOpenCreateSprint={handleOpenCreateSprint}
+              onOpenEditSprint={handleOpenEditSprint}
               onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
@@ -428,6 +448,7 @@ const AppContent: React.FC = () => {
               sprintId={selectedSprintId}
               projectId={selectedProjectId}
               onBack={() => navigate('sprints', selectedProjectId, null, 'view', false)}
+              onOpenEditSprint={handleOpenEditSprint}
               onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
@@ -488,6 +509,16 @@ const AppContent: React.FC = () => {
         projects={projects}
         initialProjectId={selectedProjectId || undefined}
         onIssueCreated={handleIssueRefreshed}
+      />
+
+      {/* Sprint Create / Edit Modal (App 루트 전역 모달) */}
+      <SprintModal
+        isOpen={isSprintModalOpen}
+        onClose={() => setIsSprintModalOpen(false)}
+        sprint={selectedSprintForEdit}
+        projects={projects}
+        initialProjectId={selectedProjectId || undefined}
+        onSuccess={handleSprintRefreshed}
       />
     </div>
   );

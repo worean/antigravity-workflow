@@ -26,6 +26,8 @@ interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;
   onFilterChange?: (projectId: number | 'ALL') => void;
   onSelectSprint?: (sprintId: number) => void;
+  onOpenCreateSprint?: () => void;
+  onOpenEditSprint?: (sprint: Sprint) => void;
   onOpenIssueDetail?: (issueId: number) => void;
   onOpenAuth?: () => void;
 }
@@ -34,6 +36,8 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   selectedProjectId: initialProjectId = 'ALL',
   onFilterChange,
   onSelectSprint,
+  onOpenCreateSprint,
+  onOpenEditSprint,
   onOpenIssueDetail,
   onOpenAuth,
 }) => {
@@ -52,7 +56,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     }
   }, [initialProjectId]);
 
-  // Create / Edit Modal State
+  // Create / Edit Modal State (로컬 폴백용)
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
 
@@ -89,16 +93,24 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     fetchData(true);
   }, [selectedProjectId]);
 
-  // Open Create Modal
+  // Open Create Modal (전역 모달 우선 호출)
   const handleOpenCreateModal = () => {
-    setEditingSprint(null);
-    setShowFormModal(true);
+    if (onOpenCreateSprint) {
+      onOpenCreateSprint();
+    } else {
+      setEditingSprint(null);
+      setShowFormModal(true);
+    }
   };
 
-  // Open Edit Modal
+  // Open Edit Modal (전역 모달 우선 호출)
   const handleOpenEditModal = (sprint: Sprint) => {
-    setEditingSprint(sprint);
-    setShowFormModal(true);
+    if (onOpenEditSprint) {
+      onOpenEditSprint(sprint);
+    } else {
+      setEditingSprint(sprint);
+      setShowFormModal(true);
+    }
   };
 
   // Open Collaboration Hub / Detail Page

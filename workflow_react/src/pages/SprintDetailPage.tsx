@@ -30,6 +30,7 @@ interface SprintDetailPageProps {
   sprintId: number | null;
   projectId?: number | null;
   onBack: () => void;
+  onOpenEditSprint?: (sprint: Sprint) => void;
   onOpenIssueDetail?: (issueId: number) => void;
   onOpenAuth?: () => void;
 }
@@ -37,6 +38,7 @@ interface SprintDetailPageProps {
 export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
   sprintId,
   onBack,
+  onOpenEditSprint,
   onOpenIssueDetail,
   onOpenAuth,
 }) => {
@@ -46,7 +48,7 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<SprintDetailTabType>('discussions');
 
-  // Edit Modal State
+  // Edit Modal State (로컬 폴백용)
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
 
   // Manage Issues Modal State
@@ -88,7 +90,11 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
   };
 
   const handleOpenEditModal = () => {
-    setShowEditModal(true);
+    if (onOpenEditSprint && sprint) {
+      onOpenEditSprint(sprint);
+    } else {
+      setShowEditModal(true);
+    }
   };
 
   const handleDeleteSprint = async (sId: number) => {
