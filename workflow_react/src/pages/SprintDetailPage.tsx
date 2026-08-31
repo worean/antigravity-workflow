@@ -22,9 +22,9 @@ import {
   SprintDiscussionsTab,
   SprintWorklogsTab,
   SprintNotesTab,
-  SprintFormModal,
   SprintManageIssuesModal,
 } from '@/components/sprints';
+import { SprintModal } from '@/components/SprintModal';
 
 interface SprintDetailPageProps {
   sprintId: number | null;
@@ -259,8 +259,8 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
         )}
       </div>
 
-      {/* Edit Modal (IssueModal 방식) */}
-      <SprintFormModal
+      {/* Edit Modal (IssueModal 완벽 일치 구조) */}
+      <SprintModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         sprint={sprint}

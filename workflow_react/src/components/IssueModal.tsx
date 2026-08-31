@@ -496,8 +496,39 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
   return (
     <>
-      <div className="modal-overlay" {...overlayProps}>
-        <div className="modal-content" style={{ maxWidth: '640px', padding: '14px 18px', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-overlay"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(2px)',
+        }}
+        {...overlayProps}
+      >
+        <div
+          className="modal-content"
+          style={{
+            maxWidth: '640px',
+            width: '92%',
+            padding: '14px 18px',
+            maxHeight: 'calc(100vh - 40px)',
+            overflowY: 'auto',
+            margin: 'auto',
+            borderRadius: '6px',
+            background: '#252526',
+            border: '1px solid #454545',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>
             <div style={{ fontSize: '0.95rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-bright)' }}>

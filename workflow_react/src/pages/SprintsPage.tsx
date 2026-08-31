@@ -16,11 +16,11 @@ import {
   SprintToolbar,
   SprintStarredHud,
   SprintGrid,
-  SprintFormModal,
   SprintManageIssuesModal,
   SprintDetailModal,
   type SprintStatusFilter,
 } from '@/components/sprints';
+import { SprintModal } from '@/components/SprintModal';
 
 interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;
@@ -331,8 +331,8 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         onOpenAuth={onOpenAuth}
       />
 
-      {/* 4. Form Modal: Create / Edit (IssueModal 방식) */}
-      <SprintFormModal
+      {/* 4. Form Modal: Create / Edit (IssueModal 완벽 일치 구조) */}
+      <SprintModal
         isOpen={showFormModal}
         onClose={() => setShowFormModal(false)}
         sprint={editingSprint}
