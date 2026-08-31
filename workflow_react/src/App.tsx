@@ -367,7 +367,7 @@ const AppContent: React.FC = () => {
           onSelectChatChannel={(cId: number) => navigate('chat', null, null, 'view', false, { channelId: cId })}
         />
 
-        <main style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-dark)', padding: '12px 16px', position: 'relative' }}>
+        <main className="main-content" data-tab={activeTab}>
           {activeTab === 'dashboard' && (
             <DashboardPage
               key={`tab-dash-${selectedProjectId || 'all'}-${issueRefreshKey}`}

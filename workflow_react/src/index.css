@@ -42,6 +42,9 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 3px 8px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.65);
+
+  /* Layout Custom Properties */
+  --main-padding: 12px 16px;
 }
 
 * {
@@ -112,6 +115,23 @@ h1, h2, h3, h4, h5, h6 {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #4a4a4a transparent;
+}
+
+/* 📱 Main Content Area with CSS Variable Controlled Padding */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg-dark);
+  padding: var(--main-padding);
+  position: relative;
+  height: 100%;
+}
+
+/* 🎯 탭 또는 상황별 패딩 동적 제어 (CSS Custom Property Override) */
+.main-content[data-tab="chat"],
+.main-content.no-padding {
+  --main-padding: 0px;
+  overflow-y: hidden;
 }
 
 /* 🌀 Spinner & Rotation Keyframes */
