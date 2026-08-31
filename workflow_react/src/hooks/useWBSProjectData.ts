@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useCallback, type RefObject } from 'react';
+﻿// -*- coding: utf-8 -*-
+import { useState, useEffect, useCallback, type RefObject } from 'react';
 import type { Project, Sprint, Issue } from '@/types';
 import { getProjects, getSprints, getIssues } from '@/services/api';
 
@@ -22,12 +23,12 @@ export const useWBSProjectData = ({
   const [issues, setIssues] = useState<Issue[]>([]);
 
   useEffect(() => {
-    if (initialProjectId !== undefined) {
+    if (initialProjectId !== undefined && initialProjectId !== null) {
       setSelectedProjectId(initialProjectId);
     }
   }, [initialProjectId]);
 
-  const [loading, setLoading] = useState<boolean>(true);
+  const loading = false;
   const [issuesLoading, setIssuesLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isBackgroundSyncing, setIsBackgroundSyncing] = useState<boolean>(false);
@@ -36,10 +37,11 @@ export const useWBSProjectData = ({
 
   // 1. Initial Load: Projects
   useEffect(() => {
+    let isMounted = true;
     const fetchInitial = async () => {
-      setLoading(true);
       try {
         const pList = await getProjects();
+        if (!isMounted) return;
         setProjects(pList);
         if (pList.length > 0) {
           const matched = initialProjectId ? pList.find((p) => p.id === initialProjectId) : null;
@@ -51,12 +53,13 @@ export const useWBSProjectData = ({
         }
       } catch (err) {
         console.error('Failed to load projects:', err);
-        setIsInitialLoading(false);
-      } finally {
-        setLoading(false);
+        if (isMounted) setIsInitialLoading(false);
       }
     };
     fetchInitial();
+    return () => {
+      isMounted = false;
+    };
   }, [onFilterChange]);
 
   // 2. Load Sprints & Issues when Project/Sprint changes
@@ -68,7 +71,7 @@ export const useWBSProjectData = ({
         setIsBackgroundSyncing(false);
         return;
       }
-      if (showLoading) setIssuesLoading(true);
+      if (showLoading && issues.length === 0) setIssuesLoading(true);
       else setIsBackgroundSyncing(true);
 
       const prevTableScrollTop = tableBodyRef.current?.scrollTop;
@@ -88,11 +91,11 @@ export const useWBSProjectData = ({
       } catch (err) {
         console.error('Failed to load WBS data:', err);
       } finally {
-        if (showLoading) setIssuesLoading(false);
+        setIssuesLoading(false);
         setIsBackgroundSyncing(false);
         setIsInitialLoading(false);
 
-        // 스크롤 위치 복원
+        // 스크롤 위치 보존
         requestAnimationFrame(() => {
           if (tableBodyRef.current && prevTableScrollTop !== undefined) {
             tableBodyRef.current.scrollTop = prevTableScrollTop;
@@ -104,11 +107,11 @@ export const useWBSProjectData = ({
         });
       }
     },
-    [selectedProjectId, selectedSprintId, tableBodyRef, ganttBodyRef]
+    [selectedProjectId, selectedSprintId, tableBodyRef, ganttBodyRef, issues.length]
   );
 
   useEffect(() => {
-    loadProjectData(true);
+    loadProjectData(false);
   }, [loadProjectData]);
 
   return {

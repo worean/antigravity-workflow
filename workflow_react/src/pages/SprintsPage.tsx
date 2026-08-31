@@ -44,17 +44,11 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   const { user, isAuthenticated } = useAuth();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // Filters
+  // Filters (Single Source of Truth from Props)
   const [statusFilter, setStatusFilter] = useState<SprintStatusFilter>('ALL');
-  const [selectedProjectId, setSelectedProjectId] = useState<number | 'ALL'>(initialProjectId || 'ALL');
-
-  useEffect(() => {
-    if (initialProjectId !== undefined && initialProjectId !== null) {
-      setSelectedProjectId(initialProjectId);
-    }
-  }, [initialProjectId]);
+  const selectedProjectId = initialProjectId || 'ALL';
 
   // Create / Edit Modal State (로컬 폴백용)
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
@@ -74,7 +68,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   const [autoCalculating, setAutoCalculating] = useState<boolean>(false);
 
   const fetchData = async (showLoading: boolean = false) => {
-    if (showLoading) setLoading(true);
+    if (showLoading && sprints.length === 0) setLoading(true);
     try {
       const [sData, pData] = await Promise.all([
         getSprints(selectedProjectId === 'ALL' ? undefined : selectedProjectId),
@@ -85,12 +79,12 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     } catch (err) {
       console.error('Failed to fetch sprint data:', err);
     } finally {
-      if (showLoading) setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData(true);
+    fetchData(false);
   }, [selectedProjectId]);
 
   // Open Create Modal (전역 모달 우선 호출)
@@ -307,7 +301,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         selectedProjectId={selectedProjectId}
-        setSelectedProjectId={setSelectedProjectId}
+        setSelectedProjectId={(pId) => onFilterChange && onFilterChange(pId)}
         filteredSprintsCount={filteredSprints.length}
         projects={projects}
         isAuthenticated={isAuthenticated}

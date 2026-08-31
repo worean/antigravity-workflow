@@ -467,24 +467,20 @@ textarea.input-field {
 
 @keyframes fadeIn {
   from {
-    opacity: 0;
-    transform: translateY(3px);
+    opacity: 0.92;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  /* 불필요한 번쩍임/덜컹거림 방지 */
+  animation: fadeIn 0.1s ease-out forwards;
 }
 
 .transition-pending {
-  opacity: 0.6;
-  filter: grayscale(20%);
-  transition: opacity 0.2s ease, filter 0.2s ease;
+  /* 깜빡임 방지: 부드러운 상태 유지 */
   pointer-events: none;
 }
 

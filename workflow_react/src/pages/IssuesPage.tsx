@@ -41,23 +41,28 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
 }) => {
   const { isAuthenticated, user } = useAuth();
 
-  // Filters
-  const [filterProjectId, setFilterProjectId] = useState<number | 'ALL'>(selectedProjectId || 'ALL');
-  const [filterAssigneeId, setFilterAssigneeId] = useState<number | 'ALL' | 'MY'>(selectedAssigneeId || 'ALL');
-  const [searchTerm, setSearchTerm] = useState<string>(searchTermProp || '');
+  // Filters (Single Source of Truth from Props/URL)
+  const filterProjectId = selectedProjectId || 'ALL';
+  const filterAssigneeId = selectedAssigneeId || 'ALL';
+  const [localSearchTerm, setLocalSearchTerm] = useState<string>(searchTermProp || '');
+
+  // Sync search term when prop changes from outside
+  useEffect(() => {
+    setLocalSearchTerm(searchTermProp || '');
+  }, [searchTermProp]);
 
   // 1. Projects & Users Query
   const { data: projects = [] } = useProjects({ limit: 50 });
   const { data: users = [] } = useUsers();
 
   // 2. Issues Query
-  const queryProjectId = filterProjectId === 'ALL' ? undefined : filterProjectId;
+  const queryProjectId = filterProjectId === 'ALL' ? undefined : Number(filterProjectId);
   const queryAssigneeId = filterAssigneeId === 'MY' ? 'my' : filterAssigneeId === 'ALL' ? undefined : Number(filterAssigneeId);
 
   const { data: issues = [], isLoading: loading, refetch: refetchIssues } = useIssues({
     projectId: queryProjectId,
     assigneeId: queryAssigneeId,
-    search: searchTerm.trim() || undefined,
+    search: localSearchTerm.trim() || undefined,
     all: true,
   });
 
@@ -80,36 +85,21 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   const [deletingIssue, setDeletingIssue] = useState<Issue | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
 
-  // Sync props to internal state on URL change / history back
-  useEffect(() => {
-    setFilterProjectId(selectedProjectId ? selectedProjectId : 'ALL');
-  }, [selectedProjectId]);
-
-  useEffect(() => {
-    setFilterAssigneeId(selectedAssigneeId || 'ALL');
-  }, [selectedAssigneeId]);
-
-  useEffect(() => {
-    setSearchTerm(searchTermProp || '');
-  }, [searchTermProp]);
-
   // Filter change handlers
   const handleProjectFilterChange = (newProj: number | 'ALL') => {
-    setFilterProjectId(newProj);
     if (onFilterChange) {
-      onFilterChange({ projectId: newProj, assigneeId: filterAssigneeId, search: searchTerm });
+      onFilterChange({ projectId: newProj, assigneeId: filterAssigneeId, search: localSearchTerm });
     }
   };
 
   const handleAssigneeFilterChange = (newAssignee: number | 'ALL' | 'MY') => {
-    setFilterAssigneeId(newAssignee);
     if (onFilterChange) {
-      onFilterChange({ projectId: filterProjectId, assigneeId: newAssignee, search: searchTerm });
+      onFilterChange({ projectId: filterProjectId, assigneeId: newAssignee, search: localSearchTerm });
     }
   };
 
   const handleSearchChange = (newSearch: string) => {
-    setSearchTerm(newSearch);
+    setLocalSearchTerm(newSearch);
     if (onFilterChange) {
       onFilterChange({ projectId: filterProjectId, assigneeId: filterAssigneeId, search: newSearch });
     }
@@ -233,7 +223,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         handleProjectFilterChange={handleProjectFilterChange}
         filterAssigneeId={filterAssigneeId}
         handleAssigneeFilterChange={handleAssigneeFilterChange}
-        searchTerm={searchTerm}
+        searchTerm={localSearchTerm}
         handleSearchChange={handleSearchChange}
         projects={projects}
         users={users}
