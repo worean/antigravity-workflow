@@ -1,5 +1,7 @@
-﻿import axios from 'axios';
+﻿// -*- coding: utf-8 -*-
+import axios from 'axios';
 import type { HealthStatus } from '@/types';
+import { preferenceRepository } from '@/lib/storage';
 
 /**
  * 백엔드 Base URL 정규화 헬퍼 (프로토콜 보정 및 끝 슬래시/api 정리)
@@ -19,7 +21,7 @@ export const normalizeBackendUrl = (rawUrl: string): string => {
  */
 export const getCurrentBackendHostUrl = (): string => {
   if (typeof window !== 'undefined') {
-    const customUrl = localStorage.getItem('pref_backend_api_url');
+    const customUrl = preferenceRepository.backendApiUrl;
     if (customUrl) return normalizeBackendUrl(customUrl);
 
     if (window.electronAPI?.isElectron || window.location.protocol === 'file:') {
@@ -34,7 +36,7 @@ export const getCurrentBackendHostUrl = (): string => {
  */
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    const customUrl = localStorage.getItem('pref_backend_api_url');
+    const customUrl = preferenceRepository.backendApiUrl;
     if (customUrl) return normalizeBackendUrl(customUrl) + '/api';
 
     if (window.electronAPI?.isElectron || window.location.protocol === 'file:') {
@@ -52,7 +54,7 @@ export const saveCustomBackendUrl = async (rawUrl: string): Promise<string> => {
   if (!cleanedUrl) throw new Error('유효한 서버 URL을 입력해 주세요.');
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem('pref_backend_api_url', cleanedUrl);
+    preferenceRepository.backendApiUrl = cleanedUrl;
     if (window.electronAPI?.setBackendConfig) {
       await window.electronAPI.setBackendConfig({ backendApiUrl: cleanedUrl });
     }
@@ -66,7 +68,7 @@ export const saveCustomBackendUrl = async (rawUrl: string): Promise<string> => {
  */
 export const resetCustomBackendUrl = async (): Promise<void> => {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('pref_backend_api_url');
+    preferenceRepository.backendApiUrl = '';
     if (window.electronAPI?.setBackendConfig) {
       await window.electronAPI.setBackendConfig({ backendApiUrl: '' });
     }
@@ -122,8 +124,8 @@ export const testApiConnection = async (
  */
 if (typeof window !== 'undefined' && window.electronAPI?.getBackendConfig) {
   window.electronAPI.getBackendConfig().then((config) => {
-    if (config?.backendApiUrl && !localStorage.getItem('pref_backend_api_url')) {
-      localStorage.setItem('pref_backend_api_url', config.backendApiUrl);
+    if (config?.backendApiUrl && !preferenceRepository.backendApiUrl) {
+      preferenceRepository.backendApiUrl = config.backendApiUrl;
       apiClient.defaults.baseURL = getApiBaseUrl();
     }
   }).catch(() => {});
@@ -138,13 +140,13 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   config.baseURL = getApiBaseUrl();
-  const token = localStorage.getItem('auth_token');
+  const token = preferenceRepository.authToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const workspaceId = localStorage.getItem('active_workspace_id');
+  const workspaceId = preferenceRepository.activeWorkspaceId;
   if (workspaceId) {
-    config.headers['x-workspace-id'] = workspaceId;
+    config.headers['x-workspace-id'] = String(workspaceId);
   }
   return config;
 });

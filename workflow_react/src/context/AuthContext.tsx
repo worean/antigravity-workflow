@@ -1,8 +1,10 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿// -*- coding: utf-8 -*-
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/types';
 import { getMe, loginEmail, registerUser } from '@/services/api';
 import { queryClient } from '@/lib/queryClient';
 import { disconnectSocket, getSocket } from '@/lib/socketClient';
+import { preferenceRepository } from '@/lib/storage';
 
 interface AuthContextType {
   user: User | null;
@@ -15,35 +17,12 @@ interface AuthContextType {
   updateUserLocal: (updated: User) => void;
 }
 
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [user, setUser] = useState<User | null>(() => preferenceRepository.currentUser);
+  const [token, setToken] = useState<string | null>(() => preferenceRepository.authToken);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // 각 User의 설정에 맞춰 로컬 스토리지 동기화
-  const syncPreferencesToStorage = (userObj?: User | null) => {
-    if (!userObj || !userObj.preferences) return;
-    try {
-      const prefs = typeof userObj.preferences === 'string' ? JSON.parse(userObj.preferences) : userObj.preferences;
-      if (typeof prefs.isSundayStart === 'boolean') {
-        localStorage.setItem('pref_is_sunday_start', String(prefs.isSundayStart));
-      }
-      if (prefs.defaultPriority) {
-        localStorage.setItem('pref_default_priority', String(prefs.defaultPriority));
-      }
-      if (typeof prefs.compactCards === 'boolean') {
-        localStorage.setItem('pref_compact_cards', String(prefs.compactCards));
-      }
-      if (typeof prefs.desktopNotifications === 'boolean') {
-        localStorage.setItem('pref_desktop_notifications', String(prefs.desktopNotifications));
-      }
-    } catch (e) {
-      console.error('Failed to sync user preferences to storage:', e);
-    }
-  };
 
   // 초기 인증 상태 설정 (첫 로딩 시)
   useEffect(() => {
@@ -52,12 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const res = await getMe();
           setUser(res.user);
-          localStorage.setItem('user', JSON.stringify(res.user));
-          syncPreferencesToStorage(res.user);
+          preferenceRepository.currentUser = res.user;
+          preferenceRepository.syncFromUserProfile(res.user.preferences);
         } catch (err) {
           console.error('Failed to restore user session:', err);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
+          preferenceRepository.clearAuth();
           disconnectSocket();
           setToken(null);
           setUser(null);
@@ -69,14 +47,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [token]);
 
+  // 로그인 동작
   const login = async (email: string, password?: string) => {
     const res = await loginEmail(email, password);
     if (res.token) {
-      localStorage.setItem('auth_token', res.token);
-      localStorage.setItem('user', JSON.stringify(res.user));
+      preferenceRepository.authToken = res.token;
+      preferenceRepository.currentUser = res.user;
+      preferenceRepository.syncFromUserProfile(res.user.preferences);
+
       setToken(res.token);
       setUser(res.user);
-      syncPreferencesToStorage(res.user);
 
       // 소켓 재연결 및 쿼리 캐시 무효화/리패치
       disconnectSocket();
@@ -86,15 +66,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 회원가입 동작
   const signup = async (email: string, name: string, password?: string) => {
     await registerUser(email, name, password);
     // signup 후 자동 로그인 시도
     await login(email, password);
   };
 
+  // 로그아웃 동작
   const logout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    preferenceRepository.clearAuth();
     disconnectSocket();
     setToken(null);
     setUser(null);
@@ -104,6 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserLocal = (updated: User) => {
     setUser(updated);
+    preferenceRepository.currentUser = updated;
+    preferenceRepository.syncFromUserProfile(updated.preferences);
   };
 
   return (
@@ -111,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         token,
-        isAuthenticated: !!user,
+        isAuthenticated: !!token && !!user,
         isLoading,
         login,
         signup,
@@ -122,11 +105,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-
 };
 
 /**
- * Authfication을 위한 Hook 으로 AuthContext에 접근할 수 있습니다.
+ * Authentication을 위한 Hook으로 AuthContext에 접근할 수 있습니다.
  * 컴포넌트 등은 해당 Hook을 사용하여 인증 상태 및 사용자 정보를 가져올 수 있습니다.
  */
 export const useAuth = () => {

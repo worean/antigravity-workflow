@@ -10,6 +10,8 @@ import {
 } from '@/api/workspaces';
 import type { Workspace, WorkspaceMember } from '@/types';
 
+import { preferenceRepository } from '@/lib/storage';
+
 interface WorkspaceContextType {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
@@ -22,15 +24,12 @@ interface WorkspaceContextType {
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
-const ACTIVE_WORKSPACE_KEY = 'active_workspace_id';
-
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<number | null>(() => {
-    const saved = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
-    return saved ? Number(saved) : null;
+    return preferenceRepository.activeWorkspaceId;
   });
 
   // 1. 참여 중인 워크스페이스 목록 조회
@@ -49,7 +48,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     if (!isAuthenticated || workspaces.length === 0) {
       if (!isAuthenticated) {
-        localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+        preferenceRepository.activeWorkspaceId = null;
         setCurrentWorkspaceId(null);
       }
       return;
@@ -61,7 +60,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // 존재하지 않으면 첫 번째 워크스페이스를 기본 활성화
       const defaultWs = workspaces[0];
       setCurrentWorkspaceId(defaultWs.id);
-      localStorage.setItem(ACTIVE_WORKSPACE_KEY, String(defaultWs.id));
+      preferenceRepository.activeWorkspaceId = defaultWs.id;
     }
   }, [isAuthenticated, workspaces, currentWorkspaceId]);
 
@@ -76,7 +75,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!target) return;
 
       setCurrentWorkspaceId(workspaceId);
-      localStorage.setItem(ACTIVE_WORKSPACE_KEY, String(workspaceId));
+      preferenceRepository.activeWorkspaceId = workspaceId;
 
       // ⭐️ 이전 워크스페이스 캐시 무효화 및 새 워크스페이스 데이터 갱신
       queryClient.invalidateQueries();

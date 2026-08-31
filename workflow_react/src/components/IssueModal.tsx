@@ -17,6 +17,7 @@ import {
 } from '@/services/api';
 import type { Worklog } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { preferenceRepository } from '@/lib/storage';
 import {
   X,
   PlusCircle,
@@ -68,15 +69,7 @@ interface IssueModalProps {
 }
 
 const getDefaultPriority = (): number => {
-  try {
-    const saved = localStorage.getItem('pref_default_priority');
-    if (saved && !isNaN(Number(saved)) && Number(saved) > 0) {
-      return Number(saved);
-    }
-  } catch {
-    // ignore
-  }
-  return 2; // Default to Medium (2)
+  return preferenceRepository.defaultPriority || 2;
 };
 
 export const IssueModal: React.FC<IssueModalProps> = ({

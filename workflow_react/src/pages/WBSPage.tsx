@@ -14,6 +14,7 @@ import {
 import { useWBSProjectData } from '@/hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '@/hooks/useWBSGanttDrag';
 import { WBSToolbar, WBSMainSplitView } from '@/components/wbs';
+import { preferenceRepository } from '@/lib/storage';
 
 interface WBSPageProps {
   selectedProjectId?: number | null;
@@ -35,10 +36,9 @@ export const WBSPage: React.FC<WBSPageProps> = ({
   const ganttBodyRef = useRef<HTMLDivElement>(null);
   const ganttHeaderRef = useRef<HTMLDivElement>(null);
 
-  // Preference: isSundayStart (default: true)
+  // Preference: isSundayStart
   const isSundayStart = useMemo<boolean>(() => {
-    const saved = localStorage.getItem('pref_is_sunday_start');
-    return saved !== null ? saved === 'true' : true;
+    return preferenceRepository.isSundayStart;
   }, []);
 
   // Collapse / Expand State (Set of collapsed parent issue IDs)

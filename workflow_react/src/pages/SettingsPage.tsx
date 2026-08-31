@@ -27,6 +27,7 @@ import {
 } from '@/utils/notificationUtils';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
+import { preferenceRepository } from '@/lib/storage';
 import {
   SettingsHeaderToolbar,
   SettingsSidebarNav,
@@ -97,19 +98,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   const [fieldRequired, setFieldRequired] = useState<boolean>(false);
 
   // --- TAB 4: Display & Notification Preferences State ---
-  const [desktopNotifications, setDesktopNotifications] = useState<boolean>(() => {
-    return localStorage.getItem('pref_desktop_notifications') === 'true';
-  });
-  const [compactCards, setCompactCards] = useState<boolean>(() => {
-    return localStorage.getItem('pref_compact_cards') === 'true';
-  });
-  const [defaultPriority, setDefaultPriority] = useState<number>(() => {
-    return Number(localStorage.getItem('pref_default_priority')) || 3;
-  });
-  const [isSundayStart, setIsSundayStart] = useState<boolean>(() => {
-    const saved = localStorage.getItem('pref_is_sunday_start');
-    return saved !== null ? saved === 'true' : true;
-  });
+  const [desktopNotifications, setDesktopNotifications] = useState<boolean>(() => preferenceRepository.desktopNotifications);
+  const [compactCards, setCompactCards] = useState<boolean>(() => preferenceRepository.compactCards);
+  const [defaultPriority, setDefaultPriority] = useState<number>(() => preferenceRepository.defaultPriority);
+  const [isSundayStart, setIsSundayStart] = useState<boolean>(() => preferenceRepository.isSundayStart);
   const [testNotificationSent, setTestNotificationSent] = useState<boolean>(false);
   const [prioritySavedFeedback, setPrioritySavedFeedback] = useState<boolean>(false);
   const [weekStartSavedFeedback, setWeekStartSavedFeedback] = useState<boolean>(false);
@@ -403,7 +395,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       const granted = await requestWebNotificationPermission();
       if (granted) {
         setDesktopNotifications(true);
-        localStorage.setItem('pref_desktop_notifications', 'true');
+        preferenceRepository.desktopNotifications = true;
         sendDesktopNotification({
           title: '데스크톱 알림 활성화',
           body: 'AntiGravity Workflow 데스크톱 알림이 성공적으로 활성화되었습니다.',
@@ -411,11 +403,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       } else {
         alert('OS 알림 권한이 거부되었거나 지원되지 않는 환경입니다.');
         setDesktopNotifications(false);
-        localStorage.setItem('pref_desktop_notifications', 'false');
+        preferenceRepository.desktopNotifications = false;
       }
     } else {
       setDesktopNotifications(false);
-      localStorage.setItem('pref_desktop_notifications', 'false');
+      preferenceRepository.desktopNotifications = false;
     }
   };
 
@@ -430,19 +422,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
 
   const handleToggleCompactCards = (enabled: boolean) => {
     setCompactCards(enabled);
-    localStorage.setItem('pref_compact_cards', String(enabled));
+    preferenceRepository.compactCards = enabled;
   };
 
   const handleDefaultPriorityChange = (priorityId: number) => {
     setDefaultPriority(priorityId);
-    localStorage.setItem('pref_default_priority', String(priorityId));
+    preferenceRepository.defaultPriority = priorityId;
     setPrioritySavedFeedback(true);
     setTimeout(() => setPrioritySavedFeedback(false), 2000);
   };
 
   const handleWeekStartChange = (isSunday: boolean) => {
     setIsSundayStart(isSunday);
-    localStorage.setItem('pref_is_sunday_start', String(isSunday));
+    preferenceRepository.isSundayStart = isSunday;
     setWeekStartSavedFeedback(true);
     setTimeout(() => setWeekStartSavedFeedback(false), 2000);
   };
