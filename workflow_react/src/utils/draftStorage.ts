@@ -1,103 +1,172 @@
 ﻿// -*- coding: utf-8 -*-
-/**
- * 🍪 Lightweight Cookie / Web Storage based Issue Draft Utility
- * 
- * React Context의 리렌더링이나 무거운 상태 관리 없이,
- * 사용자의 일감 작성/수정 중인 폼 데이터를 브라우저 쿠키/스토리지에 경량으로 안전하게 보존합니다.
- */
 
 export interface IssueDraft {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   projectId?: number;
-  statusId?: number;
+  parentId?: number | null;
   priorityId?: number;
-  assigneeId?: number | null;
-  dueDate?: string | null;
-  startDate?: string | null;
-  plannedStartDate?: string | null;
-  tags?: string[];
+  statusId?: number;
+  assigneeId?: number | undefined;
+  dueDate?: string;
+  plannedStartDate?: string;
   customFields?: Record<string, any>;
-  updatedAt: number;
+  savedAt?: number;
 }
 
-const DRAFT_COOKIE_PREFIX = 'agy_draft_';
-
-// 🍪 쿠키 읽기 헬퍼
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
-  return match ? decodeURIComponent(match[3]) : null;
+export interface IssueEditDraft extends IssueDraft {
+  issueId: number;
+  typeId?: number;
+  progress?: number;
+  actualStartDate?: string;
+  actualEndDate?: string;
+  customFieldsData?: Record<string, any>;
+  savedAt: number;
 }
 
-// 🍪 쿠키 쓰기 헬퍼 (유효기간 7일)
-function setCookie(name: string, value: string, days: number = 7): void {
-  if (typeof document === 'undefined') return;
-  const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+export interface IssueCreateDraft extends IssueDraft {
+  savedAt: number;
 }
 
-// 🍪 쿠키 삭제 헬퍼
-function deleteCookie(name: string): void {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
-}
+const EDIT_DRAFT_PREFIX = 'ag_draft_issue_edit_';
+const CREATE_DRAFT_KEY = 'ag_draft_issue_create';
+const LEGACY_DRAFT_PREFIX = 'ag_draft_issue_';
 
+/**
+ * 📦 draftStorage 통합 객체 (하위 호환 및 WorkspaceContext 지원)
+ */
 export const draftStorage = {
-  getIssueDraft(key: string | number): IssueDraft | null {
-    const cookieName = `${DRAFT_COOKIE_PREFIX}${key}`;
-    const raw = getCookie(cookieName);
-    if (!raw) {
-      // sessionStorage fallback
-      if (typeof window !== 'undefined') {
-        const sessionRaw = window.sessionStorage.getItem(cookieName);
-        if (sessionRaw) {
-          try {
-            return JSON.parse(sessionRaw);
-          } catch {}
-        }
-      }
-      return null;
-    }
+  getIssueDraft: (key: string | number): IssueDraft | null => {
+    if (typeof window === 'undefined') return null;
     try {
-      return JSON.parse(raw);
+      const storageKey = typeof key === 'string' && key.startsWith('ag_') ? key : `${LEGACY_DRAFT_PREFIX}${key}`;
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return null;
+      return JSON.parse(raw) as IssueDraft;
     } catch {
       return null;
     }
   },
-
-  saveIssueDraft(key: string | number, draft: Partial<IssueDraft>): void {
-    const cookieName = `${DRAFT_COOKIE_PREFIX}${key}`;
-    const existing = draftStorage.getIssueDraft(key) || { title: '', description: '', updatedAt: Date.now() };
-    const payload: IssueDraft = {
-      ...existing,
-      ...draft,
-      updatedAt: Date.now(),
-    };
-    const json = JSON.stringify(payload);
+  saveIssueDraft: (key: string | number, draft: Partial<IssueDraft>): void => {
+    if (typeof window === 'undefined') return;
     try {
-      // 4KB 쿠키 사이즈 제한 고려 (초과 시 sessionStorage 활용)
-      if (json.length < 3800) {
-        setCookie(cookieName, json, 7);
-      }
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(cookieName, json);
-      }
+      const storageKey = typeof key === 'string' && key.startsWith('ag_') ? key : `${LEGACY_DRAFT_PREFIX}${key}`;
+      const payload: IssueDraft = {
+        ...draft,
+        savedAt: Date.now(),
+      };
+      window.localStorage.setItem(storageKey, JSON.stringify(payload));
     } catch (e) {
-      console.warn('[draftStorage] Failed to save draft:', e);
+      console.warn('Failed to write draftStorage:', e);
     }
   },
-
-  clearIssueDraft(key: string | number): void {
-    const cookieName = `${DRAFT_COOKIE_PREFIX}${key}`;
-    deleteCookie(cookieName);
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.removeItem(cookieName);
+  clearIssueDraft: (key: string | number): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      const storageKey = typeof key === 'string' && key.startsWith('ag_') ? key : `${LEGACY_DRAFT_PREFIX}${key}`;
+      window.localStorage.removeItem(storageKey);
+    } catch (e) {
+      console.warn('Failed to remove draftStorage:', e);
     }
   },
-
-  hasIssueDraft(key: string | number): boolean {
-    const draft = draftStorage.getIssueDraft(key);
-    return !!draft && (!!draft.title?.trim() || !!draft.description?.trim());
+  hasIssueDraft: (key: string | number): boolean => {
+    if (typeof window === 'undefined') return false;
+    const storageKey = typeof key === 'string' && key.startsWith('ag_') ? key : `${LEGACY_DRAFT_PREFIX}${key}`;
+    return !!window.localStorage.getItem(storageKey);
   },
+  get: (key: string | number) => draftStorage.getIssueDraft(key),
+  set: (key: string | number, draft: Partial<IssueDraft>) => draftStorage.saveIssueDraft(key, draft),
+  remove: (key: string | number) => draftStorage.clearIssueDraft(key),
+};
+
+/**
+ * 💾 이슈 편집 임시 저장본 저장
+ */
+export const saveIssueEditDraft = (issueId: number, draft: Omit<IssueEditDraft, 'issueId' | 'savedAt'>) => {
+  if (!issueId) return;
+  try {
+    const payload: IssueEditDraft = {
+      ...draft,
+      issueId,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(`${EDIT_DRAFT_PREFIX}${issueId}`, JSON.stringify(payload));
+    draftStorage.saveIssueDraft(`edit_${issueId}`, payload);
+  } catch (err) {
+    console.error('Failed to save issue edit draft to storage:', err);
+  }
+};
+
+/**
+ * 📖 이슈 편집 임시 저장본 조회
+ */
+export const getIssueEditDraft = (issueId: number): IssueEditDraft | null => {
+  if (!issueId) return null;
+  try {
+    const raw = localStorage.getItem(`${EDIT_DRAFT_PREFIX}${issueId}`);
+    if (raw) return JSON.parse(raw) as IssueEditDraft;
+    const legacy = draftStorage.getIssueDraft(`edit_${issueId}`);
+    if (legacy) return { ...legacy, issueId, savedAt: legacy.savedAt || Date.now() } as IssueEditDraft;
+    return null;
+  } catch (err) {
+    console.error('Failed to parse issue edit draft from storage:', err);
+    return null;
+  }
+};
+
+/**
+ * 🗑️ 이슈 편집 임시 저장본 삭제 (저장 완료 또는 취소 시)
+ */
+export const clearIssueEditDraft = (issueId: number) => {
+  if (!issueId) return;
+  try {
+    localStorage.removeItem(`${EDIT_DRAFT_PREFIX}${issueId}`);
+    draftStorage.clearIssueDraft(`edit_${issueId}`);
+  } catch (err) {
+    console.error('Failed to clear issue edit draft:', err);
+  }
+};
+
+/**
+ * 💾 신규 이슈 생성 임시 저장본 저장
+ */
+export const saveIssueCreateDraft = (draft: Omit<IssueCreateDraft, 'savedAt'>) => {
+  try {
+    const payload: IssueCreateDraft = {
+      ...draft,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(CREATE_DRAFT_KEY, JSON.stringify(payload));
+    draftStorage.saveIssueDraft('new', payload);
+  } catch (err) {
+    console.error('Failed to save issue create draft:', err);
+  }
+};
+
+/**
+ * 📖 신규 이슈 생성 임시 저장본 조회
+ */
+export const getIssueCreateDraft = (): IssueCreateDraft | null => {
+  try {
+    const raw = localStorage.getItem(CREATE_DRAFT_KEY);
+    if (raw) return JSON.parse(raw) as IssueCreateDraft;
+    const legacy = draftStorage.getIssueDraft('new');
+    if (legacy) return { ...legacy, savedAt: legacy.savedAt || Date.now() } as IssueCreateDraft;
+    return null;
+  } catch (err) {
+    console.error('Failed to get issue create draft:', err);
+    return null;
+  }
+};
+
+/**
+ * 🗑️ 신규 이슈 생성 임시 저장본 삭제
+ */
+export const clearIssueCreateDraft = () => {
+  try {
+    localStorage.removeItem(CREATE_DRAFT_KEY);
+    draftStorage.clearIssueDraft('new');
+  } catch (err) {
+    console.error('Failed to clear issue create draft:', err);
+  }
 };

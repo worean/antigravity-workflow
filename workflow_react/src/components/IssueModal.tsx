@@ -248,26 +248,22 @@ export const IssueModal: React.FC<IssueModalProps> = ({
         // 하위 이슈로 새로 생성 시 상위 이슈의 시작계획일/기한 정보를 그대로 복사 (UI에서만)
         if (initialParentId) {
           getIssue(initialParentId)
-            .then((parentIssue) => {
-              if (parentIssue) {
-                if (parentIssue.plannedStartDate) {
-                  setPlannedStartDate(formatDateOnly(parentIssue.plannedStartDate));
-                }
-                if (parentIssue.dueDate) {
-                  setDueDate(formatDateOnly(parentIssue.dueDate));
-                }
+            .then((pIssue) => {
+              if (pIssue) {
+                if (pIssue.plannedStartDate) setPlannedStartDate(formatDateOnly(pIssue.plannedStartDate) || '');
+                if (pIssue.dueDate) setDueDate(formatDateOnly(pIssue.dueDate) || '');
               }
             })
             .catch((err) => console.error('Parent issue fetch failed:', err));
         }
+      }
 
-        // 초안 확인 (임시 저장된 내용이 있으면 복원 배너 노출)
-        const existingDraft = getIssueDraft(draftKey);
-        if (existingDraft && (existingDraft.title?.trim() || existingDraft.description?.trim())) {
-          setDraftBanner(existingDraft);
-        } else {
-          setDraftBanner(null);
-        }
+      // 초안 확인 (임시 저장된 내용이 있으면 복원 배너 노출 - 생성/편집 모두 지원)
+      const existingDraft = getIssueDraft(draftKey);
+      if (existingDraft && (existingDraft.title?.trim() || existingDraft.description?.trim())) {
+        setDraftBanner(existingDraft);
+      } else {
+        setDraftBanner(null);
       }
     }
   }, [selectedIssue, isOpen, initialParentId, projects, draftKey, getIssueDraft]);
