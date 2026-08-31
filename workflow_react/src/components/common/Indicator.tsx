@@ -1,16 +1,54 @@
-﻿import React from 'react';
+﻿// -*- coding: utf-8 -*-
+import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
-// 1. Loading Spinner Component
+// 1. Loading Spinner Component with Debounce / Delay Support
 export interface SpinnerProps {
   size?: number;
   label?: string;
   centered?: boolean;
+  delayMs?: number; // ⏳ 스피너 노출 지연 시간 (기본: 700ms, 0이면 즉시)
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export const Spinner: React.FC<SpinnerProps> = ({ size = 20, label, centered = false }) => {
+export const Spinner: React.FC<SpinnerProps> = ({
+  size = 20,
+  label,
+  centered = false,
+  delayMs = 700,
+  className = '',
+  style,
+}) => {
+  const [visible, setVisible] = useState<boolean>(delayMs <= 0);
+
+  useEffect(() => {
+    if (delayMs <= 0) {
+      setVisible(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setVisible(true);
+    }, delayMs);
+
+    return () => clearTimeout(timer);
+  }, [delayMs]);
+
+  if (!visible) return null;
+
   const content = (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-sub)' }}>
+    <div
+      className={className}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        color: 'var(--text-sub)',
+        animation: 'fadeIn 0.2s ease',
+        ...style,
+      }}
+    >
       <Loader2
         size={size}
         className="animate-spin"
@@ -23,7 +61,7 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = 20, label, centered = f
 
   if (centered) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px', width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px', width: '100%', animation: 'fadeIn 0.2s ease' }}>
         {content}
       </div>
     );
@@ -64,33 +102,42 @@ export const DotIndicator: React.FC<DotIndicatorProps> = ({
           height: `${size}px`,
           borderRadius: '50%',
           backgroundColor: actualColor,
-          boxShadow: pulsing ? `0 0 8px ${actualColor}` : 'none',
           display: 'inline-block',
+          boxShadow: pulsing ? `0 0 8px ${actualColor}` : 'none',
+          animation: pulsing ? 'pulse 2s infinite' : 'none',
         }}
       />
-      {label && <span style={{ fontSize: '0.8rem', color: 'var(--text-sub)' }}>{label}</span>}
+      {label && <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{label}</span>}
     </span>
   );
 };
 
-// 3. Count Badge Indicator
+// 3. Count Badge
 export interface CountBadgeProps {
   count: number;
-  variant?: 'primary' | 'emerald' | 'rose' | 'amber' | 'subtle';
-  size?: 'sm' | 'md';
+  max?: number;
+  variant?: 'primary' | 'secondary' | 'danger' | 'warning' | 'amber' | 'muted' | string;
+  size?: 'sm' | 'md' | 'lg' | string;
 }
 
-export const CountBadge: React.FC<CountBadgeProps> = ({ count, variant = 'subtle', size = 'sm' }) => {
-  const config = {
-    primary: { bg: 'rgba(99, 102, 241, 0.2)', color: 'var(--primary)', border: 'rgba(99, 102, 241, 0.3)' },
-    emerald: { bg: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: 'rgba(16, 185, 129, 0.3)' },
-    rose: { bg: 'rgba(244, 63, 94, 0.2)', color: '#f43f5e', border: 'rgba(244, 63, 94, 0.3)' },
-    amber: { bg: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.3)' },
-    subtle: { bg: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-sub)', border: 'var(--border-light)' },
-  }[variant];
+export const CountBadge: React.FC<CountBadgeProps> = ({
+  count,
+  max = 99,
+  variant = 'secondary',
+  size = 'sm',
+}) => {
+  const displayCount = count > max ? `${max}+` : count;
 
-  const padding = size === 'sm' ? '2px 8px' : '4px 10px';
-  const fontSize = size === 'sm' ? '0.75rem' : '0.85rem';
+  const variantStyles: Record<string, React.CSSProperties> = {
+    primary: { background: 'var(--primary)', color: '#fff' },
+    secondary: { background: '#3c3c3c', color: 'var(--text-sub)' },
+    danger: { background: '#f43f5e', color: '#fff' },
+    warning: { background: '#f59e0b', color: '#000' },
+    amber: { background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)' },
+    muted: { background: 'transparent', color: 'var(--text-muted)', border: '1px solid #3c3c3c' },
+  };
+
+  const isSmall = size === 'sm';
 
   return (
     <span
@@ -98,63 +145,107 @@ export const CountBadge: React.FC<CountBadgeProps> = ({ count, variant = 'subtle
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding,
-        fontSize,
-        fontWeight: 700,
-        borderRadius: '12px',
-        background: config.bg,
-        color: config.color,
-        border: `1px solid ${config.border}`,
-        userSelect: 'none',
+        padding: isSmall ? '1px 5px' : '2px 8px',
+        borderRadius: '10px',
+        fontSize: isSmall ? '0.65rem' : '0.72rem',
+        fontWeight: 600,
+        lineHeight: 1.2,
+        ...variantStyles[variant],
       }}
     >
-      {count}
+      {displayCount}
     </span>
   );
 };
 
-// 4. Progress Bar Indicator
+// 4. Progress Bar
 export interface ProgressBarProps {
-  progress: number; // 0 to 100
-  color?: string;
+  value: number; // 0 to 100
   height?: number;
+  color?: string;
   showLabel?: boolean;
+  animated?: boolean;
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
-  progress,
-  color = '#10b981',
-  height = 6,
+  value,
+  height = 4,
+  color = 'var(--primary)',
   showLabel = false,
 }) => {
-  const normalizedProgress = Math.min(100, Math.max(0, progress));
+  const clampedValue = Math.min(100, Math.max(0, value));
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <div style={{ width: '100%' }}>
+      {showLabel && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-sub)', marginBottom: '3px' }}>
+          <span>진척도</span>
+          <span>{clampedValue}%</span>
+        </div>
+      )}
       <div
         style={{
           width: '100%',
           height: `${height}px`,
-          backgroundColor: 'rgba(255, 255, 255, 0.08)',
-          borderRadius: `${height}px`,
+          background: '#333',
+          borderRadius: '2px',
           overflow: 'hidden',
         }}
       >
         <div
           style={{
-            width: `${normalizedProgress}%`,
+            width: `${clampedValue}%`,
             height: '100%',
-            backgroundColor: color,
-            borderRadius: `${height}px`,
+            background: color,
+            borderRadius: '2px',
             transition: 'width 0.3s ease',
           }}
         />
       </div>
-      {showLabel && (
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)', textAlign: 'right' }}>
-          {normalizedProgress}%
-        </span>
-      )}
+    </div>
+  );
+};
+
+// 5. Online/Offline Health Status Pill
+export interface HealthPillProps {
+  isHealthy: boolean | null;
+  lastCheck?: string;
+}
+
+export const HealthPill: React.FC<HealthPillProps> = ({ isHealthy, lastCheck }) => {
+  if (isHealthy === null) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#888' }} />
+        <span>확인 중...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontSize: '0.72rem',
+        padding: '2px 8px',
+        borderRadius: 'var(--radius-xs)',
+        background: isHealthy ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
+        border: `1px solid ${isHealthy ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
+        color: isHealthy ? '#10b981' : '#f43f5e',
+      }}
+      title={lastCheck ? `마지막 확인: ${lastCheck}` : undefined}
+    >
+      <span
+        style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          backgroundColor: isHealthy ? '#10b981' : '#f43f5e',
+        }}
+      />
+      <span>{isHealthy ? '정상 작동 중' : '서버 연결 불가'}</span>
     </div>
   );
 };
