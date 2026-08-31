@@ -370,7 +370,7 @@ const AppContent: React.FC = () => {
         <main className="main-content" data-tab={activeTab}>
           {activeTab === 'dashboard' && (
             <DashboardPage
-              key={`tab-dash-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-dash-${selectedProjectId || 'all'}`}
               onNavigate={(tab, pId) => navigate(tab, pId ?? null)}
               onOpenCreateIssue={handleOpenCreateIssue}
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
@@ -382,7 +382,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'projects' && (
             <ProjectsPage
-              key={`tab-projects-${issueRefreshKey}`}
+              key="tab-projects"
               projects={projects}
               onSelectProject={handleSelectProject}
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
@@ -408,7 +408,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'issues' && (
             <IssuesPage
-              key={`tab-issues-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-issues-${selectedProjectId || 'all'}`}
               onOpenCreateIssue={handleOpenCreateIssue}
               onSelectIssue={handleSelectIssue}
               selectedProjectId={selectedProjectId}
@@ -431,7 +431,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'sprints' && (
             <SprintsPage
-              key={`tab-sprints-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-sprints-${selectedProjectId || 'all'}`}
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('sprints', pId === 'ALL' ? null : pId, null, 'view', true)}
               onSelectSprint={(sId) => navigate('sprint-detail', selectedProjectId, sId, 'view', false)}
@@ -444,7 +444,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'sprint-detail' && (
             <SprintDetailPage
-              key={`tab-sprint-detail-${selectedSprintId}-${issueRefreshKey}`}
+              key={`tab-sprint-detail-${selectedSprintId}`}
               sprintId={selectedSprintId}
               projectId={selectedProjectId}
               onBack={() => navigate('sprints', selectedProjectId, null, 'view', false)}
@@ -456,7 +456,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'wbs' && (
             <WBSPage
-              key={`tab-wbs-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-wbs-${selectedProjectId || 'all'}`}
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('wbs', pId, null, 'view', true)}
               onSelectIssue={handleSelectIssue}
@@ -466,14 +466,14 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'worklogs' && (
             <WorklogsPage
-              key={`tab-worklogs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
+              key={`tab-worklogs-${isAuthenticated ? user?.id : 'guest'}`}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
           {activeTab === 'settings' && (
             <SettingsPage
-              key={`tab-settings-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
+              key={`tab-settings-${isAuthenticated ? user?.id : 'guest'}`}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
