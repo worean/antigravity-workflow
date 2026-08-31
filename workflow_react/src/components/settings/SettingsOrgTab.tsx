@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import type { Group, GroupMember, User as UserType } from '../../types';
+import type { Group, GroupMember, User as UserType } from '@/types';
 import {
   Building2,
   FolderPlus,
@@ -10,7 +10,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
-import { Button, Spinner, Avatar } from '../common';
+import { Button, Spinner, Avatar } from '@/components/common';
 
 interface SettingsOrgTabProps {
   isAuthenticated: boolean;

@@ -1,10 +1,10 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { GripVertical, Trash2, Calendar, Heart } from 'lucide-react';
-import type { Issue, User } from '../../types';
-import { PriorityBadge, IssueTypeBadge, UserBadge, FavoriteButton } from '../common';
-import { formatDateOnly, getDDayStatus } from '../../utils/dateUtils';
-import { STATUS_LIST, parsePriorityLevel } from '../../utils/statusUtils';
+import type { Issue, User } from '@/types';
+import { PriorityBadge, IssueTypeBadge, UserBadge, FavoriteButton } from '@/components/common';
+import { formatDateOnly, getDDayStatus } from '@/utils/dateUtils';
+import { STATUS_LIST, parsePriorityLevel } from '@/utils/statusUtils';
 
 interface KanbanCardProps {
   issue: Issue;

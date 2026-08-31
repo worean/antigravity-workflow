@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import type { Project, Sprint } from '../../types';
+import type { Project, Sprint } from '@/types';
 import {
   Layers,
   Maximize2,
@@ -11,7 +11,7 @@ import {
   Loader2,
   LogIn,
 } from 'lucide-react';
-import { Button } from '../common';
+import { Button } from '@/components/common';
 
 interface WBSToolbarProps {
   projects: Project[];

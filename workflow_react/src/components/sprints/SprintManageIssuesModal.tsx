@@ -6,9 +6,9 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import type { Sprint, Issue } from '../../types';
-import { Button, Spinner, StatusBadge, Avatar } from '../common';
-import { formatDateOnly } from '../../utils/dateUtils';
+import type { Sprint, Issue } from '@/types';
+import { Button, Spinner, StatusBadge, Avatar } from '@/components/common';
+import { formatDateOnly } from '@/utils/dateUtils';
 
 interface SprintManageIssuesModalProps {
   showManageModal: boolean;

@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useRef } from 'react';
-import type { User as UserType } from '../../types';
+import type { User as UserType } from '@/types';
 import {
   Camera,
   Dices,
@@ -13,7 +13,7 @@ import {
   ExternalLink,
   Clock,
 } from 'lucide-react';
-import { Button, Spinner, Avatar, getRandomAvatarColor } from '../common';
+import { Button, Spinner, Avatar, getRandomAvatarColor } from '@/components/common';
 
 interface SettingsProfileTabProps {
   user: UserType | null;

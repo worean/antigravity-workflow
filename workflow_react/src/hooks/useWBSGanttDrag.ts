@@ -1,8 +1,8 @@
 ﻿import { useState, useEffect, useMemo, useRef, useCallback, type RefObject } from 'react';
-import type { Issue } from '../types';
-import type { DragState } from '../types/wbs';
-import { updateIssue, batchUpdateIssueSchedules } from '../services/api';
-import { formatDateOnly, parseLocalDate, addDays, diffDays } from '../utils/dateUtils';
+import type { Issue } from '@/types';
+import type { DragState } from '@/types/wbs';
+import { updateIssue, batchUpdateIssueSchedules } from '@/services/api';
+import { formatDateOnly, parseLocalDate, addDays, diffDays } from '@/utils/dateUtils';
 
 interface UseWBSGanttDragProps {
   issues: Issue[];

@@ -1,9 +1,9 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState } from 'react';
 import { Layers, MessageSquare, Clock, FileText, AlertCircle } from 'lucide-react';
-import type { Sprint, Issue, User } from '../../types';
-import { ModalWrapper, Button, StatusBadge } from '../common';
-import { formatDateOnly } from '../../utils/dateUtils';
+import type { Sprint, Issue, User } from '@/types';
+import { ModalWrapper, Button, StatusBadge } from '@/components/common';
+import { formatDateOnly } from '@/utils/dateUtils';
 import { SprintDiscussionsTab } from './SprintDiscussionsTab';
 import { SprintWorklogsTab } from './SprintWorklogsTab';
 import { SprintNotesTab } from './SprintNotesTab';

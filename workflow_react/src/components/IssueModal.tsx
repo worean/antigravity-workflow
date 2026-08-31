@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import type { Project, User, Issue, CustomFieldDefinition, Comment } from '../types';
+import type { Project, User, Issue, CustomFieldDefinition, Comment } from '@/types';
 import {
   createIssue,
   updateIssue,
@@ -14,9 +14,9 @@ import {
   toggleLikeIssue,
   getWorklogs,
   createWorklog,
-} from '../services/api';
-import type { Worklog } from '../types';
-import { useAuth } from '../context/AuthContext';
+} from '@/services/api';
+import type { Worklog } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import {
   X,
   PlusCircle,
@@ -34,12 +34,12 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
-import { useActionFeedback } from '../hooks/useActionFeedback';
+import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from './ActionFeedbackModal';
-import { useOverlayClickClose } from '../hooks/useOverlayClickClose';
-import { getProjectMembers } from '../utils/projectMembers';
-import { formatDateOnly, getDDayStatus } from '../utils/dateUtils';
-import { organizeComments, countComments } from '../utils/commentTree';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { getProjectMembers } from '@/utils/projectMembers';
+import { formatDateOnly, getDDayStatus } from '@/utils/dateUtils';
+import { organizeComments, countComments } from '@/utils/commentTree';
 import {
   StatusBadge,
   PriorityBadge,
@@ -53,8 +53,8 @@ import {
   IssueTypeSelect,
 } from './common';
 
-import { hoursToMinutes, formatWorklogTime } from '../utils/worklogUtils';
-import { sendDesktopNotification } from '../utils/notificationUtils';
+import { hoursToMinutes, formatWorklogTime } from '@/utils/worklogUtils';
+import { sendDesktopNotification } from '@/utils/notificationUtils';
 
 interface IssueModalProps {
   isOpen: boolean;

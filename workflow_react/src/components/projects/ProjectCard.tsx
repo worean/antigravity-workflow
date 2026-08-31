@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Layers, Users, ArrowRight, Trash2 } from 'lucide-react';
-import type { Project } from '../../types';
-import { FavoriteButton } from '../common';
+import type { Project } from '@/types';
+import { FavoriteButton } from '@/components/common';
 
 interface ProjectCardProps {
   project: Project;

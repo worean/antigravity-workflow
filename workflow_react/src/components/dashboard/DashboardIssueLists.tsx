@@ -1,9 +1,9 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Star, ArrowUpRight } from 'lucide-react';
-import type { Issue } from '../../types';
-import { Button, CountBadge, StatusBadge, ProjectBadge } from '../common';
-import { formatDateOnly } from '../../utils/dateUtils';
+import type { Issue } from '@/types';
+import { Button, CountBadge, StatusBadge, ProjectBadge } from '@/components/common';
+import { formatDateOnly } from '@/utils/dateUtils';
 
 interface DashboardIssueListsProps {
   isAuthenticated: boolean;

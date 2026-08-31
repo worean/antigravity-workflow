@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Clock, LogIn, Plus } from 'lucide-react';
-import { Button } from '../common';
+import { Button } from '@/components/common';
 
 interface WorklogsHeaderToolbarProps {
   worklogsCount: number;

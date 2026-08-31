@@ -1,6 +1,6 @@
 ﻿import React from 'react';
-import type { Issue, User } from '../../types';
-import type { StatusMeta } from '../../utils/statusUtils';
+import type { Issue, User } from '@/types';
+import type { StatusMeta } from '@/utils/statusUtils';
 import { KanbanCard } from './KanbanCard';
 
 interface KanbanColumnProps {

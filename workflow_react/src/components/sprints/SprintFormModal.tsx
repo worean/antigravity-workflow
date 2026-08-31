@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Calendar, Sparkles, X } from 'lucide-react';
-import type { Sprint, Project } from '../../types';
-import { Button } from '../common';
+import type { Sprint, Project } from '@/types';
+import { Button } from '@/components/common';
 
 interface SprintFormModalProps {
   showFormModal: boolean;

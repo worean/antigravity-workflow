@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect } from 'react';
-import type { CustomFieldDefinition, Project } from '../types';
-import { getCustomFields, createCustomField, deleteCustomField, getProjects } from '../services/api';
+import type { CustomFieldDefinition, Project } from '@/types';
+import { getCustomFields, createCustomField, deleteCustomField, getProjects } from '@/services/api';
 import { X, Plus, Trash2, Sliders } from 'lucide-react';
-import { useOverlayClickClose } from '../hooks/useOverlayClickClose';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 
 interface CustomFieldsModalProps {
   isOpen: boolean;

@@ -1,8 +1,8 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { User } from '../types';
-import { getMe, loginEmail, registerUser } from '../services/api';
-import { queryClient } from '../lib/queryClient';
-import { disconnectSocket, getSocket } from '../lib/socketClient';
+import type { User } from '@/types';
+import { getMe, loginEmail, registerUser } from '@/services/api';
+import { queryClient } from '@/lib/queryClient';
+import { disconnectSocket, getSocket } from '@/lib/socketClient';
 
 interface AuthContextType {
   user: User | null;

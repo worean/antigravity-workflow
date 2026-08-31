@@ -1,11 +1,11 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { type RefObject } from 'react';
-import type { Issue } from '../../types';
-import type { WBSItem, DragState, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '../../types/wbs';
+import type { Issue } from '@/types';
+import type { WBSItem, DragState, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '@/types/wbs';
 import { WBSGanttHeader } from './WBSGanttHeader';
 import { WBSGanttBar } from './WBSGanttBar';
-import { updateIssue } from '../../services/api';
-import { formatDateOnly, addDays } from '../../utils/dateUtils';
+import { updateIssue } from '@/services/api';
+import { formatDateOnly, addDays } from '@/utils/dateUtils';
 
 interface WBSGanttTimelineProps {
   items: WBSItem[];

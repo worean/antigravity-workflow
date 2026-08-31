@@ -1,13 +1,13 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import type { Issue } from '../../types';
-import type { WBSItem, TreeDropTarget } from '../../types/wbs';
+import type { Issue } from '@/types';
+import type { WBSItem, TreeDropTarget } from '@/types/wbs';
 import {
   ChevronRight,
   ChevronDown,
   GripVertical,
 } from 'lucide-react';
-import { StatusBadge, Avatar } from '../common';
+import { StatusBadge, Avatar } from '@/components/common';
 
 interface WBSTreeRowProps {
   item: WBSItem;

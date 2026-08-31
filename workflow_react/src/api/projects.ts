@@ -1,6 +1,6 @@
 ﻿import { useQuery, useSuspenseQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import type { Project } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import type { Project } from '@/types';
 
 export interface ProjectQueryParams {
   search?: string;

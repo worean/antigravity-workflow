@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { User as UserIcon, LogOut, LogIn, Mail, Settings } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { Avatar } from './common';

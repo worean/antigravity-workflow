@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import type { Sprint, Project, Issue } from '../types';
+import type { Sprint, Project, Issue } from '@/types';
 import {
   getSprints,
   getSprint,
@@ -10,9 +10,9 @@ import {
   updateSprint,
   deleteSprint,
   assignIssuesToSprint,
-} from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { formatDateOnly } from '../utils/dateUtils';
+} from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
+import { formatDateOnly } from '@/utils/dateUtils';
 import {
   SprintToolbar,
   SprintStarredHud,
@@ -21,7 +21,7 @@ import {
   SprintManageIssuesModal,
   SprintDetailModal,
   type SprintStatusFilter,
-} from '../components/sprints';
+} from '@/components/sprints';
 
 interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;

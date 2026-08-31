@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState } from 'react';
-import type { User } from '../../types';
+import type { User } from '@/types';
 
 export const AVATAR_PALETTE = [
   '#3b82f6', // Blue

@@ -8,7 +8,7 @@ import {
   Trash2,
   Lock,
 } from 'lucide-react';
-import type { Issue } from '../../types';
+import type { Issue } from '@/types';
 
 interface IssueDetailHeaderProps {
   issue: Issue | null;

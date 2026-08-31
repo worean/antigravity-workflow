@@ -1,14 +1,14 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import type { Worklog, Issue } from '../types';
-import { getWorklogs, getIssues, createWorklog } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { hoursToMinutes } from '../utils/worklogUtils';
+import type { Worklog, Issue } from '@/types';
+import { getWorklogs, getIssues, createWorklog } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
+import { hoursToMinutes } from '@/utils/worklogUtils';
 import {
   WorklogsHeaderToolbar,
   WorklogCreateForm,
   WorklogsList,
-} from '../components/worklogs';
+} from '@/components/worklogs';
 
 interface WorklogsPageProps {
   onOpenAuth?: () => void;

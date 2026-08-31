@@ -1,13 +1,13 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Save, Calendar } from 'lucide-react';
-import type { Project, User, Issue, CustomFieldDefinition } from '../../types';
+import type { Project, User, Issue, CustomFieldDefinition } from '@/types';
 import {
   PrioritySelect,
   StatusSelect,
   IssueTypeSelect,
   MarkdownEditor,
-} from '../common';
+} from '@/components/common';
 
 interface IssueDetailEditFormProps {
   title: string;

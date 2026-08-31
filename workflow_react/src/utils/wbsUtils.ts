@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
-import type { Issue, Sprint } from '../types';
-import type { WBSColorTheme, WBSItem, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '../types/wbs';
+import type { Issue, Sprint } from '@/types';
+import type { WBSColorTheme, WBSItem, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '@/types/wbs';
 import { parseLocalDate, formatDateOnly, addDays, diffDays, getWeekNumber } from './dateUtils';
 
 // 12가지 다채로운 WBS/간트차트 전용 색상 팔레트

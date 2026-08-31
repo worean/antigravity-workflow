@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { MessageSquare, Plus } from 'lucide-react';
-import type { ChannelType } from '../../types';
+import type { ChannelType } from '@/types';
 
 export interface CategoryConfig {
   type: ChannelType;

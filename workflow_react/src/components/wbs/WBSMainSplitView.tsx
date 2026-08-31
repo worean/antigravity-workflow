@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { type RefObject } from 'react';
-import type { Issue } from '../../types';
-import type { WBSItem, DragState, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '../../types/wbs';
+import type { Issue } from '@/types';
+import type { WBSItem, DragState, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '@/types/wbs';
 import { WBSTreeTable } from './WBSTreeTable';
 import { WBSGanttTimeline } from './WBSGanttTimeline';
 

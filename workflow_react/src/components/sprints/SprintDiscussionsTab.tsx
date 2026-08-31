@@ -1,10 +1,10 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Send, CornerDownRight, RefreshCw, ExternalLink } from 'lucide-react';
-import type { SprintDiscussionItem, User } from '../../types';
-import { getSprintDiscussions, createComment } from '../../services/api';
-import { Avatar, Button, Spinner, StatusBadge, PriorityBadge } from '../common';
-import { formatTimeAgo, formatDateTime } from '../../utils/dateUtils';
+import type { SprintDiscussionItem, User } from '@/types';
+import { getSprintDiscussions, createComment } from '@/services/api';
+import { Avatar, Button, Spinner, StatusBadge, PriorityBadge } from '@/components/common';
+import { formatTimeAgo, formatDateTime } from '@/utils/dateUtils';
 
 interface SprintDiscussionsTabProps {
   sprintId: number;

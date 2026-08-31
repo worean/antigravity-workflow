@@ -9,8 +9,8 @@ import {
   Save,
   Trash2,
 } from 'lucide-react';
-import type { Project } from '../../types';
-import { Button, FavoriteButton } from '../common';
+import type { Project } from '@/types';
+import { Button, FavoriteButton } from '@/components/common';
 
 interface ProjectDetailHeaderProps {
   project: Project;

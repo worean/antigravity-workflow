@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Zap, Plus, LogIn } from 'lucide-react';
-import type { Project } from '../../types';
-import { Button } from '../common';
+import type { Project } from '@/types';
+import { Button } from '@/components/common';
 
 export type SprintStatusFilter = 'ALL' | 'STARRED' | 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 

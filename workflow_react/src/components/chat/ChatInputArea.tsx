@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Send, Paperclip, AtSign, X } from 'lucide-react';
-import type { ChatChannel } from '../../types';
-import { Button } from '../common';
+import type { ChatChannel } from '@/types';
+import { Button } from '@/components/common';
 
 interface ChatInputAreaProps {
   currentChannel: ChatChannel | null;

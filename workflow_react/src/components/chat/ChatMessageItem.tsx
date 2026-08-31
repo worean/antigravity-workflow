@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Pin, Paperclip } from 'lucide-react';
-import type { ChatMessage } from '../../types';
-import { Avatar } from '../common';
+import type { ChatMessage } from '@/types';
+import { Avatar } from '@/components/common';
 
 export const QUICK_EMOJIS = ['👍', '❤️', '🔥', '🎉', '🚀', '👀', '😄', '💯'];
 

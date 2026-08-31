@@ -1,6 +1,6 @@
 ﻿import { useQuery, useSuspenseQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import type { Issue } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import type { Issue } from '@/types';
 
 export interface IssueQueryParams {
   projectId?: number;

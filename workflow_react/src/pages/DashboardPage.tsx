@@ -1,16 +1,16 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState } from 'react';
-import type { Issue } from '../types';
-import { useAuth } from '../context/AuthContext';
+import type { Issue } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProjects, useIssues, useFavorites, issueKeys, projectKeys, favoriteKeys } from '../api';
-import { parseStatusCategory } from '../utils/statusUtils';
+import { useProjects, useIssues, useFavorites, issueKeys, projectKeys, favoriteKeys } from '@/api';
+import { parseStatusCategory } from '@/utils/statusUtils';
 import {
   DashboardSummaryToolbar,
   DashboardStatCards,
   DashboardFocusSprints,
   DashboardIssueLists,
-} from '../components/dashboard';
+} from '@/components/dashboard';
 
 interface DashboardPageProps {
   onNavigate: (tab: any, projectId?: number | null) => void;

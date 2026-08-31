@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { type RefObject } from 'react';
-import type { ChatChannel, ChatMessage, NotificationLevel } from '../../types';
+import type { ChatChannel, ChatMessage, NotificationLevel } from '@/types';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInputArea } from './ChatInputArea';

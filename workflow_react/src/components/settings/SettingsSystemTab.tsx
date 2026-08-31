@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import type { HealthStatus } from '../../types';
+import type { HealthStatus } from '@/types';
 import {
   Globe,
   Wifi,
@@ -16,8 +16,8 @@ import {
   Activity,
   ShieldCheck,
 } from 'lucide-react';
-import { Button, Spinner } from '../common';
-import { getApiBaseUrl } from '../../services/api';
+import { Button, Spinner } from '@/components/common';
+import { getApiBaseUrl } from '@/services/api';
 
 interface SettingsSystemTabProps {
   backendUrlInput: string;

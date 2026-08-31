@@ -1,9 +1,9 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
 import { Save, FileText, Coffee, Target, Sparkles, CheckCircle2 } from 'lucide-react';
-import { Button, MarkdownEditor, MarkdownViewer } from '../common';
-import { updateSprint } from '../../services/api';
-import type { Sprint } from '../../types';
+import { Button, MarkdownEditor, MarkdownViewer } from '@/components/common';
+import { updateSprint } from '@/services/api';
+import type { Sprint } from '@/types';
 
 interface SprintNotesTabProps {
   sprint: Sprint;

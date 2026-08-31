@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import type { Issue } from '../types';
-import { useAuth } from '../context/AuthContext';
+import type { Issue } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import {
   useIssues,
   useProjects,
@@ -9,10 +9,10 @@ import {
   useUpdateIssue,
   useDeleteIssue,
   useToggleLikeIssue,
-} from '../api';
-import { ConfirmModal } from '../components/ConfirmModal';
-import { STATUS_CONFIG, parseStatusCategory } from '../utils/statusUtils';
-import { KanbanFilterBar, KanbanBoard } from '../components/kanban';
+} from '@/api';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { STATUS_CONFIG, parseStatusCategory } from '@/utils/statusUtils';
+import { KanbanFilterBar, KanbanBoard } from '@/components/kanban';
 
 interface IssuesPageProps {
   onOpenCreateIssue: () => void;

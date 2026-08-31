@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Target, Calendar, CheckCircle2, Clock, Layers } from 'lucide-react';
-import type { Sprint } from '../../types';
-import { formatDateOnly } from '../../utils/dateUtils';
+import type { Sprint } from '@/types';
+import { formatDateOnly } from '@/utils/dateUtils';
 
 interface SprintDetailBannerProps {
   sprint: Sprint;

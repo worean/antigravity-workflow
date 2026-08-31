@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import type { User } from '../../types';
+import type { User } from '@/types';
 import { Avatar } from './Avatar';
 
 interface UserBadgeProps {

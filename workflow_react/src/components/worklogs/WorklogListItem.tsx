@@ -1,9 +1,9 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { CheckSquare, Clock } from 'lucide-react';
-import type { Worklog, User } from '../../types';
-import { UserBadge } from '../common';
-import { formatWorklogTime } from '../../utils/worklogUtils';
+import type { Worklog, User } from '@/types';
+import { UserBadge } from '@/components/common';
+import { formatWorklogTime } from '@/utils/worklogUtils';
 
 interface WorklogListItemProps {
   worklog: Worklog;

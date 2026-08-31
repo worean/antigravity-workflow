@@ -1,6 +1,6 @@
 ﻿import React from 'react';
-import type { IssueType } from '../../types';
-import { getIssueTypeMeta, ISSUE_TYPE_LIST } from '../../utils/statusUtils';
+import type { IssueType } from '@/types';
+import { getIssueTypeMeta, ISSUE_TYPE_LIST } from '@/utils/statusUtils';
 
 export interface IssueTypeBadgeProps {
   type?: IssueType | { id?: number; name?: string; key?: string } | string | number | null;

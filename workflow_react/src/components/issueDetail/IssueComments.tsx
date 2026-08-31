@@ -6,13 +6,13 @@ import {
   Trash2,
   Lock,
 } from 'lucide-react';
-import type { Comment, User } from '../../types';
+import type { Comment, User } from '@/types';
 import {
   UserBadge,
   Avatar,
   MarkdownViewer,
   MarkdownEditor,
-} from '../common';
+} from '@/components/common';
 
 interface IssueCommentsProps {
   comments: Comment[];

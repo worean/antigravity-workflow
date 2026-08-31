@@ -1,11 +1,11 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
 import { Clock, RefreshCw, ExternalLink, UserCheck, Calendar } from 'lucide-react';
-import type { SprintWorklogItem } from '../../types';
-import { getSprintWorklogs } from '../../services/api';
-import { Avatar, Button, Spinner, StatusBadge } from '../common';
-import { formatDateOnly, formatTimeAgo } from '../../utils/dateUtils';
-import { minutesToHours } from '../../utils/worklogUtils';
+import type { SprintWorklogItem } from '@/types';
+import { getSprintWorklogs } from '@/services/api';
+import { Avatar, Button, Spinner, StatusBadge } from '@/components/common';
+import { formatDateOnly, formatTimeAgo } from '@/utils/dateUtils';
+import { minutesToHours } from '@/utils/worklogUtils';
 
 interface SprintWorklogsTabProps {
   sprintId: number;

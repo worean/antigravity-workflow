@@ -1,10 +1,10 @@
 ﻿import React, { useState } from 'react';
-import { createProject } from '../services/api';
+import { createProject } from '@/services/api';
 import { FolderPlus } from 'lucide-react';
-import { useActionFeedback } from '../hooks/useActionFeedback';
+import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from './ActionFeedbackModal';
 import { ModalWrapper, Button } from './common';
-import type { Project } from '../types';
+import type { Project } from '@/types';
 
 interface ProjectModalProps {
   isOpen: boolean;

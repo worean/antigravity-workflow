@@ -8,8 +8,8 @@ import {
   BellOff,
   AtSign,
 } from 'lucide-react';
-import type { ChatChannel, ChannelType } from '../../types';
-import { Avatar, FavoriteButton } from '../common';
+import type { ChatChannel, ChannelType } from '@/types';
+import { Avatar, FavoriteButton } from '@/components/common';
 import { CATEGORY_CONFIGS } from './ChatCategoryNav';
 
 interface ChatChannelSidebarProps {

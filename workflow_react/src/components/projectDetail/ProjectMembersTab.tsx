@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { Crown, Trash2, X } from 'lucide-react';
-import type { Project, User } from '../../types';
-import { Button, Avatar } from '../common';
+import type { Project, User } from '@/types';
+import { Button, Avatar } from '@/components/common';
 
 interface ProjectMembersTabProps {
   project: Project;

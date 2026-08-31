@@ -1,19 +1,19 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Issue } from '../types';
-import { useAuth } from '../context/AuthContext';
-import { Spinner } from '../components/common';
+import type { Issue } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { Spinner } from '@/components/common';
 import { AlertCircle } from 'lucide-react';
-import { diffDays } from '../utils/dateUtils';
+import { diffDays } from '@/utils/dateUtils';
 import {
   buildWBSTree,
   generateTimelineHeaders,
   computeTodayMarker,
   computeSprintDueLines,
-} from '../utils/wbsUtils';
-import { useWBSProjectData } from '../hooks/useWBSProjectData';
-import { useWBSGanttDrag } from '../hooks/useWBSGanttDrag';
-import { WBSToolbar, WBSMainSplitView } from '../components/wbs';
+} from '@/utils/wbsUtils';
+import { useWBSProjectData } from '@/hooks/useWBSProjectData';
+import { useWBSGanttDrag } from '@/hooks/useWBSGanttDrag';
+import { WBSToolbar, WBSMainSplitView } from '@/components/wbs';
 
 interface WBSPageProps {
   selectedProjectId?: number | null;

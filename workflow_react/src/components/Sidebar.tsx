@@ -15,10 +15,10 @@ import {
   Star,
 } from 'lucide-react';
 import { ProfileCard } from './ProfileCard';
-import { useUnreadChatStats } from '../api/chat';
-import { useFavorites } from '../api/favorites';
-import { useAuth } from '../context/AuthContext';
-import type { Project, ChatChannel } from '../types';
+import { useUnreadChatStats } from '@/api/chat';
+import { useFavorites } from '@/api/favorites';
+import { useAuth } from '@/context/AuthContext';
+import type { Project, ChatChannel } from '@/types';
 
 export type TabType =
   | 'dashboard'

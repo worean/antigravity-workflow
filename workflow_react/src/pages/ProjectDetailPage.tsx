@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import type { Project, User, Group } from '../types';
+import type { Project, User, Group } from '@/types';
 import {
   getProject,
   updateProject,
@@ -13,20 +13,20 @@ import {
   addProjectGroup,
   removeProjectGroup,
   updateProjectGroupRole,
-} from '../services/api';
-import { useAuth } from '../context/AuthContext';
+} from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import { AlertCircle } from 'lucide-react';
-import { Button, Spinner } from '../components/common';
-import { formatDateOnly } from '../utils/dateUtils';
-import { useActionFeedback } from '../hooks/useActionFeedback';
-import { ActionFeedbackModal } from '../components/ActionFeedbackModal';
-import { ConfirmModal } from '../components/ConfirmModal';
+import { Button, Spinner } from '@/components/common';
+import { formatDateOnly } from '@/utils/dateUtils';
+import { useActionFeedback } from '@/hooks/useActionFeedback';
+import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import {
   ProjectDetailHeader,
   ProjectInfoCard,
   ProjectParticipationSection,
   ProjectSidebar,
-} from '../components/projectDetail';
+} from '@/components/projectDetail';
 
 interface ProjectDetailPageProps {
   projectId: number;

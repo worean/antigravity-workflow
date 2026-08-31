@@ -8,7 +8,7 @@ import {
   Users,
   CheckCircle2,
 } from 'lucide-react';
-import type { ChatChannel, NotificationLevel } from '../../types';
+import type { ChatChannel, NotificationLevel } from '@/types';
 
 interface ChatHeaderProps {
   currentChannel: ChatChannel | null;

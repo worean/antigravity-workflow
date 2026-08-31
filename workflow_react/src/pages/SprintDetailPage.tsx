@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import type { Sprint, Project, Issue } from '../types';
+import type { Sprint, Project, Issue } from '@/types';
 import {
   getSprint,
   getProjects,
@@ -8,24 +8,24 @@ import {
   updateSprint,
   deleteSprint,
   assignIssuesToSprint,
-} from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { formatDateOnly } from '../utils/dateUtils';
-import { Spinner, Card } from '../components/common';
+} from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
+import { formatDateOnly } from '@/utils/dateUtils';
+import { Spinner, Card } from '@/components/common';
 import {
   SprintDetailHeader,
   SprintDetailBanner,
   SprintDetailTabsNav,
   SprintIssuesTab,
   type SprintDetailTabType,
-} from '../components/sprintDetail';
+} from '@/components/sprintDetail';
 import {
   SprintDiscussionsTab,
   SprintWorklogsTab,
   SprintNotesTab,
   SprintFormModal,
   SprintManageIssuesModal,
-} from '../components/sprints';
+} from '@/components/sprints';
 
 interface SprintDetailPageProps {
   sprintId: number | null;

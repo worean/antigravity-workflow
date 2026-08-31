@@ -7,7 +7,7 @@ import {
   Palette,
   Calendar,
 } from 'lucide-react';
-import { Button, PrioritySelect } from '../common';
+import { Button, PrioritySelect } from '@/components/common';
 
 interface SettingsDisplayTabProps {
   desktopNotifications: boolean;

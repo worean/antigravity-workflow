@@ -15,17 +15,17 @@ import {
   toggleLikeIssue,
   getWorklogs,
   createWorklog,
-} from '../../services/api';
-import type { Issue, Project, User, CustomFieldDefinition, Comment, Worklog } from '../../types';
-import { useAuth } from '../../context/AuthContext';
-import { formatDateOnly } from '../../utils/dateUtils';
-import { organizeComments } from '../../utils/commentTree';
-import { hoursToMinutes } from '../../utils/worklogUtils';
-import { Spinner, Button } from '../common';
-import { IssueModal } from '../IssueModal';
-import { ConfirmModal } from '../ConfirmModal';
-import { useActionFeedback } from '../../hooks/useActionFeedback';
-import { ActionFeedbackModal } from '../ActionFeedbackModal';
+} from '@/services/api';
+import type { Issue, Project, User, CustomFieldDefinition, Comment, Worklog } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { formatDateOnly } from '@/utils/dateUtils';
+import { organizeComments } from '@/utils/commentTree';
+import { hoursToMinutes } from '@/utils/worklogUtils';
+import { Spinner, Button } from '@/components/common';
+import { IssueModal } from '@/components/IssueModal';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { useActionFeedback } from '@/hooks/useActionFeedback';
+import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import {
   IssueDetailHeader,
   IssueDetailMainCard,

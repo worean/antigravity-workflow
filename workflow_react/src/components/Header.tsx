@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import { checkHealth } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { checkHealth } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import { User as UserIcon, Minus, Square, Copy, X } from 'lucide-react';
 import { DotIndicator, Avatar } from './common';
 

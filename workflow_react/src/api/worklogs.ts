@@ -1,6 +1,6 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import type { Worklog } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import type { Worklog } from '@/types';
 
 export const getWorklogs = async (issueId?: number): Promise<Worklog[]> => {
   const url = issueId ? `/worklogs?issueId=${issueId}` : '/worklogs';

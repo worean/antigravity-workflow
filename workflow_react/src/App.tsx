@@ -1,29 +1,29 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './lib/queryClient';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { Header, type BreadcrumbItem } from './components/Header';
+import { queryClient } from '@/lib/queryClient';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { Header, type BreadcrumbItem } from '@/components/Header';
 
-import { Sidebar, type TabType } from './components/Sidebar';
-import { DashboardPage } from './pages/DashboardPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { ProjectDetailPage } from './pages/ProjectDetailPage';
-import { IssuesPage } from './pages/IssuesPage';
-import { SprintsPage } from './pages/SprintsPage';
-import { SprintDetailPage } from './pages/SprintDetailPage';
-import { WBSPage } from './pages/WBSPage';
-import { WorklogsPage } from './pages/WorklogsPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { ChatPage } from './pages/ChatPage';
-import { AuthModal } from './components/AuthModal';
+import { Sidebar, type TabType } from '@/components/Sidebar';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { ProjectsPage } from '@/pages/ProjectsPage';
+import { ProjectDetailPage } from '@/pages/ProjectDetailPage';
+import { IssuesPage } from '@/pages/IssuesPage';
+import { SprintsPage } from '@/pages/SprintsPage';
+import { SprintDetailPage } from '@/pages/SprintDetailPage';
+import { WBSPage } from '@/pages/WBSPage';
+import { WorklogsPage } from '@/pages/WorklogsPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { ChatPage } from '@/pages/ChatPage';
+import { AuthModal } from '@/components/AuthModal';
 
-import { ProjectModal } from './components/ProjectModal';
-import { IssueModal } from './components/IssueModal';
-import { IssueDetailDrawer } from './components/issueDetail';
-import { getProjects } from './services/api';
-import type { Project, Issue } from './types';
-import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from './utils/routeUtils';
+import { ProjectModal } from '@/components/ProjectModal';
+import { IssueModal } from '@/components/IssueModal';
+import { IssueDetailDrawer } from '@/components/issueDetail';
+import { getProjects } from '@/services/api';
+import type { Project, Issue } from '@/types';
+import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/utils/routeUtils';
 
 type IssueDetailMode = 'view' | 'edit';
 

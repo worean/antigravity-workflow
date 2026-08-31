@@ -1,5 +1,5 @@
 ﻿// -*- coding: utf-8 -*-
-import type { Comment } from '../types';
+import type { Comment } from '@/types';
 
 /**
  * 특정 Issue에 대한 댓글 목록을 트리 구조로 색인 및 구성합니다.

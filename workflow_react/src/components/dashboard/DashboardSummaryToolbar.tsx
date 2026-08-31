@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Terminal, RefreshCw, LogIn, Plus } from 'lucide-react';
-import type { User } from '../../types';
-import { Button, Avatar } from '../common';
+import type { User } from '@/types';
+import { Button, Avatar } from '@/components/common';
 
 interface DashboardSummaryToolbarProps {
   isAuthenticated: boolean;

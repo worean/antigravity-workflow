@@ -10,10 +10,10 @@ import {
   CheckSquare,
   Layers,
 } from 'lucide-react';
-import type { Issue } from '../../types';
-import { Button, CountBadge, StatusBadge, ProjectBadge, Avatar, FavoriteButton } from '../common';
-import { formatDateOnly } from '../../utils/dateUtils';
-import { parseStatusCategory } from '../../utils/statusUtils';
+import type { Issue } from '@/types';
+import { Button, CountBadge, StatusBadge, ProjectBadge, Avatar, FavoriteButton } from '@/components/common';
+import { formatDateOnly } from '@/utils/dateUtils';
+import { parseStatusCategory } from '@/utils/statusUtils';
 
 interface DashboardFocusSprintsProps {
   favoriteSprints: any[];

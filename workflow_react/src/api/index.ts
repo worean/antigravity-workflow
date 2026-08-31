@@ -1,4 +1,4 @@
-﻿export * from '../lib/apiClient';
+﻿export * from '@/lib/apiClient';
 export * from './issues';
 export * from './projects';
 export * from './comments';

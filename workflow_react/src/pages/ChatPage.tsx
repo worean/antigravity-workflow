@@ -9,18 +9,18 @@ import {
   updateMemberSettings,
   toggleReaction,
   type CreateChannelParams,
-} from '../api/chat';
-import { getSocket } from '../lib/socketClient';
-import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '../types';
-import { getUsers, getProjects, getGroups } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+} from '@/api/chat';
+import { getSocket } from '@/lib/socketClient';
+import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '@/types';
+import { getUsers, getProjects, getGroups } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import {
   ChatCategoryNav,
   ChatChannelSidebar,
   ChatMainArea,
   ChatMemberSidebar,
   ChatCreateModal,
-} from '../components/chat';
+} from '@/components/chat';
 
 interface ChatPageProps {
   selectedChannelId?: number | null;

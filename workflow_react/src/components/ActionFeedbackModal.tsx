@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { AlertOctagon, X } from 'lucide-react';
-import type { ErrorModalState } from '../hooks/useActionFeedback';
-import { useOverlayClickClose } from '../hooks/useOverlayClickClose';
+import type { ErrorModalState } from '@/hooks/useActionFeedback';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 
 interface ActionFeedbackModalProps {
   state?: ErrorModalState | null;

@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useCallback, type RefObject } from 'react';
-import type { Project, Sprint, Issue } from '../types';
-import { getProjects, getSprints, getIssues } from '../services/api';
+import type { Project, Sprint, Issue } from '@/types';
+import { getProjects, getSprints, getIssues } from '@/services/api';
 
 interface UseWBSProjectDataProps {
   initialProjectId?: number | null;

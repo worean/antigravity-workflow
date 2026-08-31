@@ -1,5 +1,5 @@
 ﻿import axios from 'axios';
-import type { HealthStatus } from '../types';
+import type { HealthStatus } from '@/types';
 
 /**
  * 백엔드 Base URL 정규화 헬퍼 (프로토콜 보정 및 끝 슬래시/api 정리)

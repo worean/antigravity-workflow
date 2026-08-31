@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import type { ChannelType, User, Project, Group } from '../../types';
-import { Button } from '../common';
+import type { ChannelType, User, Project, Group } from '@/types';
+import { Button } from '@/components/common';
 
 interface ChatCreateModalProps {
   showCreateModal: boolean;

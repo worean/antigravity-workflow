@@ -1,6 +1,6 @@
 ﻿import React from 'react';
-import type { IssueStatus } from '../../types';
-import { getStatusMeta, STATUS_LIST } from '../../utils/statusUtils';
+import type { IssueStatus } from '@/types';
+import { getStatusMeta, STATUS_LIST } from '@/utils/statusUtils';
 
 export interface StatusBadgeProps {
   status?: IssueStatus | { id?: number; name?: string; category?: string } | string | number | null;

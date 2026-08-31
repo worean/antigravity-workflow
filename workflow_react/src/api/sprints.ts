@@ -1,6 +1,6 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import type { Sprint, SprintDiscussionItem, SprintWorklogItem } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import type { Sprint, SprintDiscussionItem, SprintWorklogItem } from '@/types';
 import { issueKeys } from './issues';
 
 export const getSprints = async (projectId?: number): Promise<Sprint[]> => {

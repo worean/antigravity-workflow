@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import type { Issue } from '../../types';
-import type { WBSItem, DragState } from '../../types/wbs';
-import { formatDateOnly, diffDays } from '../../utils/dateUtils';
+import type { Issue } from '@/types';
+import type { WBSItem, DragState } from '@/types/wbs';
+import { formatDateOnly, diffDays } from '@/utils/dateUtils';
 import { Calendar } from 'lucide-react';
 
 interface WBSGanttBarProps {

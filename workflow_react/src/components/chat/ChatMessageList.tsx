@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { type RefObject } from 'react';
 import { Pin, X } from 'lucide-react';
-import type { ChatChannel, ChatMessage } from '../../types';
-import { Spinner } from '../common';
+import type { ChatChannel, ChatMessage } from '@/types';
+import { Spinner } from '@/components/common';
 import { ChatMessageItem } from './ChatMessageItem';
 
 interface ChatMessageListProps {

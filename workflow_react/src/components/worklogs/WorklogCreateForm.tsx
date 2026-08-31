@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import type { Issue } from '../../types';
-import { Button } from '../common';
-import { hoursToMinutes } from '../../utils/worklogUtils';
+import type { Issue } from '@/types';
+import { Button } from '@/components/common';
+import { hoursToMinutes } from '@/utils/worklogUtils';
 
 interface WorklogCreateFormProps {
   issues: Issue[];

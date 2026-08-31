@@ -1,6 +1,6 @@
 ﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   updateUser,
   getUsers,
@@ -19,14 +19,14 @@ import {
   resetCustomBackendUrl,
   testApiConnection,
   getCurrentBackendHostUrl,
-} from '../services/api';
-import type { CustomFieldDefinition, HealthStatus, Group, GroupMember, User as UserType } from '../types';
+} from '@/services/api';
+import type { CustomFieldDefinition, HealthStatus, Group, GroupMember, User as UserType } from '@/types';
 import {
   sendDesktopNotification,
   requestWebNotificationPermission,
-} from '../utils/notificationUtils';
-import { useActionFeedback } from '../hooks/useActionFeedback';
-import { ActionFeedbackModal } from '../components/ActionFeedbackModal';
+} from '@/utils/notificationUtils';
+import { useActionFeedback } from '@/hooks/useActionFeedback';
+import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import {
   SettingsHeaderToolbar,
   SettingsSidebarNav,
@@ -36,7 +36,7 @@ import {
   SettingsDisplayTab,
   SettingsSystemTab,
   type SettingsTabType,
-} from '../components/settings';
+} from '@/components/settings';
 
 interface SettingsPageProps {
   onOpenAuth?: () => void;

@@ -10,9 +10,9 @@ import {
   Edit3,
   Trash2,
 } from 'lucide-react';
-import type { Sprint } from '../../types';
-import { StatusBadge, ProjectBadge, FavoriteButton } from '../common';
-import { formatDateOnly } from '../../utils/dateUtils';
+import type { Sprint } from '@/types';
+import { StatusBadge, ProjectBadge, FavoriteButton } from '@/components/common';
+import { formatDateOnly } from '@/utils/dateUtils';
 
 interface SprintCardProps {
   sprint: Sprint;

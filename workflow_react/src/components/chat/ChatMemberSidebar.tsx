@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { Crown } from 'lucide-react';
-import type { ChatChannel, User } from '../../types';
-import { Avatar } from '../common';
+import type { ChatChannel, User } from '@/types';
+import { Avatar } from '@/components/common';
 
 interface ChatMemberSidebarProps {
   showMemberSidebar: boolean;

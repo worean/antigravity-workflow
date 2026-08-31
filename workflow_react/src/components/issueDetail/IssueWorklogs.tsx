@@ -1,9 +1,9 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { Clock, Plus } from 'lucide-react';
-import type { Worklog } from '../../types';
-import { Avatar } from '../common';
-import { formatWorklogTime } from '../../utils/worklogUtils';
+import type { Worklog } from '@/types';
+import { Avatar } from '@/components/common';
+import { formatWorklogTime } from '@/utils/worklogUtils';
 
 interface IssueWorklogsProps {
   worklogs: Worklog[];

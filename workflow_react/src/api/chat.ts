@@ -1,9 +1,9 @@
 ﻿// -*- coding: utf-8 -*-
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import { getSocket } from '../lib/socketClient';
-import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import { getSocket } from '@/lib/socketClient';
+import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel } from '@/types';
 
 // ----------------------------------------------------
 // 1. Raw API Functions

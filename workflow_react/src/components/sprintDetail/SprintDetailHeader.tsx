@@ -1,9 +1,9 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { ArrowLeft, Play, CheckCircle2, RotateCcw, Edit3, Trash2 } from 'lucide-react';
-import type { Sprint } from '../../types';
-import { Button, StatusBadge, ProjectBadge, FavoriteButton } from '../common';
-import { getDDayStatus } from '../../utils/dateUtils';
+import type { Sprint } from '@/types';
+import { Button, StatusBadge, ProjectBadge, FavoriteButton } from '@/components/common';
+import { getDDayStatus } from '@/utils/dateUtils';
 
 interface SprintDetailHeaderProps {
   sprint: Sprint;

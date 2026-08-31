@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
 import { AlertCircle, ExternalLink } from 'lucide-react';
-import type { Sprint } from '../../types';
-import { Button, StatusBadge, PriorityBadge } from '../common';
+import type { Sprint } from '@/types';
+import { Button, StatusBadge, PriorityBadge } from '@/components/common';
 
 interface SprintIssuesTabProps {
   sprint: Sprint;

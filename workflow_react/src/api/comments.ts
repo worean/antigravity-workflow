@@ -1,6 +1,6 @@
 ﻿import { useQuery, useSuspenseQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import type { Comment } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import type { Comment } from '@/types';
 import { issueKeys } from './issues';
 
 export interface CommentQueryParams {

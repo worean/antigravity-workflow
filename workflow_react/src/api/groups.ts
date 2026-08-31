@@ -1,6 +1,6 @@
 ﻿import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import type { Group, GroupMember } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import type { Group, GroupMember } from '@/types';
 
 export const getGroups = async (asTree: boolean = true): Promise<Group[]> => {
   const res = await apiClient.get(`/groups${asTree ? '?asTree=true' : ''}`);

@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { X } from 'lucide-react';
-import { useOverlayClickClose } from '../../hooks/useOverlayClickClose';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 
 export interface ModalWrapperProps {
   isOpen: boolean;

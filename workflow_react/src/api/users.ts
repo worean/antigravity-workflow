@@ -1,6 +1,6 @@
 ﻿import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../lib/apiClient';
-import type { User } from '../types';
+import { apiClient } from '@/lib/apiClient';
+import type { User } from '@/types';
 
 // ----------------------------------------------------
 // 1. Raw API Functions

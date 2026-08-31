@@ -11,7 +11,7 @@ import {
   Plus,
   ChevronRight,
 } from 'lucide-react';
-import type { Issue, User } from '../../types';
+import type { Issue, User } from '@/types';
 import {
   StatusBadge,
   PriorityBadge,
@@ -20,8 +20,8 @@ import {
   Avatar,
   MarkdownViewer,
   FavoriteButton,
-} from '../common';
-import { getDDayStatus } from '../../utils/dateUtils';
+} from '@/components/common';
+import { getDDayStatus } from '@/utils/dateUtils';
 
 interface IssueDetailViewProps {
   issue: Issue;

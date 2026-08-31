@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { FolderKanban } from 'lucide-react';
-import type { Project } from '../../types';
+import type { Project } from '@/types';
 
 interface ProjectBadgeProps {
   project?: Project | null;
