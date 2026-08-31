@@ -146,6 +146,14 @@ export const sendToUser = (userId: number, event: string, payload: any) => {
 };
 
 /**
+ * 🌐 전역 전체 연결 클라이언트에게 실시간 이벤트 브로드캐스트
+ */
+export const broadcastGlobal = (event: string, payload: any) => {
+  if (!io) return;
+  io.emit(event, payload);
+};
+
+/**
  * 특정 사용자가 현재 특정 채널을 실시간으로 보고 있는지(In-Room 활성 상태) 확인
  */
 export const isUserActiveInChannel = (userId: number, channelId: number): boolean => {

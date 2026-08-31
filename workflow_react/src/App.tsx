@@ -25,6 +25,8 @@ import { IssueModal } from '@/components/IssueModal';
 import { IssueDetailDrawer } from '@/components/issueDetail';
 import { getProjects } from '@/services/api';
 import { issueKeys } from '@/api/issues';
+import { getSocket } from '@/lib/socketClient';
+import { sendDesktopNotification } from '@/utils/notificationUtils';
 import type { Project, Issue } from '@/types';
 import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/utils/routeUtils';
 
@@ -64,6 +66,67 @@ const AppContent: React.FC = () => {
     fetchProjects();
     setIssueRefreshKey(Date.now());
   }, [isAuthenticated, user?.id]);
+
+  // 🌐 실시간 이슈 생성/수정/삭제 이벤트 구독 및 타인 변경 알림 처리
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleRealtimeIssueCreated = (data: { actorId?: number; issue: Issue }) => {
+      // 1. 전체 화면 데이터 및 쿼리 캐시 자동 리프레시
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      setIssueRefreshKey(Date.now());
+
+      // 2. 🔔 타인이 생성한 이슈인 경우에만 데스크톱 알림 발송 (본인 작성 시 알림 제외)
+      if (data && data.actorId && data.actorId !== user?.id && data.issue) {
+        sendDesktopNotification({
+          title: '신규 이슈 등록',
+          body: `#${data.issue.issueNumber || data.issue.id} ${data.issue.title}`,
+          priority: data.issue.priorityId || 2,
+        });
+      }
+    };
+
+    const handleRealtimeIssueUpdated = (data: { actorId?: number; issue: Issue }) => {
+      // 1. 전체 화면 데이터 및 쿼리 캐시 자동 리프레시
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      if (data?.issue?.id) {
+        queryClient.invalidateQueries({ queryKey: issueKeys.detail(data.issue.id) });
+      }
+      setIssueRefreshKey(Date.now());
+
+      // 2. 🔔 타인이 수정한 이슈인 경우에만 데스크톱 알림 발송 (본인 수정 시 알림 제외)
+      if (data && data.actorId && data.actorId !== user?.id && data.issue) {
+        sendDesktopNotification({
+          title: '이슈 내용 갱신',
+          body: `#${data.issue.issueNumber || data.issue.id} ${data.issue.title}`,
+          priority: data.issue.priorityId || 2,
+        });
+      }
+    };
+
+    const handleRealtimeIssueDeleted = (_data: { actorId?: number; issueId: number }) => {
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      setIssueRefreshKey(Date.now());
+    };
+
+    const handleRealtimeBatchUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      setIssueRefreshKey(Date.now());
+    };
+
+    socket.on('issue:created', handleRealtimeIssueCreated);
+    socket.on('issue:updated', handleRealtimeIssueUpdated);
+    socket.on('issue:deleted', handleRealtimeIssueDeleted);
+    socket.on('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
+
+    return () => {
+      socket.off('issue:created', handleRealtimeIssueCreated);
+      socket.off('issue:updated', handleRealtimeIssueUpdated);
+      socket.off('issue:deleted', handleRealtimeIssueDeleted);
+      socket.off('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
+    };
+  }, [user?.id]);
 
   const navigate = useCallback(
     (
