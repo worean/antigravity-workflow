@@ -1,4 +1,4 @@
-/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
+﻿/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
 
 :root {
   /* VS Code Core Colors */
@@ -93,6 +93,22 @@ h1, h2, h3, h4, h5, h6 {
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* 🌀 Spinner & Rotation Keyframes */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 0.85s linear infinite;
+  display: inline-block;
+  transform-origin: center center;
 }
 
 /* Compact Panels (VS Code Style) */

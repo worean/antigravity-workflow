@@ -8,17 +8,22 @@ export interface SpinnerProps {
   centered?: boolean;
 }
 
-export const Spinner: React.FC<SpinnerProps> = ({ size = 24, label, centered = false }) => {
+export const Spinner: React.FC<SpinnerProps> = ({ size = 20, label, centered = false }) => {
   const content = (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-sub)' }}>
-      <Loader2 size={size} className="animate-spin" color="var(--primary)" />
-      {label && <span style={{ fontSize: '0.88rem' }}>{label}</span>}
+      <Loader2
+        size={size}
+        className="animate-spin"
+        color="var(--primary)"
+        style={{ animation: 'spin 0.85s linear infinite', flexShrink: 0 }}
+      />
+      {label && <span style={{ fontSize: '0.82rem', color: 'var(--text-sub)' }}>{label}</span>}
     </div>
   );
 
   if (centered) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px', width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px', width: '100%' }}>
         {content}
       </div>
     );

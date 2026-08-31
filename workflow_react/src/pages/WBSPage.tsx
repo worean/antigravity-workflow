@@ -252,13 +252,26 @@ export const WBSPage: React.FC<WBSPageProps> = ({
       )}
 
       {/* Main Split Layout: Left Table + Right Gantt Timeline */}
-      {((loading && projects.length === 0) || (issuesLoading && issues.length === 0) || (isInitialLoading && issues.length === 0)) ? (
+      {!isAuthenticated ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '320px', gap: '12px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>간트 차트와 WBS 일정을 확인하려면 로그인이 필요합니다.</div>
+          {onOpenAuth && (
+            <button type="button" onClick={onOpenAuth} className="btn btn-primary" style={{ padding: '6px 14px' }}>
+              로그인하기
+            </button>
+          )}
+        </div>
+      ) : (loading && projects.length === 0) || (issuesLoading && issues.length === 0) || (isInitialLoading && issues.length === 0) ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-          <Spinner />
+          <Spinner centered label="간트차트 및 일정 데이터를 불러오는 중..." />
+        </div>
+      ) : projects.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          등록된 프로젝트가 없습니다. 먼저 상단에서 새 프로젝트를 생성해 주세요.
         </div>
       ) : issues.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          선택된 프로젝트/스프린트에 등록된 이슈가 없습니다.
+        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          선택된 프로젝트/스프린트에 등록된 일감(이슈)이 없습니다.
         </div>
       ) : (
         <WBSMainSplitView

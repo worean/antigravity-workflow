@@ -48,9 +48,12 @@ export const useWBSProjectData = ({
           const targetId = matched ? matched.id : pList[0].id;
           setSelectedProjectId(targetId);
           if (onFilterChange) onFilterChange(targetId);
+        } else {
+          setIsInitialLoading(false);
         }
       } catch (err) {
         console.error('Failed to load projects:', err);
+        setIsInitialLoading(false);
       } finally {
         setLoading(false);
       }
@@ -61,7 +64,12 @@ export const useWBSProjectData = ({
   // 2. Load Sprints & Issues when Project/Sprint changes
   const loadProjectData = useCallback(
     async (showLoading: boolean = false) => {
-      if (!selectedProjectId) return;
+      if (!selectedProjectId) {
+        setIsInitialLoading(false);
+        setIssuesLoading(false);
+        setIsBackgroundSyncing(false);
+        return;
+      }
       if (showLoading) setIssuesLoading(true);
       else setIsBackgroundSyncing(true);
 
