@@ -1,10 +1,13 @@
-﻿import React from 'react';
+﻿// -*- coding: utf-8 -*-
+import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'emerald' | 'danger' | 'ghost' | 'icon';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
+  delayMs?: number; // ⏳ 스피너 표시 지연 시간 (기본: 1000ms = 1초)
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
@@ -15,6 +18,7 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   isLoading = false,
+  delayMs = 1000,
   icon,
   iconPosition = 'left',
   fullWidth = false,
@@ -23,6 +27,9 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   ...props
 }) => {
+  // 1초 이상 지연될 때만 버튼 내부 스피너 표시 (깜빡임 완전 방지)
+  const showSpinner = useDelayedLoading(isLoading, { delayMs, minDisplayMs: 400 });
+
   const getVariantClass = () => {
     switch (variant) {
       case 'primary':
@@ -66,7 +73,7 @@ export const Button: React.FC<ButtonProps> = ({
       style={combinedStyle}
       {...props}
     >
-      {isLoading ? (
+      {showSpinner ? (
         <>
           <Loader2 size={size === 'sm' ? 14 : size === 'lg' ? 20 : 16} className="animate-spin" />
           {children}

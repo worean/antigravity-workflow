@@ -9,12 +9,12 @@ export interface ErrorModalState {
   statusCode?: number;
 }
 
-export const useActionFeedback = (delayMs: number = 700) => {
+export const useActionFeedback = (delayMs: number = 1000) => {
   const [isPending, setIsPending] = useState<boolean>(false);
   const [errorState, setErrorState] = useState<ErrorModalState>({ isOpen: false });
 
-  // ⏳ 700ms 이내에 완료되는 빠른 응답 시 스피너 깜빡임 방지용 지연 상태
-  const isPendingDelayed = useDelayedLoading(isPending, { delayMs, minDisplayMs: 300 });
+  // ⏳ 1초(1000ms) 이내에 완료되는 빠른 응답 시 스피너/상태 변경 깜빡임 방지용 지연 상태
+  const isPendingDelayed = useDelayedLoading(isPending, { delayMs, minDisplayMs: 400 });
 
   const closeErrorModal = useCallback(() => {
     setErrorState({ isOpen: false });

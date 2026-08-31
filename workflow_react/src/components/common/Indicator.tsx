@@ -7,7 +7,7 @@ export interface SpinnerProps {
   size?: number;
   label?: string;
   centered?: boolean;
-  delayMs?: number; // ⏳ 스피너 노출 지연 시간 (기본: 700ms, 0이면 즉시)
+  delayMs?: number; // ⏳ 스피너 노출 지연 시간 (기본: 1000ms = 1초, 0이면 즉시)
   className?: string;
   style?: React.CSSProperties;
 }
@@ -16,7 +16,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
   size = 20,
   label,
   centered = false,
-  delayMs = 700,
+  delayMs = 1000,
   className = '',
   style,
 }) => {
