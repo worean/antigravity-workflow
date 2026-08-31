@@ -17,7 +17,7 @@ interface ChatMessageItemProps {
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
   msg,
-  currentUserId: _currentUserId,
+  currentUserId,
   showEmojiPickerForMsgId,
   setShowEmojiPickerForMsgId,
   handleToggleReaction,
@@ -149,29 +149,32 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
         {/* Reactions List */}
         {msg.reactions && msg.reactions.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-            {msg.reactions.map((r, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleToggleReaction(msg.id, r.emoji)}
-                style={{
-                  background: r.hasReacted ? 'rgba(59, 130, 246, 0.2)' : '#2f3136',
-                  border: `1px solid ${r.hasReacted ? '#3b82f6' : '#393c43'}`,
-                  borderRadius: '6px',
-                  padding: '2px 6px',
-                  fontSize: '0.72rem',
-                  color: r.hasReacted ? '#3b82f6' : '#b9bbbe',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-                title={r.users?.map((u: any) => u.name).join(', ')}
-              >
-                <span>{r.emoji}</span>
-                <span style={{ fontWeight: 600, fontSize: '0.68rem' }}>{r.count}</span>
-              </button>
-            ))}
+            {msg.reactions.map((r, idx) => {
+              const isReactedByMe = r.hasReacted !== undefined ? r.hasReacted : r.users?.some((u: any) => u.id === currentUserId);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleToggleReaction(msg.id, r.emoji)}
+                  style={{
+                    background: isReactedByMe ? 'rgba(59, 130, 246, 0.2)' : '#2f3136',
+                    border: `1px solid ${isReactedByMe ? '#3b82f6' : '#393c43'}`,
+                    borderRadius: '6px',
+                    padding: '2px 6px',
+                    fontSize: '0.72rem',
+                    color: isReactedByMe ? '#3b82f6' : '#b9bbbe',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title={r.users?.map((u: any) => u.name).join(', ')}
+                >
+                  <span>{r.emoji}</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.68rem' }}>{r.count}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

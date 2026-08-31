@@ -166,9 +166,16 @@ export const ChatPage: React.FC<ChatPageProps> = ({
       );
     };
 
-    const handleMessageReaction = (data: { messageId: number; reactions: any[] }) => {
+    const handleReactionUpdated = (data: { messageId: number; reactions: any[] }) => {
       setMessages((prev) =>
-        prev.map((m) => (m.id === data.messageId ? { ...m, reactions: data.reactions } : m))
+        prev.map((m) => {
+          if (m.id !== data.messageId) return m;
+          const formatted = (data.reactions || []).map((r: any) => ({
+            ...r,
+            hasReacted: r.hasReacted !== undefined ? r.hasReacted : r.users?.some((u: any) => u.id === currentUserId),
+          }));
+          return { ...m, reactions: formatted };
+        })
       );
     };
 
@@ -199,7 +206,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     };
 
     socket.on('chat:new_message', handleNewMessage);
-    socket.on('chat:message_reaction', handleMessageReaction);
+    socket.on('chat:reaction_updated', handleReactionUpdated);
+    socket.on('chat:message_reaction', handleReactionUpdated);
     socket.on('chat:message_pinned', handleMessagePinned);
     socket.on('chat:typing', handleTyping);
     socket.on('chat:stop_typing', handleStopTyping);
@@ -209,7 +217,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         socket.emit('chat:leave_channel', { channelId: selectedChannelId });
       }
       socket.off('chat:new_message', handleNewMessage);
-      socket.off('chat:message_reaction', handleMessageReaction);
+      socket.off('chat:reaction_updated', handleReactionUpdated);
+      socket.off('chat:message_reaction', handleReactionUpdated);
       socket.off('chat:message_pinned', handleMessagePinned);
       socket.off('chat:typing', handleTyping);
       socket.off('chat:stop_typing', handleStopTyping);
@@ -322,11 +331,23 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   const handleToggleReaction = useCallback(async (messageId: number, emoji: string) => {
     if (!selectedChannelId) return;
     try {
-      await toggleReaction(messageId, emoji);
+      const res = await toggleReaction(messageId, emoji);
+      if (res && Array.isArray(res.reactions)) {
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== messageId) return m;
+            const formatted = res.reactions.map((r: any) => ({
+              ...r,
+              hasReacted: r.hasReacted !== undefined ? r.hasReacted : r.users?.some((u: any) => u.id === currentUserId),
+            }));
+            return { ...m, reactions: formatted };
+          })
+        );
+      }
     } catch (err) {
       console.error('Failed to toggle reaction:', err);
     }
-  }, [selectedChannelId]);
+  }, [selectedChannelId, currentUserId]);
 
   const handleTogglePin = useCallback(async (messageId: number, currentPinned: boolean = false) => {
     if (!selectedChannelId) return;

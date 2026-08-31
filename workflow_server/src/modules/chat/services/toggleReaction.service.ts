@@ -51,11 +51,19 @@ export const toggleReactionService = async (messageId: number, userId: number, e
     },
   });
 
-  const reactionMap = new Map<string, { emoji: string; count: number; users: { id: number; name: string }[] }>();
+  const reactionMap = new Map<string, { emoji: string; count: number; users: { id: number; name: string }[]; hasReacted: boolean }>();
   for (const r of allReactions) {
-    const item = reactionMap.get(r.emoji) || { emoji: r.emoji, count: 0, users: [] };
+    const item = reactionMap.get(r.emoji) || {
+      emoji: r.emoji,
+      count: 0,
+      users: [],
+      hasReacted: false,
+    };
     item.count++;
     item.users.push({ id: r.user.id, name: r.user.name || '' });
+    if (r.userId === userId) {
+      item.hasReacted = true;
+    }
     reactionMap.set(r.emoji, item);
   }
 
@@ -68,7 +76,9 @@ export const toggleReactionService = async (messageId: number, userId: number, e
     reactions: Array.from(reactionMap.values()),
   };
 
+  // 클라이언트 소켓 이벤트 동기화 (두 이벤트 모두 브로드캐스트)
   broadcastToChannel(message.channelId, 'chat:reaction_updated', payload);
+  broadcastToChannel(message.channelId, 'chat:message_reaction', payload);
 
   return payload;
 };
