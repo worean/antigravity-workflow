@@ -31,7 +31,8 @@ export const getSprints = async (req: Request, res: Response) => {
 
 export const getSprint = async (req: Request, res: Response) => {
   try {
-    const sprint = await getSprintService(Number(req.params.id));
+    const currentUserId = req.user ? req.user.id : undefined;
+    const sprint = await getSprintService(Number(req.params.id), currentUserId);
     res.json(sprint);
   } catch (error: any) {
     res.status(404).json({ error: error.message });

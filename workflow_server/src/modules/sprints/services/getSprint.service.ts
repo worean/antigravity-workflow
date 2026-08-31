@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import { prisma } from '#lib/prisma.js';
 
-export const getSprintService = async (id: number) => {
+export const getSprintService = async (id: number, currentUserId?: number) => {
   if (!id) throw new Error('Sprint ID is required');
   const sprint = await prisma.sprint.findUnique({
     where: { id: Number(id) },
@@ -20,5 +20,20 @@ export const getSprintService = async (id: number) => {
     }
   });
   if (!sprint) throw new Error('Sprint not found');
-  return sprint;
+
+  let isFavorite = false;
+  if (currentUserId) {
+    const fav = await prisma.favorite.findUnique({
+      where: {
+        userId_targetType_targetId: {
+          userId: currentUserId,
+          targetType: 'SPRINT',
+          targetId: sprint.id
+        }
+      }
+    });
+    isFavorite = !!fav;
+  }
+
+  return { ...sprint, isFavorite };
 };

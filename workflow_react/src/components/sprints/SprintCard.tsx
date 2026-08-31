@@ -1,5 +1,5 @@
 ﻿// -*- coding: utf-8 -*-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Target,
   Calendar,
@@ -41,6 +41,12 @@ export const SprintCard: React.FC<SprintCardProps> = ({
   fetchData,
   onOpenAuth,
 }) => {
+  const [localIsFav, setLocalIsFav] = useState<boolean>(!!sprint.isFavorite);
+
+  useEffect(() => {
+    setLocalIsFav(!!sprint.isFavorite);
+  }, [sprint.isFavorite]);
+
   const prog = getSprintProgress(sprint);
   const isPlanned = sprint.status === 'PLANNED';
   const isActive = sprint.status === 'ACTIVE';
@@ -50,8 +56,8 @@ export const SprintCard: React.FC<SprintCardProps> = ({
     <div
       key={sprint.id}
       style={{
-        background: sprint.isFavorite ? '#23221e' : '#252526',
-        border: sprint.isFavorite
+        background: localIsFav ? '#23221e' : '#252526',
+        border: localIsFav
           ? '1px solid rgba(234, 179, 8, 0.45)'
           : isActive
           ? '1px solid #007acc'
@@ -61,17 +67,18 @@ export const SprintCard: React.FC<SprintCardProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        boxShadow: sprint.isFavorite
+        boxShadow: localIsFav
           ? '0 0 10px rgba(234, 179, 8, 0.12)'
           : isActive
           ? '0 0 8px rgba(0,122,204,0.15)'
           : 'none',
         position: 'relative',
         overflow: 'hidden',
+        transition: 'all 0.15s ease',
       }}
     >
       {/* Gold Top Accent Line for Favorite Sprint */}
-      {sprint.isFavorite && (
+      {localIsFav && (
         <div
           style={{
             position: 'absolute',
@@ -105,10 +112,13 @@ export const SprintCard: React.FC<SprintCardProps> = ({
           <FavoriteButton
             targetType="SPRINT"
             targetId={sprint.id}
-            isFavorite={sprint.isFavorite}
+            isFavorite={localIsFav}
             size="sm"
             onOpenAuth={onOpenAuth}
-            onToggleSuccess={() => fetchData()}
+            onToggleSuccess={(nextFav) => {
+              setLocalIsFav(nextFav);
+              fetchData();
+            }}
           />
           <StatusBadge status={sprint.status} size="sm" />
         </div>
