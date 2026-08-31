@@ -74,9 +74,6 @@ const AppContent: React.FC = () => {
     ) => {
       const normalizedTab = tab === 'issue-detail' ? 'issues' : tab;
       prefRepository.activeTab = normalizedTab;
-      if (projId) {
-        prefRepository.selectedProjectId = projId;
-      }
 
       const targetSprintId = extra?.sprintId ?? (normalizedTab === 'sprint-detail' ? issueId : null);
 

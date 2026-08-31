@@ -14,7 +14,7 @@ import { getSocket } from '@/lib/socketClient';
 import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '@/types';
 import { getUsers, getProjects, getGroups } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
-import { prefRepository } from '@/lib/prefRepository';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import {
   ChatCategoryNav,
   ChatChannelSidebar,
@@ -35,6 +35,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   onOpenAuth,
 }) => {
   const { user, token, isAuthenticated } = useAuth();
+  const { selectedChannelId: wsChannelId, setSelectedChannelId: setWsChannelId } = useWorkspace();
   const currentUserId = user?.id || 0;
 
   // Workspace Metadata
@@ -45,7 +46,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   // Channels
   const [channels, setChannels] = useState<ChatChannel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(() => {
-    return propChannelId ?? prefRepository.selectedChannelId ?? null;
+    return propChannelId ?? wsChannelId ?? null;
   });
   const [activeCategory, setActiveCategory] = useState<ChannelType | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -90,17 +91,17 @@ export const ChatPage: React.FC<ChatPageProps> = ({
       setChannels(data);
       if (data.length > 0) {
         setSelectedChannelId((prev) => {
-          const currentTarget = prev ?? prefRepository.selectedChannelId;
+          const currentTarget = prev ?? wsChannelId;
           const exists = data.some((c) => c.id === currentTarget);
           const resolvedId = exists ? (currentTarget as number) : data[0].id;
-          prefRepository.selectedChannelId = resolvedId;
+          setWsChannelId(resolvedId);
           return resolvedId;
         });
       }
     } catch (err) {
       console.error('Failed to fetch channels:', err);
     }
-  }, []);
+  }, [wsChannelId, setWsChannelId]);
 
   useEffect(() => {
     fetchChannels();
@@ -112,9 +113,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   useEffect(() => {
     if (propChannelId !== undefined && propChannelId !== null) {
       setSelectedChannelId(propChannelId);
-      prefRepository.selectedChannelId = propChannelId;
+      setWsChannelId(propChannelId);
     }
-  }, [propChannelId]);
+  }, [propChannelId, setWsChannelId]);
 
   // 2. Fetch Messages
   const fetchMessages = useCallback(async (channelId: number) => {
@@ -231,10 +232,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     (cId: number) => {
       if (cId === selectedChannelId) return;
       setSelectedChannelId(cId);
-      prefRepository.selectedChannelId = cId;
+      setWsChannelId(cId);
       if (onSelectChannel) onSelectChannel(cId);
     },
-    [selectedChannelId, onSelectChannel]
+    [selectedChannelId, setWsChannelId, onSelectChannel]
   );
 
   const toggleCategoryCollapse = useCallback((type: ChannelType) => {

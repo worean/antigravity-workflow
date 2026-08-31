@@ -9,10 +9,58 @@ import {
   workspaceKeys,
 } from '@/api/workspaces';
 import type { Workspace, WorkspaceMember } from '@/types';
-import { prefRepository, type IssueDraft } from '@/lib/prefRepository';
+import { prefRepository } from '@/lib/prefRepository';
+
+/**
+ * 📝 이슈 작성/수정 임시저장 드래프트 모델 (WorkspaceContext 관리)
+ */
+export interface IssueDraft {
+  title: string;
+  description: string;
+  projectId?: number;
+  statusId?: number;
+  priorityId?: number;
+  assigneeId?: number | null;
+  dueDate?: string | null;
+  startDate?: string | null;
+  plannedStartDate?: string | null;
+  tags?: string[];
+  customFields?: Record<string, any>;
+  updatedAt: number;
+}
+
+// --- 🔒 내부 스토리지 안전 I/O 헬퍼 ---
+function readWsStorage<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === null || raw === undefined) return fallback;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return raw as unknown as T;
+    }
+  } catch {
+    return fallback;
+  }
+}
+
+function writeWsStorage<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value === null || value === undefined) {
+      window.localStorage.removeItem(key);
+    } else {
+      const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+      window.localStorage.setItem(key, serialized);
+    }
+  } catch (e) {
+    console.warn(`[WorkspaceContext] Failed to write key "${key}":`, e);
+  }
+}
 
 interface WorkspaceContextType {
-  // 🏢 워크스페이스 관리
+  // 🏢 워크스페이스 기본 관리
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   isLoadingWorkspaces: boolean;
@@ -35,6 +83,8 @@ interface WorkspaceContextType {
   // 🧭 라우팅 및 네비게이션
   prevRoute: string | null;
   setPrevRoute: (route: string | null) => void;
+  selectedProjectId: number | null;
+  setSelectedProjectId: (projectId: number | null) => void;
   selectedChannelId: number | null;
   setSelectedChannelId: (channelId: number | null) => void;
 }
@@ -71,10 +121,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    // 현재 선택된 ID가 유효한 목록에 존재하는지 확인
     const exists = workspaces.find((w) => w.id === currentWorkspaceId);
     if (!exists) {
-      // 존재하지 않으면 첫 번째 워크스페이스를 기본 활성화
       const defaultWs = workspaces[0];
       setCurrentWorkspaceId(defaultWs.id);
       prefRepository.activeWorkspaceId = defaultWs.id;
@@ -85,13 +133,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 3. 📝 워크스페이스별 일감 초안(Draft) 상태 관리
   const [issueDrafts, setIssueDrafts] = useState<Record<string, IssueDraft>>(() => {
-    return currentWorkspaceId ? prefRepository.getWorkspaceDrafts(currentWorkspaceId) : {};
+    return currentWorkspaceId ? readWsStorage<Record<string, IssueDraft>>(`ws_${currentWorkspaceId}_drafts`, {}) : {};
   });
 
   // 워크스페이스 전환 시 해당 워크스페이스 전용 초안 로드
   useEffect(() => {
     if (currentWorkspaceId) {
-      setIssueDrafts(prefRepository.getWorkspaceDrafts(currentWorkspaceId));
+      setIssueDrafts(readWsStorage<Record<string, IssueDraft>>(`ws_${currentWorkspaceId}_drafts`, {}));
     } else {
       setIssueDrafts({});
     }
@@ -117,7 +165,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           updatedAt: Date.now(),
         };
         const nextState = { ...prev, [k]: updated };
-        prefRepository.saveWorkspaceDrafts(currentWorkspaceId, nextState);
+        writeWsStorage(`ws_${currentWorkspaceId}_drafts`, nextState);
         return nextState;
       });
     },
@@ -132,7 +180,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (!prev[k]) return prev;
         const nextState = { ...prev };
         delete nextState[k];
-        prefRepository.saveWorkspaceDrafts(currentWorkspaceId, nextState);
+        writeWsStorage(`ws_${currentWorkspaceId}_drafts`, nextState);
         return nextState;
       });
     },
@@ -149,32 +197,54 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 4. 📐 사이드바 서브메뉴 상태 관리
   const [sidebarSubmenus, setSidebarSubmenusState] = useState<Record<string, boolean>>(() => {
-    return prefRepository.sidebarSubmenus;
+    return readWsStorage<Record<string, boolean>>('pref_sidebar_submenus', {
+      projects: false,
+      issues: false,
+      sprints: false,
+      wbs: false,
+      chat: false,
+    });
   });
 
   const setSidebarSubmenus: React.Dispatch<React.SetStateAction<Record<string, boolean>>> = useCallback(
     (action) => {
       setSidebarSubmenusState((prev) => {
         const next = typeof action === 'function' ? action(prev) : action;
-        prefRepository.sidebarSubmenus = next;
+        writeWsStorage('pref_sidebar_submenus', next);
         return next;
       });
     },
     []
   );
 
-  // 5. 🧭 라우팅 및 네비게이션 이력
-  const [prevRoute, setPrevRouteState] = useState<string | null>(() => prefRepository.prevRoute);
-  const [selectedChannelId, setSelectedChannelIdState] = useState<number | null>(() => prefRepository.selectedChannelId);
+  // 5. 🧭 라우팅, 선택 프로젝트, 선택 채널 이력
+  const [prevRoute, setPrevRouteState] = useState<string | null>(() => readWsStorage<string | null>('pref_prev_route', null));
+  const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(() => {
+    const raw = readWsStorage<any>('selectedProjectId', null);
+    if (!raw) return null;
+    const num = Number(raw);
+    return isNaN(num) ? null : num;
+  });
+  const [selectedChannelId, setSelectedChannelIdState] = useState<number | null>(() => {
+    const raw = readWsStorage<any>('selectedChannelId', null);
+    if (!raw) return null;
+    const num = Number(raw);
+    return isNaN(num) ? null : num;
+  });
 
   const setPrevRoute = useCallback((route: string | null) => {
     setPrevRouteState(route);
-    prefRepository.prevRoute = route;
+    writeWsStorage('pref_prev_route', route);
+  }, []);
+
+  const setSelectedProjectId = useCallback((projectId: number | null) => {
+    setSelectedProjectIdState(projectId);
+    writeWsStorage('selectedProjectId', projectId);
   }, []);
 
   const setSelectedChannelId = useCallback((channelId: number | null) => {
     setSelectedChannelIdState(channelId);
-    prefRepository.selectedChannelId = channelId;
+    writeWsStorage('selectedChannelId', channelId);
   }, []);
 
   // 6. 워크스페이스 전환 함수 (전환 시 전역 쿼리 캐시 리셋 및 새 워크스페이스 데이터 로드)
@@ -243,6 +313,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSidebarSubmenus,
         prevRoute,
         setPrevRoute,
+        selectedProjectId,
+        setSelectedProjectId,
         selectedChannelId,
         setSelectedChannelId,
       }}

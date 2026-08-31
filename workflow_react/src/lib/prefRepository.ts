@@ -2,24 +2,6 @@
 import type { User } from '@/types';
 
 /**
- * 📝 이슈 작성/수정 임시저장 드래프트 모델
- */
-export interface IssueDraft {
-  title: string;
-  description: string;
-  projectId?: number;
-  statusId?: number;
-  priorityId?: number;
-  assigneeId?: number | null;
-  dueDate?: string | null;
-  startDate?: string | null;
-  plannedStartDate?: string | null;
-  tags?: string[];
-  customFields?: Record<string, any>;
-  updatedAt: number;
-}
-
-/**
  * 🛠️ 앱 환경설정 데이터 스키마 (App Preference Schema)
  */
 export interface PrefSchema {
@@ -30,10 +12,6 @@ export interface PrefSchema {
   backendApiUrl: string;
   activeWorkspaceId: number | null;
   activeTab: string;
-  selectedProjectId: number | null;
-  selectedChannelId: number | null;
-  prevRoute: string | null;
-  sidebarSubmenus: Record<string, boolean>;
 }
 
 /**
@@ -47,22 +25,12 @@ export const DEFAULT_PREFS: PrefSchema = {
   backendApiUrl: '',
   activeWorkspaceId: null,
   activeTab: 'dashboard',
-  selectedProjectId: null,
-  selectedChannelId: null,
-  prevRoute: null,
-  sidebarSubmenus: {
-    projects: false,
-    issues: false,
-    sprints: false,
-    wbs: false,
-    chat: false,
-  },
 };
 
 /**
- * 🏛️ PrefRepository (설정 및 로컬 스토리지 전담 관리 클래스)
+ * 🏛️ PrefRepository (앱 환경설정 및 사용자 옵션 전담 관리 클래스)
  * 
- * LocalStorage의 키 매핑 및 타입 변환, 워크스페이스별 드래프트 보관을 전담 관리합니다.
+ * LocalStorage의 키 매핑 및 타입 변환, 앱 기본 설정 I/O를 전담 관리합니다.
  */
 export class PrefRepository {
   private static instance: PrefRepository;
@@ -76,10 +44,6 @@ export class PrefRepository {
     backendApiUrl: 'pref_backend_api_url',
     activeWorkspaceId: 'active_workspace_id',
     activeTab: 'activeTab',
-    selectedProjectId: 'selectedProjectId',
-    selectedChannelId: 'selectedChannelId',
-    prevRoute: 'pref_prev_route',
-    sidebarSubmenus: 'pref_sidebar_submenus',
   };
 
   private readonly AUTH_TOKEN_KEY = 'auth_token';
@@ -190,49 +154,6 @@ export class PrefRepository {
     this.writeStorage(this.keys.activeTab, value);
   }
 
-  public get selectedProjectId(): number | null {
-    const val = this.readStorage<any>(this.keys.selectedProjectId, null);
-    if (!val) return null;
-    const num = Number(val);
-    return isNaN(num) ? null : num;
-  }
-  public set selectedProjectId(value: number | null) {
-    this.writeStorage(this.keys.selectedProjectId, value);
-  }
-
-  public get selectedChannelId(): number | null {
-    const val = this.readStorage<any>(this.keys.selectedChannelId, null);
-    if (!val) return null;
-    const num = Number(val);
-    return isNaN(num) ? null : num;
-  }
-  public set selectedChannelId(value: number | null) {
-    this.writeStorage(this.keys.selectedChannelId, value);
-  }
-
-  public get prevRoute(): string | null {
-    return this.readStorage<string | null>(this.keys.prevRoute, null);
-  }
-  public set prevRoute(value: string | null) {
-    this.writeStorage(this.keys.prevRoute, value);
-  }
-
-  public get sidebarSubmenus(): Record<string, boolean> {
-    return this.readStorage<Record<string, boolean>>(this.keys.sidebarSubmenus, DEFAULT_PREFS.sidebarSubmenus);
-  }
-  public set sidebarSubmenus(value: Record<string, boolean>) {
-    this.writeStorage(this.keys.sidebarSubmenus, value);
-  }
-
-  // --- 📝 워크스페이스별 드래프트(초안) 관리 ---
-  public getWorkspaceDrafts(workspaceId: number): Record<string, IssueDraft> {
-    return this.readStorage<Record<string, IssueDraft>>(`ws_${workspaceId}_drafts`, {});
-  }
-
-  public saveWorkspaceDrafts(workspaceId: number, drafts: Record<string, IssueDraft>): void {
-    this.writeStorage(`ws_${workspaceId}_drafts`, drafts);
-  }
-
   // --- 🔐 인증 및 세션 관리 ---
   public get authToken(): string | null {
     return this.readStorage<string | null>(this.AUTH_TOKEN_KEY, null);
@@ -263,10 +184,6 @@ export class PrefRepository {
       backendApiUrl: this.backendApiUrl,
       activeWorkspaceId: this.activeWorkspaceId,
       activeTab: this.activeTab,
-      selectedProjectId: this.selectedProjectId,
-      selectedChannelId: this.selectedChannelId,
-      prevRoute: this.prevRoute,
-      sidebarSubmenus: this.sidebarSubmenus,
     };
   }
 
@@ -278,10 +195,6 @@ export class PrefRepository {
     if (partial.backendApiUrl !== undefined) this.backendApiUrl = partial.backendApiUrl;
     if (partial.activeWorkspaceId !== undefined) this.activeWorkspaceId = partial.activeWorkspaceId;
     if (partial.activeTab !== undefined) this.activeTab = partial.activeTab;
-    if (partial.selectedProjectId !== undefined) this.selectedProjectId = partial.selectedProjectId;
-    if (partial.selectedChannelId !== undefined) this.selectedChannelId = partial.selectedChannelId;
-    if (partial.prevRoute !== undefined) this.prevRoute = partial.prevRoute;
-    if (partial.sidebarSubmenus !== undefined) this.sidebarSubmenus = partial.sidebarSubmenus;
   }
 
   public resetToDefaults(): void {
