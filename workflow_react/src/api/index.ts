@@ -8,4 +8,5 @@ export * from './customFields';
 export * from './worklogs';
 export * from './groups';
 export * from './favorites';
+export * from './workspaces';
 

@@ -1,8 +1,8 @@
 ﻿// -*- coding: utf-8 -*-
 import React from 'react';
-import { User, Users, Sliders, Palette, Server } from 'lucide-react';
+import { User, Layers, Users, Sliders, Palette, Server } from 'lucide-react';
 
-export type SettingsTabType = 'profile' | 'organization' | 'customFields' | 'display' | 'system';
+export type SettingsTabType = 'profile' | 'workspace' | 'organization' | 'customFields' | 'display' | 'system';
 
 interface SettingsSidebarNavProps {
   activeSubTab: SettingsTabType;
@@ -15,6 +15,7 @@ export const SettingsSidebarNav: React.FC<SettingsSidebarNavProps> = ({
 }) => {
   const tabs = [
     { id: 'profile' as const, label: '사용자 프로필', icon: User },
+    { id: 'workspace' as const, label: '워크스페이스 & 멤버', icon: Layers },
     { id: 'organization' as const, label: '조직도 및 권한 관리', icon: Users },
     { id: 'customFields' as const, label: '이슈 커스텀 필드', icon: Sliders },
     { id: 'display' as const, label: '디스플레이 & 테마', icon: Palette },

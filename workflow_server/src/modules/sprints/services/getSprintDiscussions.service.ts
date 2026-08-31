@@ -21,7 +21,7 @@ export const getSprintDiscussionsService = async (sprintId: number) => {
       issueId: { in: issueIds }
     },
     include: {
-      user: {
+      author: {
         select: {
           id: true,
           name: true,

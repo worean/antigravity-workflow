@@ -31,6 +31,7 @@ import {
   SettingsHeaderToolbar,
   SettingsSidebarNav,
   SettingsProfileTab,
+  SettingsWorkspaceTab,
   SettingsOrgTab,
   SettingsCustomFieldsTab,
   SettingsDisplayTab,
@@ -538,6 +539,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               }}
             />
           )}
+
+          {activeSubTab === 'workspace' && <SettingsWorkspaceTab />}
 
           {activeSubTab === 'organization' && (
             <SettingsOrgTab

@@ -23,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // 각 User의 설정에 맞춰 로컬 스토리지 동기화
   const syncPreferencesToStorage = (userObj?: User | null) => {
     if (!userObj || !userObj.preferences) return;
     try {
@@ -44,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 초기 인증 상태 설정 (첫 로딩 시)
   useEffect(() => {
     const initAuth = async () => {
       if (token) {
@@ -123,6 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 };
 
+/**
+ * Authfication을 위한 Hook 으로 AuthContext에 접근할 수 있습니다.
+ * 컴포넌트 등은 해당 Hook을 사용하여 인증 상태 및 사용자 정보를 가져올 수 있습니다.
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

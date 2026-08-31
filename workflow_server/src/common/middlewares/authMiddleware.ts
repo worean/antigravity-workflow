@@ -1,7 +1,8 @@
-﻿// -*- coding: utf-8 -*-
+// -*- coding: utf-8 -*-
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '#lib/prisma.js';
+import { globalPrisma } from '#lib/globalPrisma.js';
 
 /**
  * 🔒 보안 강화된 JWT 전용 인증 미들웨어
@@ -32,7 +33,14 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: 'Unauthorized: Invalid token payload' });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    // 1. Global DB에서 유저 조회 (전역 인증 계정)
+    let user: any = await globalPrisma.user.findUnique({ where: { id: decoded.userId } });
+
+    // 2. 만약 Global DB에 없으면 테넌트 DB에서 fallback 조회
+    if (!user) {
+      user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    }
+
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized: User associated with token not found' });
     }

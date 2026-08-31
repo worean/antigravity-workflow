@@ -1,77 +1,19 @@
-﻿import { prisma } from './prisma.js';
+// -*- coding: utf-8 -*-
+import path from 'path';
+import { globalPrisma } from './globalPrisma.js';
+import { workspaceManager } from './workspaceManager.js';
+import { prisma } from './prisma.js';
 
 export async function seedDatabase() {
-  console.log('🌱 Starting Database Initial Seeding...');
+  console.log('🌱 Starting Global & Default Workspace Database Initial Seeding...');
 
-  // 1. Issue Metadata Seeding
-  const issueTypes = [
-    { id: 1, name: 'Task', description: '일반 작업/할 일', icon: 'CheckSquare', isSystem: true },
-    { id: 2, name: 'Bug', description: '버그 및 결함 수정', icon: 'Bug', isSystem: true },
-    { id: 3, name: 'Feature', description: '신규 기능 개발', icon: 'Sparkles', isSystem: true },
-    { id: 4, name: 'Epic', description: '상위 거대 목표', icon: 'Layers', isSystem: true },
-  ];
-
-  for (const t of issueTypes) {
-    await prisma.issueType.upsert({
-      where: { id: t.id },
-      update: t,
-      create: t,
-    });
-  }
-
-  const issuePriorities = [
-    { id: 1, name: 'Low', level: 1, color: '#10b981', isSystem: true },
-    { id: 2, name: 'Medium', level: 2, color: '#f59e0b', isSystem: true },
-    { id: 3, name: 'High', level: 3, color: '#f43f5e', isSystem: true },
-    { id: 4, name: 'Urgent', level: 4, color: '#9333ea', isSystem: true },
-  ];
-
-  for (const p of issuePriorities) {
-    await prisma.issuePriority.upsert({
-      where: { id: p.id },
-      update: p,
-      create: p,
-    });
-  }
-
-  const issueStatuses = [
-    { id: 1, name: 'To Do', category: 'TODO', isSystem: true },
-    { id: 2, name: 'In Progress', category: 'IN_PROGRESS', isSystem: true },
-    { id: 3, name: 'In Review', category: 'IN_REVIEW', isSystem: true },
-    { id: 4, name: 'Done', category: 'DONE', isSystem: true },
-  ];
-
-  for (const s of issueStatuses) {
-    await prisma.issueStatus.upsert({
-      where: { id: s.id },
-      update: s,
-      create: s,
-    });
-  }
-
-  // 2. Project Metadata Seeding
-  const projectPriorities = [
-    { id: 1, name: 'Normal', level: 1, color: '#3b82f6', isSystem: true },
-    { id: 2, name: 'High', level: 2, color: '#f43f5e', isSystem: true },
-  ];
-
-  for (const pp of projectPriorities) {
-    await prisma.projectPriority.upsert({
-      where: { id: pp.id },
-      update: pp,
-      create: pp,
-    });
-  }
-
-  const projectStatuses = [
-    { id: 1, name: 'Active', category: 'IN_PROGRESS', isSystem: true },
-    { id: 2, name: 'Archived', category: 'DONE', isSystem: true },
-  ];
-
-  // 3. System Admin Account Seeding (worean@naver.com)
-  await prisma.user.upsert({
+  // 1. Global DB Admin Account (worean@naver.com)
+  const adminUser = await globalPrisma.user.upsert({
     where: { email: 'worean@naver.com' },
-    update: { role: 'ADMIN' },
+    update: {
+      name: '시스템 최고 관리자',
+      role: 'ADMIN',
+    },
     create: {
       email: 'worean@naver.com',
       name: '시스템 최고 관리자',
@@ -79,7 +21,54 @@ export async function seedDatabase() {
     },
   });
 
-  console.log('✅ Base Metadata and Admin Account (worean@naver.com) Seed Completed Cleanly!');
+  // 2. Global DB Default Workspace
+  const defaultWsDbPath = path.resolve(process.cwd(), '.tmp/workspaces/default.db').replace(/\\/g, '/');
+  const defaultWorkspace = await globalPrisma.workspace.upsert({
+    where: { slug: 'default-workspace' },
+    update: {
+      dbUrl: `file:${defaultWsDbPath}`,
+    },
+    create: {
+      slug: 'default-workspace',
+      name: '기본 워크스페이스',
+      description: '기본 시스템 워크스페이스',
+      ownerId: adminUser.id,
+      dbType: 'sqlite',
+      dbUrl: `file:${defaultWsDbPath}`,
+      status: 'ACTIVE',
+    },
+  });
+
+  // 3. UserWorkspace Membership
+  await globalPrisma.userWorkspace.upsert({
+    where: {
+      userId_workspaceId: {
+        userId: adminUser.id,
+        workspaceId: defaultWorkspace.id,
+      },
+    },
+    update: {
+      role: 'OWNER',
+      status: 'ACTIVE',
+    },
+    create: {
+      userId: adminUser.id,
+      workspaceId: defaultWorkspace.id,
+      role: 'OWNER',
+      status: 'ACTIVE',
+    },
+  });
+
+  // 4. Default Workspace Metadata & User Sync
+  await workspaceManager.seedDefaultMetadata(prisma);
+  await workspaceManager.syncUserToWorkspace(prisma, {
+    id: adminUser.id,
+    email: adminUser.email,
+    name: adminUser.name,
+    role: adminUser.role,
+  });
+
+  console.log('✅ Global Admin & Default Workspace Seed Completed Cleanly!');
 }
 
 if (process.argv[1] && process.argv[1].endsWith('seed.ts')) {

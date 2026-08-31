@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { WorkspaceProvider } from '@/context/WorkspaceContext';
 import { Header, type BreadcrumbItem } from '@/components/Header';
 
 import { Sidebar, type TabType } from '@/components/Sidebar';
@@ -433,7 +434,9 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppContent />
+        <WorkspaceProvider>
+          <AppContent />
+        </WorkspaceProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

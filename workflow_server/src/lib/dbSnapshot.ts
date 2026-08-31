@@ -1,18 +1,22 @@
-﻿// -*- coding: utf-8 -*-
+// -*- coding: utf-8 -*-
 import fs from 'fs';
 import path from 'path';
 
 const TMP_DIR = path.resolve(process.cwd(), '.tmp');
-const MAIN_DB_PATH = path.resolve(TMP_DIR, 'task_board.db');
-const TEST_DB_PATH = path.resolve(TMP_DIR, 'test_task_board.db');
-const SNAPSHOT_DB_PATH = path.resolve(TMP_DIR, 'task_board.db.snapshot');
+const WORKSPACES_DIR = path.resolve(TMP_DIR, 'workspaces');
+const MAIN_DB_PATH = path.resolve(WORKSPACES_DIR, 'default.db');
+const TEST_DB_PATH = path.resolve(WORKSPACES_DIR, 'test_default.db');
+const SNAPSHOT_DB_PATH = path.resolve(WORKSPACES_DIR, 'default.db.snapshot');
 
 /**
- * .tmp 디렉터리 존재 여부 확인 및 생성
+ * .tmp 및 workspaces 디렉터리 존재 여부 확인 및 생성
  */
 export const ensureTmpDir = () => {
   if (!fs.existsSync(TMP_DIR)) {
     fs.mkdirSync(TMP_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(WORKSPACES_DIR)) {
+    fs.mkdirSync(WORKSPACES_DIR, { recursive: true });
   }
 };
 
@@ -41,11 +45,15 @@ export const restoreDbSnapshot = (snapshotPath = SNAPSHOT_DB_PATH, targetPath = 
 };
 
 /**
- * 테스트용 격리 DB 파일(.tmp/test_task_board.db)을 메인 DB 또는 스냅샷으로부터 생성합니다.
+ * 테스트용 격리 DB 파일을 메인 DB 또는 스냅샷으로부터 생성합니다.
  */
 export const createTestDbCopy = () => {
   ensureTmpDir();
-  const source = fs.existsSync(MAIN_DB_PATH) ? MAIN_DB_PATH : (fs.existsSync(SNAPSHOT_DB_PATH) ? SNAPSHOT_DB_PATH : null);
+  const source = fs.existsSync(MAIN_DB_PATH)
+    ? MAIN_DB_PATH
+    : fs.existsSync(SNAPSHOT_DB_PATH)
+    ? SNAPSHOT_DB_PATH
+    : null;
   if (source) {
     fs.copyFileSync(source, TEST_DB_PATH);
     return TEST_DB_PATH;
