@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { type RefObject } from 'react';
+﻿import React, { memo, type RefObject } from 'react';
 import { Pin, X } from 'lucide-react';
 import type { ChatChannel, ChatMessage } from '@/types';
 import { Spinner } from '@/components/common';
@@ -21,7 +20,7 @@ interface ChatMessageListProps {
   handleReplyToMessage: (msg: ChatMessage) => void;
 }
 
-export const ChatMessageList: React.FC<ChatMessageListProps> = ({
+export const ChatMessageList: React.FC<ChatMessageListProps> = memo(({
   currentChannel,
   loadingMessages,
   displayMessages,
@@ -145,4 +144,6 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       )}
     </div>
   );
-};
+});
+
+ChatMessageList.displayName = 'ChatMessageList';

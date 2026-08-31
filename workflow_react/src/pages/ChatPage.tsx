@@ -1,5 +1,5 @@
 ﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   getChannels,
   createChannel,
@@ -81,7 +81,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   const [createGroupId, setCreateGroupId] = useState<number | null>(null);
 
   // 1. Fetch Channels
-  const fetchChannels = async () => {
+  const fetchChannels = useCallback(async () => {
     try {
       const data = await getChannels();
       setChannels(data);
@@ -91,14 +91,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } catch (err) {
       console.error('Failed to fetch channels:', err);
     }
-  };
+  }, [selectedChannelId]);
 
   useEffect(() => {
     fetchChannels();
     getUsers().then(setAllWorkspaceUsers).catch(console.error);
     getProjects().then(setAllWorkspaceProjects).catch(console.error);
     getGroups(false).then(setAllWorkspaceGroups).catch(console.error);
-  }, []);
+  }, [fetchChannels]);
 
   useEffect(() => {
     if (propChannelId !== undefined) {
@@ -107,7 +107,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   }, [propChannelId]);
 
   // 2. Fetch Messages
-  const fetchMessages = async (channelId: number) => {
+  const fetchMessages = useCallback(async (channelId: number) => {
     setLoadingMessages(true);
     try {
       const data = await getMessages(channelId);
@@ -121,7 +121,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (selectedChannelId) {
@@ -129,7 +129,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } else {
       setMessages([]);
     }
-  }, [selectedChannelId]);
+  }, [selectedChannelId, fetchMessages]);
 
   // 3. Socket.io Subscriptions
   useEffect(() => {
@@ -216,7 +216,38 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
+  // 4. Stable Callbacks for Child Components
+  const handleSelectChannel = useCallback(
+    (cId: number) => {
+      if (cId === selectedChannelId) return;
+      setSelectedChannelId(cId);
+      if (onSelectChannel) onSelectChannel(cId);
+    },
+    [selectedChannelId, onSelectChannel]
+  );
+
+  const toggleCategoryCollapse = useCallback((type: ChannelType) => {
+    setCollapsedCategories((prev) => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
+  }, []);
+
+  const handleOpenCreateForCategory = useCallback((type: ChannelType, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCreateType(type);
+    setCreateName('');
+    setCreateTopic('');
+    setShowCreateModal(true);
+  }, []);
+
+  const handleOpenCreateModal = useCallback(() => {
+    setCreateType('GLOBAL');
+    setCreateName('');
+    setShowCreateModal(true);
+  }, []);
+
+  const handleSendMessage = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || !selectedChannelId || isSendingMessage) return;
 
@@ -243,14 +274,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({
       }
     } catch (err) {
       console.error('Failed to send message:', err);
-      // 실패 시 입력 내용 복원
       setInputText(content);
     } finally {
       setIsSendingMessage(false);
     }
-  };
+  }, [inputText, selectedChannelId, isSendingMessage, isAuthenticated, onOpenAuth]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!isSendingMessage) {
@@ -276,27 +306,27 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } else {
       setMentionQuery(null);
     }
-  };
+  }, [selectedChannelId, inputText, isSendingMessage, handleSendMessage]);
 
-  const handleSelectMention = (item: { id: string | number; name: string; type: string }) => {
+  const handleSelectMention = useCallback((item: { id: string | number; name: string; type: string }) => {
     const mentionTag = `@${item.name} `;
     setInputText((prev) => {
       const parts = prev.split(/@(\S*)$/);
       return (parts[0] || '') + mentionTag;
     });
     setMentionQuery(null);
-  };
+  }, []);
 
-  const handleToggleReaction = async (messageId: number, emoji: string) => {
+  const handleToggleReaction = useCallback(async (messageId: number, emoji: string) => {
     if (!selectedChannelId) return;
     try {
       await toggleReaction(messageId, emoji);
     } catch (err) {
       console.error('Failed to toggle reaction:', err);
     }
-  };
+  }, [selectedChannelId]);
 
-  const handleTogglePin = async (messageId: number, currentPinned: boolean = false) => {
+  const handleTogglePin = useCallback(async (messageId: number, currentPinned: boolean = false) => {
     if (!selectedChannelId) return;
     const socket = getSocket();
     socket.emit('chat:pin_message', {
@@ -308,13 +338,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     setMessages((prev) =>
       prev.map((m) => (m.id === messageId ? { ...m, isPinned: !currentPinned } : m))
     );
-  };
+  }, [selectedChannelId]);
 
-  const handleReplyToMessage = (msg: ChatMessage) => {
+  const handleReplyToMessage = useCallback((msg: ChatMessage) => {
     setInputText(`> ${msg.sender?.name || 'User'}: ${msg.content.slice(0, 40)}...\n@${msg.sender?.name || 'User'} `);
-  };
+  }, []);
 
-  const handleSetNotificationLevel = async (level: NotificationLevel) => {
+  const handleSetNotificationLevel = useCallback(async (level: NotificationLevel) => {
     if (!selectedChannelId) return;
     try {
       await updateMemberSettings(selectedChannelId, { notificationLevel: level });
@@ -331,9 +361,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } catch (err) {
       console.error('Failed to update notification settings:', err);
     }
-  };
+  }, [selectedChannelId, currentUserId]);
 
-  const handleCreateChannel = async (e: React.FormEvent) => {
+  const handleCreateChannel = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const params: CreateChannelParams = {
@@ -356,35 +386,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } catch (err) {
       console.error('Failed to create channel:', err);
     }
-  };
+  }, [createType, createName, createTopic, createTargetUserId, createProjectId, createGroupId, fetchChannels]);
 
-  const toggleCategoryCollapse = (type: ChannelType) => {
-    setCollapsedCategories((prev) => ({
-      ...prev,
-      [type]: !prev[type],
-    }));
-  };
-
-  const handleOpenCreateForCategory = (type: ChannelType, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-    setCreateType(type);
-    if (type === 'PROJECT' && allWorkspaceProjects.length > 0) {
-      setCreateProjectId(allWorkspaceProjects[0].id);
-      setCreateName(allWorkspaceProjects[0].name);
-    } else if (type === 'GROUP' && allWorkspaceGroups.length > 0) {
-      setCreateGroupId(allWorkspaceGroups[0].id);
-      setCreateName(allWorkspaceGroups[0].name);
-    } else {
-      setCreateName('');
-    }
-    setShowCreateModal(true);
-  };
-
-  const currentChannel = channels.find((c) => c.id === selectedChannelId) || null;
+  // 5. Memoized Derived Values
+  const currentChannel = useMemo(() => {
+    return channels.find((c) => c.id === selectedChannelId) || null;
+  }, [channels, selectedChannelId]);
 
   const displayMessages = useMemo(() => {
     if (showPinnedOnly) {
@@ -414,21 +421,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
         isAuthenticated={isAuthenticated}
-        onOpenCreateModal={() => {
-          setCreateType('GLOBAL');
-          setCreateName('');
-          setShowCreateModal(true);
-        }}
+        onOpenCreateModal={handleOpenCreateModal}
       />
 
       {/* 2. Channels Sidebar (240px) */}
       <ChatChannelSidebar
         channels={channels}
         selectedChannelId={selectedChannelId}
-        onSelectChannel={(cId) => {
-          setSelectedChannelId(cId);
-          if (onSelectChannel) onSelectChannel(cId);
-        }}
+        onSelectChannel={handleSelectChannel}
         activeCategory={activeCategory}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}

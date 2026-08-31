@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React, { memo } from 'react';
 import { Pin, Paperclip } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 import { Avatar } from '@/components/common';
@@ -16,7 +15,7 @@ interface ChatMessageItemProps {
   handleReplyToMessage: (msg: ChatMessage) => void;
 }
 
-export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
+export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
   msg,
   currentUserId: _currentUserId,
   showEmojiPickerForMsgId,
@@ -311,4 +310,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       </div>
     </div>
   );
-};
+});
+
+ChatMessageItem.displayName = 'ChatMessageItem';

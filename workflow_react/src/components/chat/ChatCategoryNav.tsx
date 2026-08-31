@@ -1,5 +1,5 @@
 ﻿// -*- coding: utf-8 -*-
-import React from 'react';
+import React, { memo } from 'react';
 import { MessageSquare, Plus } from 'lucide-react';
 import type { ChannelType } from '@/types';
 
@@ -23,7 +23,7 @@ interface ChatCategoryNavProps {
   onOpenCreateModal: () => void;
 }
 
-export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = ({
+export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = memo(({
   activeCategory,
   setActiveCategory,
   isAuthenticated,
@@ -104,8 +104,8 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = ({
             width: '44px',
             height: '44px',
             borderRadius: '22px',
-            background: '#10b981',
-            color: '#fff',
+            background: '#27272a',
+            color: '#10b981',
             border: 'none',
             display: 'flex',
             alignItems: 'center',
@@ -113,10 +113,22 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = ({
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#10b981';
+            e.currentTarget.style.color = '#fff';
+            e.currentTarget.style.borderRadius = '14px';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#27272a';
+            e.currentTarget.style.color = '#10b981';
+            e.currentTarget.style.borderRadius = '22px';
+          }}
         >
           <Plus size={20} />
         </button>
       )}
     </div>
   );
-};
+});
+
+ChatCategoryNav.displayName = 'ChatCategoryNav';
