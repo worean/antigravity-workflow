@@ -8,7 +8,7 @@ interface WorkspaceCreateModalProps {
   onClose: () => void;
 }
 
-const DEFAULT_ICONS = ['🚀', '🏢', '⚡', '🌟', '💻', '🎯', '🔥', '🛡️'];
+const DEFAULT_ICONS = ['🚀', '🏢', '⚡', '🌟', '💻', '🎯', '🔥', '🛡️', '📦', '🔬'];
 
 export const WorkspaceCreateModal: React.FC<WorkspaceCreateModalProps> = ({ isOpen, onClose }) => {
   const { createWorkspace } = useWorkspace();
@@ -46,49 +46,104 @@ export const WorkspaceCreateModal: React.FC<WorkspaceCreateModalProps> = ({ isOp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-up">
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(2px)',
+        padding: '16px',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '440px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-sm)',
+          boxShadow: 'var(--shadow-lg)',
+          overflow: 'hidden',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Layers className="w-5 h-5" />
-            </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            borderBottom: '1px solid var(--border-light)',
+            background: 'var(--bg-header)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Layers size={16} color="var(--primary)" />
             <div>
-              <h3 className="text-base font-semibold text-white">새 워크스페이스 생성</h3>
-              <p className="text-xs text-slate-400">독립된 데이터베이스와 프로젝트 공간을 생성합니다.</p>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+                새 워크스페이스 생성
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                독립된 물리 데이터베이스와 프로젝트 공간을 생성합니다.
+              </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              padding: '2px',
+            }}
           >
-            <X className="w-5 h-5" />
+            <X size={16} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {error && (
-            <div className="p-3 text-xs bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl">
+            <div
+              style={{
+                padding: '8px 10px',
+                fontSize: '0.75rem',
+                backgroundColor: 'rgba(241, 76, 76, 0.12)',
+                border: '1px solid var(--accent-rose)',
+                color: '#ff8080',
+                borderRadius: 'var(--radius-xs)',
+              }}
+            >
               {error}
             </div>
           )}
 
           {/* Icon Selector */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-2">워크스페이스 아이콘</label>
-            <div className="flex flex-wrap gap-2">
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-sub)', marginBottom: '4px' }}>
+              아이콘 선택
+            </label>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {DEFAULT_ICONS.map((emoji) => (
                 <button
                   key={emoji}
                   type="button"
                   onClick={() => setIcon(emoji)}
-                  className={`w-10 h-10 rounded-xl text-lg flex items-center justify-center border transition-all ${
-                    icon === emoji
-                      ? 'bg-indigo-600/20 border-indigo-500 text-white scale-105 shadow-md shadow-indigo-500/10'
-                      : 'bg-slate-800/50 border-slate-700/50 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                  }`}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '1rem',
+                    background: icon === emoji ? 'var(--primary-subtle)' : 'var(--bg-dark)',
+                    border: icon === emoji ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                    borderRadius: 'var(--radius-xs)',
+                    cursor: 'pointer',
+                  }}
                 >
                   {emoji}
                 </button>
@@ -98,47 +153,70 @@ export const WorkspaceCreateModal: React.FC<WorkspaceCreateModalProps> = ({ isOp
 
           {/* Name Input */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">
-              워크스페이스 이름 <span className="text-rose-400">*</span>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-sub)', marginBottom: '4px' }}>
+              워크스페이스 이름 <span style={{ color: 'var(--accent-rose)' }}>*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="예: 알파 개발팀, 본부 일감 관리"
+              placeholder="예: 알파 개발팀, 코어 연구소"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-800/60 border border-slate-700/70 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-500"
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-xs)',
+                color: 'var(--text-bright)',
+                fontSize: '0.8rem',
+                outline: 'none',
+              }}
             />
           </div>
 
           {/* Description Input */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">설명 (선택)</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-sub)', marginBottom: '4px' }}>
+              설명 (선택)
+            </label>
             <textarea
               rows={2}
               placeholder="워크스페이스 목적이나 소개를 입력하세요."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-800/60 border border-slate-700/70 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-500 resize-none"
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-xs)',
+                color: 'var(--text-bright)',
+                fontSize: '0.8rem',
+                outline: 'none',
+                resize: 'none',
+              }}
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-800 transition-colors"
+              className="btn btn-secondary"
+              style={{ padding: '5px 12px' }}
             >
               취소
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all"
+              className="btn btn-primary"
+              style={{ padding: '5px 14px' }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              {isSubmitting ? '생성 중...' : '워크스페이스 생성'}
+              <Sparkles size={12} />
+              <span>{isSubmitting ? '생성 중...' : '워크스페이스 생성'}</span>
             </button>
           </div>
         </form>

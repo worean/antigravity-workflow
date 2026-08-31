@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
 
-  // 외부 클릭 시 드롭다운 닫기
+  // 드롭다운 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -101,8 +101,8 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 0 0 8px',
-          height: '34px',
+          padding: '0 0 0 10px',
+          height: '32px',
           borderBottom: '1px solid var(--border-light)',
           background: 'var(--bg-header)',
           position: 'sticky',
@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
           WebkitAppRegion: 'drag',
         } as React.CSSProperties}
       >
-        {/* Left: Workspace Switcher & Breadcrumbs */}
+        {/* Left: Compact Workspace Combobox & Breadcrumbs */}
         <div
           style={{
             display: 'flex',
@@ -123,29 +123,86 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
             WebkitAppRegion: 'no-drag',
           } as React.CSSProperties}
         >
-          {/* 🏢 Workspace Switcher Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          {/* 🏢 Compact Workspace Combobox */}
+          <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsWsDropdownOpen(!isWsDropdownOpen)}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-700/60 text-slate-200 text-xs font-medium cursor-pointer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: isWsDropdownOpen ? '#37373d' : 'var(--bg-input)',
+                border: isWsDropdownOpen ? '1px solid var(--border-focus)' : '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-xs)',
+                padding: '2px 7px',
+                fontSize: '0.72rem',
+                fontWeight: 500,
+                color: 'var(--text-bright)',
+                cursor: 'pointer',
+                height: '22px',
+                outline: 'none',
+                transition: 'background-color 0.1s, border-color 0.1s',
+              }}
+              onMouseEnter={(e) => {
+                if (!isWsDropdownOpen) e.currentTarget.style.borderColor = '#555555';
+              }}
+              onMouseLeave={(e) => {
+                if (!isWsDropdownOpen) e.currentTarget.style.borderColor = 'var(--border-light)';
+              }}
+              title={`현재 워크스페이스: ${currentWorkspace?.name || ''}`}
             >
-              <span className="text-sm">{currentWorkspace?.icon || '🏢'}</span>
-              <span className="font-semibold text-slate-100 max-w-[130px] truncate">
+              <span style={{ fontSize: '0.85rem' }}>{currentWorkspace?.icon || '🏢'}</span>
+              <span
+                style={{
+                  maxWidth: '120px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontWeight: 600,
+                }}
+              >
                 {currentWorkspace?.name || '워크스페이스'}
               </span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown size={11} color="var(--text-muted)" style={{ flexShrink: 0, marginLeft: '2px' }} />
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Combobox Popup Menu (VS Code Compact Dark Style) */}
             {isWsDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-64 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in p-1.5">
-                <div className="px-2.5 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  참여 워크스페이스 ({workspaces.length})
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  width: '230px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-xs)',
+                  boxShadow: 'var(--shadow-md)',
+                  zIndex: 1000,
+                  padding: '4px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '3px 6px',
+                    fontSize: '0.66rem',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    borderBottom: '1px solid var(--border-light)',
+                    marginBottom: '2px',
+                  }}
+                >
+                  Workspaces ({workspaces.length})
                 </div>
 
                 {/* Workspace List */}
-                <div className="max-h-48 overflow-y-auto space-y-0.5 py-1">
+                <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1px' }}>
                   {workspaces.map((ws) => {
                     const isSelected = ws.id === currentWorkspace?.id;
                     return (
@@ -156,77 +213,139 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
                           switchWorkspace(ws.id);
                           setIsWsDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left transition-all ${
-                          isSelected
-                            ? 'bg-indigo-600/20 text-indigo-300 font-medium border border-indigo-500/30'
-                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                        }`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '5px 6px',
+                          borderRadius: 'var(--radius-xs)',
+                          border: 'none',
+                          background: isSelected ? '#37373d' : 'transparent',
+                          color: isSelected ? 'var(--text-bright)' : 'var(--text-main)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontSize: '0.72rem',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.background = 'var(--bg-card-hover)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.background = 'transparent';
+                        }}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-base">{ws.icon || '🏢'}</span>
-                          <div className="truncate">
-                            <div className="truncate font-medium">{ws.name}</div>
-                            <div className="text-[10px] text-slate-400">{ws.myRole || 'MEMBER'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <span style={{ fontSize: '0.9rem' }}>{ws.icon || '🏢'}</span>
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontWeight: isSelected ? 600 : 400,
+                              }}
+                            >
+                              {ws.name}
+                            </div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                              {ws.myRole || 'MEMBER'}
+                            </div>
                           </div>
                         </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                        {isSelected && <Check size={12} color="var(--accent-cyan)" style={{ flexShrink: 0 }} />}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="h-px bg-slate-800 my-1" />
+                <div style={{ height: '1px', background: 'var(--border-light)', margin: '3px 0' }} />
 
-                {/* Actions */}
-                <div className="space-y-0.5 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsWsDropdownOpen(false);
-                      setIsInviteModalOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>동료 초대</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsWsDropdownOpen(false);
-                      setIsCreateModalOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>새 워크스페이스 생성</span>
-                  </button>
-                </div>
+                {/* Action Buttons */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWsDropdownOpen(false);
+                    setIsInviteModalOpen(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 6px',
+                    borderRadius: 'var(--radius-xs)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-card-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <UserPlus size={12} />
+                  <span>동료 초대 / 코드 참가...</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWsDropdownOpen(false);
+                    setIsCreateModalOpen(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 6px',
+                    borderRadius: 'var(--radius-xs)',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--accent-cyan)',
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-card-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <Plus size={12} />
+                  <span>새 워크스페이스 생성...</span>
+                </button>
               </div>
             )}
           </div>
 
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-1.5 text-slate-400">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {breadcrumbs && breadcrumbs.length > 0 ? (
               breadcrumbs.map((crumb, idx) => (
                 <React.Fragment key={idx}>
-                  <span className="text-slate-600">/</span>
+                  <span style={{ color: 'var(--text-muted)' }}>/</span>
                   {crumb.onClick ? (
                     <button
                       type="button"
                       onClick={crumb.onClick}
-                      className={`hover:underline cursor-pointer text-xs ${
-                        idx === breadcrumbs.length - 1 ? 'text-indigo-400 font-semibold' : 'text-slate-300'
-                      }`}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        margin: 0,
+                        color: idx === breadcrumbs.length - 1 ? 'var(--accent-cyan)' : 'var(--text-bright)',
+                        fontWeight: idx === breadcrumbs.length - 1 ? 600 : 400,
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                      onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
                     >
                       {crumb.label}
                     </button>
                   ) : (
                     <span
-                      className={`text-xs ${
-                        idx === breadcrumbs.length - 1 ? 'text-indigo-400 font-semibold' : 'text-slate-300'
-                      }`}
+                      style={{
+                        color: idx === breadcrumbs.length - 1 ? 'var(--accent-cyan)' : 'var(--text-bright)',
+                        fontWeight: idx === breadcrumbs.length - 1 ? 600 : 400,
+                      }}
                     >
                       {crumb.label}
                     </span>
@@ -235,8 +354,8 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
               ))
             ) : (
               <>
-                <span className="text-slate-600">/</span>
-                <span className="text-slate-300 font-medium text-xs">AntiGravity Workflow</span>
+                <span style={{ color: 'var(--text-muted)' }}>/</span>
+                <span style={{ color: 'var(--text-bright)', fontWeight: 500 }}>AntiGravity Workflow</span>
               </>
             )}
           </div>
