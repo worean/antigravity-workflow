@@ -1,5 +1,5 @@
 ﻿// -*- coding: utf-8 -*-
-import React from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { Send, Paperclip, AtSign, X, Loader2 } from 'lucide-react';
 import type { ChatChannel } from '@/types';
 import { Button } from '@/components/common';
@@ -33,6 +33,21 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   setMentionQuery,
   onOpenAuth,
 }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 📐 텍스트 입력 내용에 맞춘 자동 높이 조절 (최소 3줄 ~ 최대 화면 절반 45vh)
+  const adjustHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    const computedHeight = Math.max(54, textarea.scrollHeight);
+    textarea.style.height = `${computedHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    adjustHeight();
+  }, [inputText, adjustHeight]);
+
   if (!isAuthenticated) {
     return (
       <div
@@ -137,7 +152,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         </div>
       )}
 
-      {/* 💬 3-Row Height Chat Input Box with Top Action Buttons & Bottom Send Button */}
+      {/* 💬 Auto-Expanding Chat Input Box (Min 3-rows, Max 45vh with Scrollbar) */}
       <form
         onSubmit={handleSendMessage}
         style={{
@@ -150,6 +165,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           opacity: isSendingMessage ? 0.8 : 1,
           transition: 'all 0.15s ease',
           minHeight: '74px',
+          maxHeight: 'calc(50vh - 20px)',
           border: '1px solid #3c3c3c',
         }}
       >
@@ -183,11 +199,15 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           </button>
         </div>
 
-        {/* 📝 3-Row Textarea */}
+        {/* 📝 Auto-Expanding Textarea (No Manual Resize, Max 45vh) */}
         <textarea
+          ref={textareaRef}
           value={inputText}
           disabled={isSendingMessage}
-          onChange={(e) => setInputText(e.target.value)}
+          onChange={(e) => {
+            setInputText(e.target.value);
+            adjustHeight();
+          }}
           onKeyDown={handleKeyDown}
           placeholder={
             isSendingMessage
@@ -201,10 +221,11 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             border: 'none',
             color: '#fff',
             fontSize: '0.82rem',
-            resize: 'vertical',
+            resize: 'none', // 🚫 사용자 임의 크기 조절 금지
             outline: 'none',
-            minHeight: '54px',
-            maxHeight: '180px',
+            minHeight: '54px', // 📐 기본 3줄 높이
+            maxHeight: 'calc(50vh - 45px)', // 🔝 최대 화면 절반까지만 확장
+            overflowY: 'auto', // 📜 초과 시 스크롤바 대체
             lineHeight: 1.45,
             padding: '2px 0',
             cursor: isSendingMessage ? 'wait' : 'text',
