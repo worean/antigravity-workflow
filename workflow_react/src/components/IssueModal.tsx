@@ -17,6 +17,7 @@ import {
 } from '@/services/api';
 import type { Worklog } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import { prefRepository } from '@/lib/prefRepository';
 import {
   X,
@@ -83,8 +84,12 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   onIssueCreated,
 }) => {
   const { user, isAuthenticated } = useAuth();
+  const { getIssueDraft, saveIssueDraft, clearIssueDraft } = useWorkspace();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
   const overlayProps = useOverlayClickClose(onClose);
+
+  const draftKey = selectedIssue ? `edit_${selectedIssue.id}` : 'new';
+  const [draftBanner, setDraftBanner] = useState<any | null>(null);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [title, setTitle] = useState<string>('');
@@ -236,12 +241,49 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               }
             }
           })
-          .catch((err) => {
-            console.error('Failed to copy initial parent issue dates:', err);
-          });
+          .catch((err) => console.error('Parent issue fetch failed:', err));
+      }
+
+      // 초안 확인 (임시 저장된 내용이 있으면 복원 배너 노출)
+      const existingDraft = getIssueDraft(draftKey);
+      if (existingDraft && (existingDraft.title?.trim() || existingDraft.description?.trim())) {
+        setDraftBanner(existingDraft);
+      } else {
+        setDraftBanner(null);
       }
     }
-  }, [selectedIssue, isOpen, projects, initialParentId]);
+  }, [selectedIssue, isOpen, initialParentId, projects, draftKey, getIssueDraft]);
+
+  // 사용자가 폼을 편집할 때 실시간 드래프트 자동 보존
+  useEffect(() => {
+    if (isOpen && isEditing) {
+      if (title.trim() || description.trim()) {
+        saveIssueDraft(draftKey, {
+          title,
+          description,
+          projectId,
+          priorityId,
+          statusId,
+          assigneeId,
+          dueDate,
+          plannedStartDate,
+        });
+      }
+    }
+  }, [
+    isOpen,
+    isEditing,
+    title,
+    description,
+    projectId,
+    priorityId,
+    statusId,
+    assigneeId,
+    dueDate,
+    plannedStartDate,
+    draftKey,
+    saveIssueDraft,
+  ]);
 
   // Load candidate parent issues in the current project
   useEffect(() => {
@@ -339,6 +381,8 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       {
         onSuccess: (res) => {
           setIsEditing(false);
+          clearIssueDraft(draftKey);
+          setDraftBanner(null);
           if (!selectedIssue && res) {
             sendDesktopNotification({
               title: '신규 이슈 등록',
@@ -1021,6 +1065,67 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
           ) : (
             <form onSubmit={handleSaveIssue}>
+              {/* 💾 Draft Restore Banner */}
+              {draftBanner && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    marginBottom: '12px',
+                    background: 'rgba(0, 122, 204, 0.12)',
+                    border: '1px solid var(--border-focus)',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-bright)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1rem' }}>💾</span>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                        작성 중이던 임시 저장본이 있습니다
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-sub)' }}>
+                        {new Date(draftBanner.updatedAt).toLocaleTimeString('ko-KR')}에 저장된 내용입니다.
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTitle(draftBanner.title || '');
+                        setDescription(draftBanner.description || '');
+                        if (draftBanner.projectId) setProjectId(draftBanner.projectId);
+                        if (draftBanner.priorityId) setPriorityId(draftBanner.priorityId);
+                        if (draftBanner.statusId) setStatusId(draftBanner.statusId);
+                        if (draftBanner.assigneeId !== undefined) setAssigneeId(draftBanner.assigneeId);
+                        if (draftBanner.dueDate) setDueDate(draftBanner.dueDate);
+                        if (draftBanner.plannedStartDate) setPlannedStartDate(draftBanner.plannedStartDate);
+                        setDraftBanner(null);
+                      }}
+                      className="btn btn-primary"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                    >
+                      초안 불러오기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearIssueDraft(draftKey);
+                        setDraftBanner(null);
+                      }}
+                      className="btn btn-secondary"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                    >
+                      초안 삭제
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="form-group">
                 <label className="form-label">이슈 제목 (Title)</label>
                 <input

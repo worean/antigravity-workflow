@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState } from 'react';
+﻿import React from 'react';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -18,6 +17,7 @@ import { ProfileCard } from './ProfileCard';
 import { useUnreadChatStats } from '@/api/chat';
 import { useFavorites } from '@/api/favorites';
 import { useAuth } from '@/context/AuthContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import type { Project, ChatChannel } from '@/types';
 
 export type TabType =
@@ -59,17 +59,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectChatChannel,
 }) => {
   const { isAuthenticated } = useAuth();
+  const { sidebarSubmenus: openSubmenus, setSidebarSubmenus: setOpenSubmenus } = useWorkspace();
   const { totalUnreadCount, hasMentionUnread } = useUnreadChatStats();
   const { data: favorites = [] } = useFavorites(undefined, { enabled: isAuthenticated });
-
-  // 서브메뉴 접기/열기 상태 (기본 접힘: false)
-  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
-    projects: false,
-    issues: false,
-    sprints: false,
-    wbs: false,
-    chat: false,
-  });
 
   const toggleSubmenu = (menuId: string, e: React.MouseEvent) => {
     e.stopPropagation();
