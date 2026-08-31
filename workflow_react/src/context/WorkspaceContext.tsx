@@ -10,24 +10,9 @@ import {
 } from '@/api/workspaces';
 import type { Workspace, WorkspaceMember } from '@/types';
 import { prefRepository } from '@/lib/prefRepository';
+import { draftStorage, type IssueDraft } from '@/utils/draftStorage';
 
-/**
- * 📝 이슈 작성/수정 임시저장 드래프트 모델 (WorkspaceContext 관리)
- */
-export interface IssueDraft {
-  title: string;
-  description: string;
-  projectId?: number;
-  statusId?: number;
-  priorityId?: number;
-  assigneeId?: number | null;
-  dueDate?: string | null;
-  startDate?: string | null;
-  plannedStartDate?: string | null;
-  tags?: string[];
-  customFields?: Record<string, any>;
-  updatedAt: number;
-}
+export { type IssueDraft } from '@/utils/draftStorage';
 
 // --- 🔒 내부 스토리지 안전 I/O 헬퍼 ---
 function readWsStorage<T>(key: string, fallback: T): T {
@@ -69,8 +54,7 @@ interface WorkspaceContextType {
   inviteMember: (data: { email?: string; userId?: number; role?: string }) => Promise<WorkspaceMember>;
   refetchWorkspaces: () => void;
 
-  // 📝 일감 작성/수정 초안(Draft) 관리 (실수 방어)
-  issueDrafts: Record<string, IssueDraft>;
+  // 🍪 경량 일감 작성/수정 초안(Draft) 관리 (리렌더링 무부하)
   getIssueDraft: (key: string | number) => IssueDraft | null;
   saveIssueDraft: (key: string | number, draft: Partial<IssueDraft>) => void;
   clearIssueDraft: (key: string | number) => void;
@@ -131,69 +115,26 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) || workspaces[0] || null;
 
-  // 3. 📝 워크스페이스별 일감 초안(Draft) 상태 관리
-  const [issueDrafts, setIssueDrafts] = useState<Record<string, IssueDraft>>(() => {
-    return currentWorkspaceId ? readWsStorage<Record<string, IssueDraft>>(`ws_${currentWorkspaceId}_drafts`, {}) : {};
-  });
-
-  // 워크스페이스 전환 시 해당 워크스페이스 전용 초안 로드
-  useEffect(() => {
-    if (currentWorkspaceId) {
-      setIssueDrafts(readWsStorage<Record<string, IssueDraft>>(`ws_${currentWorkspaceId}_drafts`, {}));
-    } else {
-      setIssueDrafts({});
-    }
+  // 3. 🍪 경량 일감 초안 (React State 리렌더링 없이 조용히 Cookie/WebStorage I/O)
+  const getIssueDraft = useCallback((key: string | number): IssueDraft | null => {
+    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
+    return draftStorage.getIssueDraft(`${wsPrefix}${key}`);
   }, [currentWorkspaceId]);
 
-  const getIssueDraft = useCallback(
-    (key: string | number): IssueDraft | null => {
-      const k = String(key);
-      return issueDrafts[k] || null;
-    },
-    [issueDrafts]
-  );
+  const saveIssueDraft = useCallback((key: string | number, draft: Partial<IssueDraft>) => {
+    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
+    draftStorage.saveIssueDraft(`${wsPrefix}${key}`, draft);
+  }, [currentWorkspaceId]);
 
-  const saveIssueDraft = useCallback(
-    (key: string | number, draft: Partial<IssueDraft>) => {
-      if (!currentWorkspaceId) return;
-      const k = String(key);
-      setIssueDrafts((prev) => {
-        const existing = prev[k] || { title: '', description: '', updatedAt: Date.now() };
-        const updated = {
-          ...existing,
-          ...draft,
-          updatedAt: Date.now(),
-        };
-        const nextState = { ...prev, [k]: updated };
-        writeWsStorage(`ws_${currentWorkspaceId}_drafts`, nextState);
-        return nextState;
-      });
-    },
-    [currentWorkspaceId]
-  );
+  const clearIssueDraft = useCallback((key: string | number) => {
+    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
+    draftStorage.clearIssueDraft(`${wsPrefix}${key}`);
+  }, [currentWorkspaceId]);
 
-  const clearIssueDraft = useCallback(
-    (key: string | number) => {
-      if (!currentWorkspaceId) return;
-      const k = String(key);
-      setIssueDrafts((prev) => {
-        if (!prev[k]) return prev;
-        const nextState = { ...prev };
-        delete nextState[k];
-        writeWsStorage(`ws_${currentWorkspaceId}_drafts`, nextState);
-        return nextState;
-      });
-    },
-    [currentWorkspaceId]
-  );
-
-  const hasIssueDraft = useCallback(
-    (key: string | number): boolean => {
-      const draft = getIssueDraft(key);
-      return !!draft && (!!draft.title?.trim() || !!draft.description?.trim());
-    },
-    [getIssueDraft]
-  );
+  const hasIssueDraft = useCallback((key: string | number): boolean => {
+    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
+    return draftStorage.hasIssueDraft(`${wsPrefix}${key}`);
+  }, [currentWorkspaceId]);
 
   // 4. 📐 사이드바 서브메뉴 상태 관리
   const [sidebarSubmenus, setSidebarSubmenusState] = useState<Record<string, boolean>>(() => {
@@ -304,7 +245,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createWorkspace,
         inviteMember,
         refetchWorkspaces,
-        issueDrafts,
         getIssueDraft,
         saveIssueDraft,
         clearIssueDraft,

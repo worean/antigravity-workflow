@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import type { Project, User, Issue, CustomFieldDefinition, Comment } from '@/types';
 import {
   createIssue,
@@ -165,96 +165,112 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     }
   }, [isOpen]);
 
+  // 🔒 이전 열림 상태 및 이슈 ID 추적용 Ref (타이핑 중 원복 방어)
+  const prevIsOpenRef = useRef<boolean>(false);
+  const prevIssueIdRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (selectedIssue && isOpen) {
-      setIsEditing(false);
-      setTitle(selectedIssue.title || '');
-      setDescription(selectedIssue.description || '');
-      setProjectId(selectedIssue.projectId || projects[0]?.id || 1);
-      setAssigneeId(selectedIssue.assigneeId || selectedIssue.assignee?.id || undefined);
-      setPriorityId(selectedIssue.priorityId || selectedIssue.priority?.id || 1);
-      setStatusId(selectedIssue.statusId || selectedIssue.status?.id || 1);
-      setTypeId(selectedIssue.typeId || selectedIssue.type?.id || 1);
-      setProgress(selectedIssue.progress || 0);
-      setCustomFieldsData(
-        typeof selectedIssue.customFields === 'string'
-          ? JSON.parse(selectedIssue.customFields)
-          : selectedIssue.customFields || {}
-      );
-      setPlannedStartDate(formatDateOnly(selectedIssue.plannedStartDate));
-      setDueDate(formatDateOnly(selectedIssue.dueDate));
-      setActualStartDate(formatDateOnly(selectedIssue.actualStartDate));
-      setActualEndDate(formatDateOnly(selectedIssue.actualEndDate));
+    // 모달이 새로 열리거나, 선택된 대상 이슈의 ID가 달라진 경우에만 초기화 실행
+    const isNewlyOpened = isOpen && !prevIsOpenRef.current;
+    const isIssueChanged = selectedIssue ? selectedIssue.id !== prevIssueIdRef.current : prevIssueIdRef.current !== null;
 
-      setIsLiked(!!selectedIssue.isLiked);
-      setLikesCount(selectedIssue.likesCount || 0);
+    prevIsOpenRef.current = isOpen;
+    prevIssueIdRef.current = selectedIssue ? selectedIssue.id : null;
 
-      // 작업로그 폼 초기화
-      setWorklogHoursInput('');
-      setWorklogDescInput('');
-      setShowWorklogForm(false);
+    if (!isOpen) return;
 
-      const fetchExtraData = async () => {
-        try {
-          const [cList, wList] = await Promise.all([
-            getComments(selectedIssue.id),
-            getWorklogs(selectedIssue.id),
-          ]);
-          setComments(organizeComments(cList));
-          setWorklogs(wList);
-        } catch (err) {
-          console.error(err);
-        }
-      };
-      fetchExtraData();
-    } else if (isOpen) {
-      setIsEditing(true);
-      setTitle('');
-      setDescription('');
-      setProjectId(projects[0]?.id || 1);
-      setAssigneeId(undefined);
-      setPriorityId(getDefaultPriority());
-      setStatusId(1);
-      setTypeId(1);
-      setProgress(0);
-      setCustomFieldsData({});
-      setPlannedStartDate('');
-      setDueDate('');
-      setActualStartDate('');
-      setActualEndDate('');
-      setWorklogs([]);
-      setWorklogHoursInput('');
-      setWorklogDescInput('');
-      setComments([]);
-      setParentId(initialParentId ?? null);
+    if (isNewlyOpened || isIssueChanged) {
+      if (selectedIssue) {
+        setIsEditing(false);
+        setTitle(selectedIssue.title || '');
+        setDescription(selectedIssue.description || '');
+        setProjectId(selectedIssue.projectId || projects[0]?.id || 1);
+        setAssigneeId(selectedIssue.assigneeId || selectedIssue.assignee?.id || undefined);
+        setPriorityId(selectedIssue.priorityId || selectedIssue.priority?.id || 1);
+        setStatusId(selectedIssue.statusId || selectedIssue.status?.id || 1);
+        setTypeId(selectedIssue.typeId || selectedIssue.type?.id || 1);
+        setProgress(selectedIssue.progress || 0);
+        setCustomFieldsData(
+          typeof selectedIssue.customFields === 'string'
+            ? JSON.parse(selectedIssue.customFields)
+            : selectedIssue.customFields || {}
+        );
+        setPlannedStartDate(formatDateOnly(selectedIssue.plannedStartDate));
+        setDueDate(formatDateOnly(selectedIssue.dueDate));
+        setActualStartDate(formatDateOnly(selectedIssue.actualStartDate));
+        setActualEndDate(formatDateOnly(selectedIssue.actualEndDate));
 
-      // 하위 이슈로 새로 생성 시 상위 이슈의 시작계획일/기한 정보를 그대로 복사 (UI에서만)
-      if (initialParentId) {
-        getIssue(initialParentId)
-          .then((parentIssue) => {
-            if (parentIssue) {
-              if (parentIssue.plannedStartDate) {
-                setPlannedStartDate(formatDateOnly(parentIssue.plannedStartDate));
-              }
-              if (parentIssue.dueDate) {
-                setDueDate(formatDateOnly(parentIssue.dueDate));
-              }
-            }
-          })
-          .catch((err) => console.error('Parent issue fetch failed:', err));
-      }
+        setIsLiked(!!selectedIssue.isLiked);
+        setLikesCount(selectedIssue.likesCount || 0);
 
-      // 초안 확인 (임시 저장된 내용이 있으면 복원 배너 노출)
-      const existingDraft = getIssueDraft(draftKey);
-      if (existingDraft && (existingDraft.title?.trim() || existingDraft.description?.trim())) {
-        setDraftBanner(existingDraft);
+        // 작업로그 폼 초기화
+        setWorklogHoursInput('');
+        setWorklogDescInput('');
+        setShowWorklogForm(false);
+
+        const fetchExtraData = async () => {
+          try {
+            const [cList, wList] = await Promise.all([
+              getComments(selectedIssue.id),
+              getWorklogs(selectedIssue.id),
+            ]);
+            setComments(organizeComments(cList));
+            setWorklogs(wList);
+          } catch (err) {
+            console.error(err);
+          }
+        };
+        fetchExtraData();
       } else {
-        setDraftBanner(null);
+        // 새 이슈 생성 모드
+        setIsEditing(true);
+        setTitle('');
+        setDescription('');
+        setProjectId(projects[0]?.id || 1);
+        setAssigneeId(undefined);
+        setPriorityId(getDefaultPriority());
+        setStatusId(1);
+        setTypeId(1);
+        setProgress(0);
+        setCustomFieldsData({});
+        setPlannedStartDate('');
+        setDueDate('');
+        setActualStartDate('');
+        setActualEndDate('');
+        setWorklogs([]);
+        setWorklogHoursInput('');
+        setWorklogDescInput('');
+        setComments([]);
+        setParentId(initialParentId ?? null);
+
+        // 하위 이슈로 새로 생성 시 상위 이슈의 시작계획일/기한 정보를 그대로 복사 (UI에서만)
+        if (initialParentId) {
+          getIssue(initialParentId)
+            .then((parentIssue) => {
+              if (parentIssue) {
+                if (parentIssue.plannedStartDate) {
+                  setPlannedStartDate(formatDateOnly(parentIssue.plannedStartDate));
+                }
+                if (parentIssue.dueDate) {
+                  setDueDate(formatDateOnly(parentIssue.dueDate));
+                }
+              }
+            })
+            .catch((err) => console.error('Parent issue fetch failed:', err));
+        }
+
+        // 초안 확인 (임시 저장된 내용이 있으면 복원 배너 노출)
+        const existingDraft = getIssueDraft(draftKey);
+        if (existingDraft && (existingDraft.title?.trim() || existingDraft.description?.trim())) {
+          setDraftBanner(existingDraft);
+        } else {
+          setDraftBanner(null);
+        }
       }
     }
   }, [selectedIssue, isOpen, initialParentId, projects, draftKey, getIssueDraft]);
 
-  // 사용자가 폼을 편집할 때 실시간 드래프트 자동 보존
+  // 사용자가 폼을 편집할 때 실시간 드래프트 자동 보존 (쿠키/스토리지)
   useEffect(() => {
     if (isOpen && isEditing) {
       if (title.trim() || description.trim()) {

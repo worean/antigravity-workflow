@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import {
   getIssue,
@@ -119,7 +118,9 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, showDeleteConfirm, showCreateSubTaskModal, errorState.isOpen, onClose]);
 
-  const loadIssueData = async () => {
+  const prevDrawerIssueIdRef = useRef<number | null>(null);
+
+  const loadIssueData = async (forcePopulate: boolean = false) => {
     if (!issueId) return;
     setLoading(true);
     try {
@@ -143,30 +144,33 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
       setIsLiked(!!issueData.isLiked);
       setLikesCount(issueData.likesCount || 0);
 
-      // Populate Form Fields
-      setTitle(issueData.title);
-      setDescription(issueData.description || '');
-      setProjectId(issueData.projectId || 1);
-      setParentId(issueData.parentId || null);
-      setAssigneeId(issueData.assigneeId || undefined);
-      setPriorityId(issueData.priorityId || 1);
-      setStatusId(issueData.statusId || 1);
-      setTypeId(issueData.typeId || 1);
-      setProgress(issueData.progress || 0);
-      setPlannedStartDate(formatDateOnly(issueData.plannedStartDate) || '');
-      setDueDate(formatDateOnly(issueData.dueDate) || '');
-      setActualStartDate(formatDateOnly(issueData.actualStartDate) || '');
-      setActualEndDate(formatDateOnly(issueData.actualEndDate) || '');
+      // 🔒 편집 중일 때는 폼 필드를 덮어쓰지 않고, 최초 열림 또는 강제 요청 시에만 populate
+      if (forcePopulate || !isEditing || prevDrawerIssueIdRef.current !== issueId) {
+        prevDrawerIssueIdRef.current = issueId;
+        setTitle(issueData.title);
+        setDescription(issueData.description || '');
+        setProjectId(issueData.projectId || 1);
+        setParentId(issueData.parentId || null);
+        setAssigneeId(issueData.assigneeId || undefined);
+        setPriorityId(issueData.priorityId || 1);
+        setStatusId(issueData.statusId || 1);
+        setTypeId(issueData.typeId || 1);
+        setProgress(issueData.progress || 0);
+        setPlannedStartDate(formatDateOnly(issueData.plannedStartDate) || '');
+        setDueDate(formatDateOnly(issueData.dueDate) || '');
+        setActualStartDate(formatDateOnly(issueData.actualStartDate) || '');
+        setActualEndDate(formatDateOnly(issueData.actualEndDate) || '');
 
-      // Parse Custom Fields
-      const cMap: Record<string, any> = {};
-      const cfList = (issueData as any).customFieldValues || (issueData as any).customFields || [];
-      if (Array.isArray(cfList)) {
-        cfList.forEach((cfv: any) => {
-          cMap[String(cfv.fieldDefinitionId || cfv.customFieldId || cfv.id)] = cfv.value;
-        });
+        // Parse Custom Fields
+        const cMap: Record<string, any> = {};
+        const cfList = (issueData as any).customFieldValues || (issueData as any).customFields || [];
+        if (Array.isArray(cfList)) {
+          cfList.forEach((cfv: any) => {
+            cMap[String(cfv.fieldDefinitionId || cfv.customFieldId || cfv.id)] = cfv.value;
+          });
+        }
+        setCustomFieldsData(cMap);
       }
-      setCustomFieldsData(cMap);
 
       // Load Parent Issue Candidates
       if (issueData.projectId) {
@@ -182,7 +186,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
 
   useEffect(() => {
     if (isOpen && issueId) {
-      loadIssueData();
+      loadIssueData(true);
     }
   }, [isOpen, issueId]);
 
