@@ -10,7 +10,7 @@ import {
 } from '@/api/workspaces';
 import type { Workspace, WorkspaceMember } from '@/types';
 
-import { preferenceManager } from '@/lib/preferenceManager';
+import { prefRepository } from '@/lib/prefRepository';
 
 interface WorkspaceContextType {
   workspaces: Workspace[];
@@ -29,7 +29,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const queryClient = useQueryClient();
 
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<number | null>(() => {
-    return preferenceManager.activeWorkspaceId;
+    return prefRepository.activeWorkspaceId;
   });
 
   // 1. 참여 중인 워크스페이스 목록 조회
@@ -48,7 +48,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     if (!isAuthenticated || workspaces.length === 0) {
       if (!isAuthenticated) {
-        preferenceManager.activeWorkspaceId = null;
+        prefRepository.activeWorkspaceId = null;
         setCurrentWorkspaceId(null);
       }
       return;
@@ -60,7 +60,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // 존재하지 않으면 첫 번째 워크스페이스를 기본 활성화
       const defaultWs = workspaces[0];
       setCurrentWorkspaceId(defaultWs.id);
-      preferenceManager.activeWorkspaceId = defaultWs.id;
+      prefRepository.activeWorkspaceId = defaultWs.id;
     }
   }, [isAuthenticated, workspaces, currentWorkspaceId]);
 
@@ -75,7 +75,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!target) return;
 
       setCurrentWorkspaceId(workspaceId);
-      preferenceManager.activeWorkspaceId = workspaceId;
+      prefRepository.activeWorkspaceId = workspaceId;
 
       // ⭐️ 이전 워크스페이스 캐시 무효화 및 새 워크스페이스 데이터 갱신
       queryClient.invalidateQueries();

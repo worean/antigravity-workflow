@@ -4,7 +4,7 @@ import type { User } from '@/types';
 import { getMe, loginEmail, registerUser } from '@/services/api';
 import { queryClient } from '@/lib/queryClient';
 import { disconnectSocket, getSocket } from '@/lib/socketClient';
-import { preferenceManager } from '@/lib/preferenceManager';
+import { prefRepository } from '@/lib/prefRepository';
 
 interface AuthContextType {
   user: User | null;
@@ -20,8 +20,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => preferenceManager.currentUser);
-  const [token, setToken] = useState<string | null>(() => preferenceManager.authToken);
+  const [user, setUser] = useState<User | null>(() => prefRepository.currentUser);
+  const [token, setToken] = useState<string | null>(() => prefRepository.authToken);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // 초기 인증 상태 설정 (첫 로딩 시)
@@ -31,11 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const res = await getMe();
           setUser(res.user);
-          preferenceManager.currentUser = res.user;
-          preferenceManager.syncFromUserProfile(res.user.preferences);
+          prefRepository.currentUser = res.user;
+          prefRepository.syncFromUserProfile(res.user.preferences);
         } catch (err) {
           console.error('Failed to restore user session:', err);
-          preferenceManager.clearAuth();
+          prefRepository.clearAuth();
           disconnectSocket();
           setToken(null);
           setUser(null);
@@ -51,9 +51,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password?: string) => {
     const res = await loginEmail(email, password);
     if (res.token) {
-      preferenceManager.authToken = res.token;
-      preferenceManager.currentUser = res.user;
-      preferenceManager.syncFromUserProfile(res.user.preferences);
+      prefRepository.authToken = res.token;
+      prefRepository.currentUser = res.user;
+      prefRepository.syncFromUserProfile(res.user.preferences);
 
       setToken(res.token);
       setUser(res.user);
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 로그아웃 동작
   const logout = () => {
-    preferenceManager.clearAuth();
+    prefRepository.clearAuth();
     disconnectSocket();
     setToken(null);
     setUser(null);
@@ -85,8 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserLocal = (updated: User) => {
     setUser(updated);
-    preferenceManager.currentUser = updated;
-    preferenceManager.syncFromUserProfile(updated.preferences);
+    prefRepository.currentUser = updated;
+    prefRepository.syncFromUserProfile(updated.preferences);
   };
 
   return (

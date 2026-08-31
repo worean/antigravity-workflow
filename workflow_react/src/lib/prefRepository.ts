@@ -4,7 +4,7 @@ import type { User } from '@/types';
 /**
  * 🛠️ 앱 환경설정 데이터 스키마 (App Preference Schema)
  */
-export interface AppPreferenceSchema {
+export interface PrefSchema {
   isSundayStart: boolean;
   defaultPriority: number;
   compactCards: boolean;
@@ -18,7 +18,7 @@ export interface AppPreferenceSchema {
 /**
  * 🌟 기본 설정값 (Default Preferences)
  */
-export const DEFAULT_PREFERENCES: AppPreferenceSchema = {
+export const DEFAULT_PREFS: PrefSchema = {
   isSundayStart: false,
   defaultPriority: 3,
   compactCards: false,
@@ -30,15 +30,15 @@ export const DEFAULT_PREFERENCES: AppPreferenceSchema = {
 };
 
 /**
- * 🏛️ PreferenceManager (설정 및 로컬 스토리지 전담 관리 클래스)
+ * 🏛️ PrefRepository (설정 저장소 Repository 패턴 구현체)
  * 
- * LocalStorage의 모든 키와 읽기/쓰기/타입 변환/기본값 처리를 이 클래스 내부에서 단독으로 캡슐화합니다.
+ * LocalStorage의 키 매핑 및 타입 변환, 유저 프로필 동기화를 전담 관리합니다.
  */
-export class PreferenceManager {
-  private static instance: PreferenceManager;
+export class PrefRepository {
+  private static instance: PrefRepository;
 
   // LocalStorage 키 매핑
-  private readonly keys: Record<keyof AppPreferenceSchema, string> = {
+  private readonly keys: Record<keyof PrefSchema, string> = {
     isSundayStart: 'pref_is_sunday_start',
     defaultPriority: 'pref_default_priority',
     compactCards: 'pref_compact_cards',
@@ -54,14 +54,14 @@ export class PreferenceManager {
 
   private constructor() {}
 
-  public static getInstance(): PreferenceManager {
-    if (!PreferenceManager.instance) {
-      PreferenceManager.instance = new PreferenceManager();
+  public static getInstance(): PrefRepository {
+    if (!PrefRepository.instance) {
+      PrefRepository.instance = new PrefRepository();
     }
-    return PreferenceManager.instance;
+    return PrefRepository.instance;
   }
 
-  // --- 🔒 내부 스토리지 I/O 안전 헬퍼 ---
+  // --- 🔒 내부 스토리지 안전 I/O ---
   private readStorage<T>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
     try {
@@ -87,7 +87,7 @@ export class PreferenceManager {
         window.localStorage.setItem(key, serialized);
       }
     } catch (e) {
-      console.warn(`[PreferenceManager] Failed to write key "${key}":`, e);
+      console.warn(`[PrefRepository] Failed to write key "${key}":`, e);
     }
   }
 
@@ -98,10 +98,10 @@ export class PreferenceManager {
     } catch {}
   }
 
-  // --- 🔹 개별 프로퍼티 Getters & Setters ---
+  // --- 🔹 프로퍼티 Getters & Setters ---
 
   public get isSundayStart(): boolean {
-    const val = this.readStorage<any>(this.keys.isSundayStart, DEFAULT_PREFERENCES.isSundayStart);
+    const val = this.readStorage<any>(this.keys.isSundayStart, DEFAULT_PREFS.isSundayStart);
     return val === true || val === 'true';
   }
   public set isSundayStart(value: boolean) {
@@ -109,16 +109,16 @@ export class PreferenceManager {
   }
 
   public get defaultPriority(): number {
-    const val = this.readStorage<any>(this.keys.defaultPriority, DEFAULT_PREFERENCES.defaultPriority);
+    const val = this.readStorage<any>(this.keys.defaultPriority, DEFAULT_PREFS.defaultPriority);
     const num = Number(val);
-    return isNaN(num) || num <= 0 ? DEFAULT_PREFERENCES.defaultPriority : num;
+    return isNaN(num) || num <= 0 ? DEFAULT_PREFS.defaultPriority : num;
   }
   public set defaultPriority(value: number) {
     this.writeStorage(this.keys.defaultPriority, value);
   }
 
   public get compactCards(): boolean {
-    const val = this.readStorage<any>(this.keys.compactCards, DEFAULT_PREFERENCES.compactCards);
+    const val = this.readStorage<any>(this.keys.compactCards, DEFAULT_PREFS.compactCards);
     return val === true || val === 'true';
   }
   public set compactCards(value: boolean) {
@@ -126,7 +126,7 @@ export class PreferenceManager {
   }
 
   public get desktopNotifications(): boolean {
-    const val = this.readStorage<any>(this.keys.desktopNotifications, DEFAULT_PREFERENCES.desktopNotifications);
+    const val = this.readStorage<any>(this.keys.desktopNotifications, DEFAULT_PREFS.desktopNotifications);
     return val !== false && val !== 'false';
   }
   public set desktopNotifications(value: boolean) {
@@ -134,7 +134,7 @@ export class PreferenceManager {
   }
 
   public get backendApiUrl(): string {
-    return this.readStorage<string>(this.keys.backendApiUrl, DEFAULT_PREFERENCES.backendApiUrl);
+    return this.readStorage<string>(this.keys.backendApiUrl, DEFAULT_PREFS.backendApiUrl);
   }
   public set backendApiUrl(value: string) {
     this.writeStorage(this.keys.backendApiUrl, value);
@@ -151,7 +151,7 @@ export class PreferenceManager {
   }
 
   public get activeTab(): string {
-    return this.readStorage<string>(this.keys.activeTab, DEFAULT_PREFERENCES.activeTab);
+    return this.readStorage<string>(this.keys.activeTab, DEFAULT_PREFS.activeTab);
   }
   public set activeTab(value: string) {
     this.writeStorage(this.keys.activeTab, value);
@@ -167,7 +167,7 @@ export class PreferenceManager {
     this.writeStorage(this.keys.selectedProjectId, value);
   }
 
-  // --- 🔐 인증 세션 관리 ---
+  // --- 🔐 인증 및 세션 관리 ---
   public get authToken(): string | null {
     return this.readStorage<string | null>(this.AUTH_TOKEN_KEY, null);
   }
@@ -188,7 +188,7 @@ export class PreferenceManager {
   }
 
   // --- 📦 일괄 관리 메서드 ---
-  public getAll(): AppPreferenceSchema {
+  public getAll(): PrefSchema {
     return {
       isSundayStart: this.isSundayStart,
       defaultPriority: this.defaultPriority,
@@ -201,7 +201,7 @@ export class PreferenceManager {
     };
   }
 
-  public update(partial: Partial<AppPreferenceSchema>): void {
+  public update(partial: Partial<PrefSchema>): void {
     if (partial.isSundayStart !== undefined) this.isSundayStart = partial.isSundayStart;
     if (partial.defaultPriority !== undefined) this.defaultPriority = partial.defaultPriority;
     if (partial.compactCards !== undefined) this.compactCards = partial.compactCards;
@@ -213,10 +213,10 @@ export class PreferenceManager {
   }
 
   public resetToDefaults(): void {
-    this.update(DEFAULT_PREFERENCES);
+    this.update(DEFAULT_PREFS);
   }
 
-  // --- 🔄 백엔드 유저 프로필 동기화 ---
+  // --- 🔄 백엔드 사용자 프로필 동기화 ---
   public syncFromUserProfile(userPreferencesJsonOrObj: string | object | null | undefined): void {
     if (!userPreferencesJsonOrObj) return;
 
@@ -239,7 +239,7 @@ export class PreferenceManager {
         this.desktopNotifications = prefs.desktopNotifications;
       }
     } catch (e) {
-      console.warn('[PreferenceManager] Failed to sync preferences from user profile:', e);
+      console.warn('[PrefRepository] Failed to sync preferences from user profile:', e);
     }
   }
 
@@ -256,7 +256,7 @@ export class PreferenceManager {
 /**
  * 🌟 싱글톤 인스턴스 export
  */
-export const preferenceManager = PreferenceManager.getInstance();
+export const prefRepository = PrefRepository.getInstance();
 
-// 기존 코드 호환성을 위한 alias export
-export const preferenceRepository = preferenceManager;
+// 짧은 별칭 지원 (prefRepo)
+export const prefRepo = prefRepository;

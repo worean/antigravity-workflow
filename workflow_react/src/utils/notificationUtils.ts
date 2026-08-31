@@ -2,7 +2,7 @@
  * AntiGravity Workflow - Universal Desktop & Web Notification Utility
  */
 
-import { preferenceManager } from '@/lib/preferenceManager';
+import { prefRepository } from '@/lib/prefRepository';
 
 export interface NotificationPayload {
   title: string;
@@ -15,7 +15,7 @@ export interface NotificationPayload {
  * 데스크톱 알림 활성화 여부 확인 (기본값: true)
  */
 export const isNotificationEnabled = (): boolean => {
-  return preferenceManager.desktopNotifications;
+  return prefRepository.desktopNotifications;
 };
 
 /**

@@ -1,12 +1,12 @@
 ﻿// -*- coding: utf-8 -*-
 import { io, Socket } from 'socket.io-client';
 import { getCurrentBackendHostUrl } from './apiClient';
-import { preferenceManager } from './preferenceManager';
+import { prefRepository } from './prefRepository';
 
 let socket: Socket | null = null;
 
 export const getSocket = (token?: string): Socket => {
-  const authToken = token || preferenceManager.authToken || '';
+  const authToken = token || prefRepository.authToken || '';
 
   const hostUrl = typeof window !== 'undefined' ? getCurrentBackendHostUrl() : 'http://localhost:4000';
 
