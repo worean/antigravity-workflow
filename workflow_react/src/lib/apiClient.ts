@@ -1,7 +1,7 @@
 ﻿// -*- coding: utf-8 -*-
 import axios from 'axios';
 import type { HealthStatus } from '@/types';
-import { preferenceRepository } from '@/lib/storage';
+import { preferenceManager } from '@/lib/preferenceManager';
 
 /**
  * 백엔드 Base URL 정규화 헬퍼 (프로토콜 보정 및 끝 슬래시/api 정리)
@@ -21,7 +21,7 @@ export const normalizeBackendUrl = (rawUrl: string): string => {
  */
 export const getCurrentBackendHostUrl = (): string => {
   if (typeof window !== 'undefined') {
-    const customUrl = preferenceRepository.backendApiUrl;
+    const customUrl = preferenceManager.backendApiUrl;
     if (customUrl) return normalizeBackendUrl(customUrl);
 
     if (window.electronAPI?.isElectron || window.location.protocol === 'file:') {
@@ -36,7 +36,7 @@ export const getCurrentBackendHostUrl = (): string => {
  */
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    const customUrl = preferenceRepository.backendApiUrl;
+    const customUrl = preferenceManager.backendApiUrl;
     if (customUrl) return normalizeBackendUrl(customUrl) + '/api';
 
     if (window.electronAPI?.isElectron || window.location.protocol === 'file:') {
@@ -54,7 +54,7 @@ export const saveCustomBackendUrl = async (rawUrl: string): Promise<string> => {
   if (!cleanedUrl) throw new Error('유효한 서버 URL을 입력해 주세요.');
 
   if (typeof window !== 'undefined') {
-    preferenceRepository.backendApiUrl = cleanedUrl;
+    preferenceManager.backendApiUrl = cleanedUrl;
     if (window.electronAPI?.setBackendConfig) {
       await window.electronAPI.setBackendConfig({ backendApiUrl: cleanedUrl });
     }
@@ -68,7 +68,7 @@ export const saveCustomBackendUrl = async (rawUrl: string): Promise<string> => {
  */
 export const resetCustomBackendUrl = async (): Promise<void> => {
   if (typeof window !== 'undefined') {
-    preferenceRepository.backendApiUrl = '';
+    preferenceManager.backendApiUrl = '';
     if (window.electronAPI?.setBackendConfig) {
       await window.electronAPI.setBackendConfig({ backendApiUrl: '' });
     }
@@ -124,8 +124,8 @@ export const testApiConnection = async (
  */
 if (typeof window !== 'undefined' && window.electronAPI?.getBackendConfig) {
   window.electronAPI.getBackendConfig().then((config) => {
-    if (config?.backendApiUrl && !preferenceRepository.backendApiUrl) {
-      preferenceRepository.backendApiUrl = config.backendApiUrl;
+    if (config?.backendApiUrl && !preferenceManager.backendApiUrl) {
+      preferenceManager.backendApiUrl = config.backendApiUrl;
       apiClient.defaults.baseURL = getApiBaseUrl();
     }
   }).catch(() => {});
@@ -140,11 +140,11 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   config.baseURL = getApiBaseUrl();
-  const token = preferenceRepository.authToken;
+  const token = preferenceManager.authToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const workspaceId = preferenceRepository.activeWorkspaceId;
+  const workspaceId = preferenceManager.activeWorkspaceId;
   if (workspaceId) {
     config.headers['x-workspace-id'] = String(workspaceId);
   }

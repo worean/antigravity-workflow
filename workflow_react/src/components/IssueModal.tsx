@@ -17,7 +17,7 @@ import {
 } from '@/services/api';
 import type { Worklog } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { preferenceRepository } from '@/lib/storage';
+import { preferenceManager } from '@/lib/preferenceManager';
 import {
   X,
   PlusCircle,
@@ -69,7 +69,7 @@ interface IssueModalProps {
 }
 
 const getDefaultPriority = (): number => {
-  return preferenceRepository.defaultPriority || 2;
+  return preferenceManager.defaultPriority || 2;
 };
 
 export const IssueModal: React.FC<IssueModalProps> = ({

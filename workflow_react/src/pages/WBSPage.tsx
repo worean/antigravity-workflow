@@ -14,7 +14,7 @@ import {
 import { useWBSProjectData } from '@/hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '@/hooks/useWBSGanttDrag';
 import { WBSToolbar, WBSMainSplitView } from '@/components/wbs';
-import { preferenceRepository } from '@/lib/storage';
+import { preferenceManager } from '@/lib/preferenceManager';
 
 interface WBSPageProps {
   selectedProjectId?: number | null;
@@ -38,7 +38,7 @@ export const WBSPage: React.FC<WBSPageProps> = ({
 
   // Preference: isSundayStart
   const isSundayStart = useMemo<boolean>(() => {
-    return preferenceRepository.isSundayStart;
+    return preferenceManager.isSundayStart;
   }, []);
 
   // Collapse / Expand State (Set of collapsed parent issue IDs)

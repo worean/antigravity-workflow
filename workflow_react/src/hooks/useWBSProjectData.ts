@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useCallback, type RefObject } from 'react';
 import type { Project, Sprint, Issue } from '@/types';
 import { getProjects, getSprints, getIssues } from '@/services/api';
-import { preferenceRepository } from '@/lib/storage';
+import { preferenceManager } from '@/lib/preferenceManager';
 
 interface UseWBSProjectDataProps {
   initialProjectId?: number | null;
@@ -43,7 +43,7 @@ export const useWBSProjectData = ({
         const pList = await getProjects();
         setProjects(pList);
         if (pList.length > 0) {
-          const savedProjId = preferenceRepository.selectedProjectId;
+          const savedProjId = preferenceManager.selectedProjectId;
           const matched = pList.find((p) => p.id === savedProjId);
           const targetId = matched ? matched.id : pList[0].id;
           setSelectedProjectId(targetId);

@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { WorkspaceProvider } from '@/context/WorkspaceContext';
-import { preferenceRepository } from '@/lib/storage';
+import { preferenceManager } from '@/lib/preferenceManager';
 import { Header, type BreadcrumbItem } from '@/components/Header';
 
 import { Sidebar, type TabType } from '@/components/Sidebar';
@@ -73,9 +73,9 @@ const AppContent: React.FC = () => {
       extra?: { assigneeId?: number | 'ALL' | 'MY'; search?: string; channelId?: number | null; sprintId?: number | null }
     ) => {
       const normalizedTab = tab === 'issue-detail' ? 'issues' : tab;
-      preferenceRepository.activeTab = normalizedTab;
+      preferenceManager.activeTab = normalizedTab;
       if (projId) {
-        preferenceRepository.selectedProjectId = projId;
+        preferenceManager.selectedProjectId = projId;
       }
 
       const targetSprintId = extra?.sprintId ?? (normalizedTab === 'sprint-detail' ? issueId : null);
