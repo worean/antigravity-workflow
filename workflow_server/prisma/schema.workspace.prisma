@@ -1,10 +1,16 @@
+// -*- coding: utf-8 -*-
+// ==========================================
+// 🏢 Workspace Database Schema (schema.workspace.prisma)
+// ==========================================
+
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/workspace-client"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = env("WORKSPACE_DATABASE_URL")
 }
 
 // 이슈 관련 메타데이터
@@ -94,21 +100,19 @@ model TestStepType {
   steps    TestStep[]
 }
 
-// 사용자 관리 (Social Accounts 연동)
+// 워크스페이스 내 유저 모델 (Global User 미러/캐시 및 로컬 호환)
 model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
-  name     String?
-  password String? // Nullable: 구글 소셜 연동 계정은 password가 null로 설정되어 통상 비밀번호 로그인 불가
-  role     String  @default("MEMBER") // ADMIN (시스템 관리자), MEMBER (일반 사용자)
-  avatar   String? // Base64 PNG data URL 또는 이미지 URL (최대 256x256)
-  avatarColor String? // 기본 아바타 랜덤/설정 배경색 (예: #3b82f6)
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  name        String?
+  password    String?
+  role        String   @default("MEMBER")
+  avatar      String?
+  avatarColor String?
+  pushToken   String?
+  preferences String?  @default("{}")
 
-  pushToken   String? // APNs/FCM 푸시 토큰
-  preferences String? @default("{}") // 사용자별 환경 설정 JSON 문자열 (isSundayStart, defaultPriority, compactCards 등)
-
-  // 소셜 계정 연동 정보 (1:N)
-  socialAccounts SocialAccount[]
+  socialAccounts   SocialAccount[]
 
   issues           Issue[]           @relation("AuthorIssues")
   assigned         Issue[]           @relation("AssigneeIssues")
@@ -137,22 +141,20 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-
-// 소셜 계정 연동 테이블 (Google, GitHub, Kakao 등 확장 가능)
 model SocialAccount {
   id           Int       @id @default(autoincrement())
-  provider     String    @default("GOOGLE") // GOOGLE, GITHUB, KAKAO 등
-  providerId   String    // Google OAuth sub ID
+  provider     String    @default("GOOGLE")
+  providerId   String
   email        String?
   accessToken  String?
   refreshToken String?
   tokenExpiry  DateTime?
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@unique([provider, providerId])
 }
@@ -271,7 +273,7 @@ model Issue {
   id          Int     @id @default(autoincrement())
   issueNumber Int?    // 프로젝트 내 순번 (예: PRJ-101의 101)
   title       String
-  description String? // Markdown 형식 지원 (이미지/동영상 인라인 링크, 유튜브 Embed 링크 등 포함)
+  description String? // Markdown 형식 지원
 
   typeId Int       @default(1)
   type   IssueType @relation(fields: [typeId], references: [id], onDelete: SetDefault)
@@ -282,7 +284,6 @@ model Issue {
   statusId Int         @default(1)
   status   IssueStatus @relation(fields: [statusId], references: [id], onDelete: SetDefault)
 
-  // 일감/작업 관리 속성
   progress       Int    @default(0) // 진척도 (0 ~ 100%)
   estimatedHours Float?             // 추정 소요 시간
   loggedHours    Float? @default(0) // 실제 투입 시간 누적
@@ -292,10 +293,8 @@ model Issue {
   actualStartDate  DateTime?
   actualEndDate    DateTime?
 
-  // 계층형 Custom Field (SQLite 호환을 위해 JSON string으로 저장)
   customFields String?
 
-  // 계층 구조 지원 (상위-하위 일감)
   parentId Int?
   parent   Issue?  @relation("IssueHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Issue[] @relation("IssueHierarchy")
@@ -430,7 +429,7 @@ model Label {
   issues Issue[]
 }
 
-// 미디어 / 첨부파일 (마크다운 인라인 미디어 & 동영상/사진 지원)
+// 미디어 / 첨부파일
 model Attachment {
   id           Int     @id @default(autoincrement())
   filename     String
@@ -438,11 +437,11 @@ model Attachment {
   mimeType     String
   size         Int
   url          String
-  thumbnailUrl String? // 이미지/동영상 썸네일 URL
-  mediaType    String  @default("FILE") // IMAGE, VIDEO, AUDIO, DOCUMENT, FILE
-  width        Int?    // 이미지/동영상 너비
-  height       Int?    // 이미지/동영상 높이
-  duration     Int?    // 동영상/음성 재생 시간(초)
+  thumbnailUrl String?
+  mediaType    String  @default("FILE")
+  width        Int?
+  height       Int?
+  duration     Int?
 
   issueId   Int?
   issue     Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
@@ -454,20 +453,20 @@ model Attachment {
   createdAt  DateTime @default(now())
 }
 
-// 외부 미디어 & OEmbed / OpenGraph 캐싱 (YouTube, 외부 마크다운 링크 미리보기)
+// 외부 미디어 링크 미리보기 캐싱
 model LinkPreview {
   id          Int      @id @default(autoincrement())
   url         String   @unique
   title       String?
   description String?
-  siteName    String?  // e.g. "YouTube", "GitHub"
-  mediaType   String?  // e.g. "video", "photo", "link"
-  imageUrl    String?  // 썸네일/OG 이미지
-  embedHtml   String?  // iframe embed HTML (유튜브 등)
+  siteName    String?
+  mediaType   String?
+  imageUrl    String?
+  embedHtml   String?
   fetchedAt   DateTime @default(now())
 }
 
-// 마크다운 본문 변경 이력 (Description Revision)
+// 마크다운 본문 변경 이력
 model IssueRevision {
   id          Int      @id @default(autoincrement())
   issueId     Int
@@ -475,12 +474,12 @@ model IssueRevision {
   authorId    Int
   author      User     @relation(fields: [authorId], references: [id])
   title       String
-  description String?  // 변경 당시 마크다운 본문
-  reason      String?  // 수정 사유
+  description String?
+  reason      String?
   createdAt   DateTime @default(now())
 }
 
-// 이슈 변경 감사 로그 (Audit History)
+// 이슈 변경 감사 로그
 model IssueHistory {
   id        Int      @id @default(autoincrement())
   issueId   Int
@@ -493,7 +492,7 @@ model IssueHistory {
   createdAt DateTime @default(now())
 }
 
-// 이슈 관심 구독자 (Watchers)
+// 이슈 관심 구독자
 model IssueWatcher {
   issueId   Int
   issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
@@ -511,7 +510,7 @@ model Worklog {
   issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
-  timeSpent   Int      // 분 단위 (minutes)
+  timeSpent   Int      // 분 단위
   startedAt   DateTime @default(now())
   description String?
   createdAt   DateTime @default(now())
@@ -524,7 +523,7 @@ model Notification {
   user      User      @relation(fields: [userId], references: [id])
   title     String
   content   String
-  type      String    // ISSUE_UPDATED, REMINDER, COMMENT_ADDED, MENTION 등
+  type      String
   link      String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
@@ -540,9 +539,7 @@ model Reminder {
   createdAt DateTime @default(now())
 }
 
-// ==========================================
-// QA / 테스트 관리 시스템 (Test Management)
-// ==========================================
+// QA / 테스트 관리 시스템
 model TestSuite {
   id          Int     @id @default(autoincrement())
   name        String
@@ -658,7 +655,6 @@ model TestResult {
   updatedAt DateTime @updatedAt
 }
 
-// 구글 캘린더 연동
 model IssueCalendarLink {
   id            Int      @id @default(autoincrement())
   issueId       Int
@@ -671,26 +667,24 @@ model IssueCalendarLink {
   updatedAt     DateTime @updatedAt
 }
 
-// 작업/활동 로그 (관계형 외래키 제약 없이 독립적으로 기록되는 Audit Log)
 model ActivityLog {
   id         Int      @id @default(autoincrement())
-  action     String   // CREATE, UPDATE, DELETE, ASSIGN_MEMBER, REMOVE_MEMBER 등
-  entityType String   // ISSUE, PROJECT, PROJECT_MEMBER, COMMENT 등
-  entityId   Int?     // 대상 ID
-  userId     Int?     // 작업을 수행한 사용자 ID
-  userName   String?  // 당시 사용자 이름 (비관계형 스냅샷)
-  userEmail  String?  // 당시 사용자 이메일 (비관계형 스냅샷)
-  summary    String?  // 작업 요약
-  details    String?  // 변경 상세 내용 또는 JSON 문자열
-  ipAddress  String?  // 요청 클라이언트 IP
-  createdAt  DateTime @default(now()) // 작업 발생 시간
+  action     String
+  entityType String
+  entityId   Int?
+  userId     Int?
+  userName   String?
+  userEmail  String?
+  summary    String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
 }
 
-// 조직도 및 그룹/서브그룹 계층 관리
 model Group {
   id          Int      @id @default(autoincrement())
   name        String
@@ -710,31 +704,26 @@ model Group {
   updatedAt   DateTime @updatedAt
 }
 
-// 그룹 소속 멤버 및 역할 (LEADER, MEMBER 등)
 model GroupMember {
   id        Int      @id @default(autoincrement())
   groupId   Int
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      String   @default("MEMBER") // LEADER (그룹장/관리자), MEMBER (일반 구성원)
-  title     String?  // 직책 (예: 팀장, 수석연구원, 개발자)
+  role      String   @default("MEMBER")
+  title     String?
   joinedAt  DateTime @default(now())
 
   @@unique([groupId, userId])
 }
 
-// ----------------------------------------------------
-// 💬 Discord-style Chat System Models
-// ----------------------------------------------------
-
-// 채널/대화방 (GLOBAL, PROJECT, GROUP, DM)
+// 💬 Chat System Models
 model ChatChannel {
   id          Int      @id @default(autoincrement())
-  name        String   // 채널명 (예: "general", "공지사항", DM인 경우 상대방/빈값)
-  type        String   @default("GLOBAL") // "GLOBAL" | "PROJECT" | "GROUP" | "DM"
-  topic       String?  // 채널 설명/토픽
-  icon        String?  // 채널 아이콘/이모지 (예: 📢, 💬, 🚀)
+  name        String
+  type        String   @default("GLOBAL") // GLOBAL, PROJECT, GROUP, DM
+  topic       String?
+  icon        String?
   isPrivate   Boolean  @default(false)
 
   projectId   Int?
@@ -754,25 +743,16 @@ model ChatChannel {
   @@index([groupId])
 }
 
-// 채널 참여자 및 유저별 알림/읽음 설정
 model ChatMember {
   id                 Int         @id @default(autoincrement())
   channelId          Int
   channel            ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
   userId             Int
   user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  role               String      @default("MEMBER") // "OWNER" | "ADMIN" | "MEMBER"
-
-  // 🔔 유저별 알림 설정 (스마트 스로틀러 및 모바일 푸시 기준)
-  notificationLevel  String      @default("ALL") // "ALL" | "MENTIONS_ONLY" | "MUTED"
-  mutedUntil         DateTime?   // 일시 음소거 만료 시각
-
-  // ⏱️ 마지막 알림 발송 시각 (30초 쿨다운 계산용)
+  role               String      @default("MEMBER")
+  notificationLevel  String      @default("ALL")
+  mutedUntil         DateTime?
   lastNotificationAt DateTime?
-
-  // 📖 마지막 읽은 시각 (Unread 카운트 계산용)
   lastReadAt         DateTime    @default(now())
 
   createdAt          DateTime    @default(now())
@@ -783,26 +763,18 @@ model ChatMember {
   @@index([channelId])
 }
 
-// 채팅 메시지
 model ChatMessage {
   id          Int         @id @default(autoincrement())
   channelId   Int
   channel     ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
   senderId    Int
   sender      User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  content     String      // 메시지 본문 (텍스트/마크다운)
-  attachments String?     // 첨부파일 JSON (URL, fileName, fileSize, mimeType 등)
-
-  // 멘션 정보
-  mentions    String?     // 언급된 userId 목록 JSON 또는 "@all"
+  content     String
+  attachments String?
+  mentions    String?
   hasMention  Boolean     @default(false)
-
-  // 고정 핀 및 시스템 메시지 여부
   isPinned    Boolean     @default(false)
   isSystem    Boolean     @default(false)
-
   reactions   ChatMessageReaction[]
 
   createdAt   DateTime    @default(now())
@@ -812,16 +784,13 @@ model ChatMessage {
   @@index([senderId])
 }
 
-// 메시지 이모지 반응
 model ChatMessageReaction {
   id        Int         @id @default(autoincrement())
   messageId Int
   message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
   userId    Int
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  emoji     String      // 이모지 (예: 👍, ❤️, 🔥, 🎉)
+  emoji     String
 
   createdAt DateTime    @default(now())
 
@@ -829,12 +798,12 @@ model ChatMessageReaction {
   @@index([messageId])
 }
 
-// 🌟 즐겨찾기 (Favorites / Stars - 프로젝트, 이슈, 스프린트, 채팅방)
+// 즐겨찾기
 model Favorite {
   id         Int      @id @default(autoincrement())
   userId     Int
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetType String   // "PROJECT" | "ISSUE" | "SPRINT" | "CHAT_CHANNEL"
+  targetType String   // PROJECT, ISSUE, SPRINT, CHAT_CHANNEL
   targetId   Int
   createdAt  DateTime @default(now())
 
@@ -842,6 +811,3 @@ model Favorite {
   @@index([userId, targetType])
   @@index([targetType, targetId])
 }
-
-
-

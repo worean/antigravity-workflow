@@ -1,0 +1,116 @@
+// -*- coding: utf-8 -*-
+// ==========================================
+// 🌐 Global Database Schema (schema.global.prisma)
+// ==========================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/global-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("GLOBAL_DATABASE_URL")
+}
+
+// 1. 사용자 계정 (Global User)
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  name         String?
+  password     String?   // 소셜 가입자는 null 가능
+  role         String    @default("MEMBER") // ADMIN(시스템 전체 관리자), MEMBER
+  avatar       String?   // Base64 PNG data URL 또는 이미지 URL
+  avatarColor  String?   // 기본 아바타 색상
+  pushToken    String?   // APNs / FCM 푸시 토큰
+  preferences  String?   @default("{}") // 전역 UI 설정 JSON 문자열
+
+  // 소셜 계정 연동 (1:N)
+  socialAccounts SocialAccount[]
+
+  // 소유 및 참여 워크스페이스
+  workspaces     UserWorkspace[]
+  ownedWorkspaces Workspace[]    @relation("WorkspaceOwner")
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// 2. 소셜 계정 연동 테이블
+model SocialAccount {
+  id           Int       @id @default(autoincrement())
+  provider     String    @default("GOOGLE")
+  providerId   String
+  email        String?
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([provider, providerId])
+}
+
+// 3. 워크스페이스 레지스트리 (Workspace Database Connection Info)
+model Workspace {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique // URL 및 식별용 유니크 슬러그 (예: "team-alpha", "ws-101")
+  name        String
+  description String?
+  icon        String?
+
+  // 소유자 정보
+  ownerId     Int
+  owner       User     @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+
+  // 🔐 독립 Database 접속 정보
+  dbType      String   @default("sqlite") // sqlite, postgres, mysql 등
+  dbUrl       String   // e.g. "file:C:/.../.tmp/workspaces/ws_1.db"
+  dbKey       String?  // DB 암호화 키 또는 보안 접속 키
+
+  status      String   @default("ACTIVE") // ACTIVE, SUSPENDED, ARCHIVED
+
+  members     UserWorkspace[]
+  invitations WorkspaceInvitation[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 4. 사용자-워크스페이스 1:N 관계형 매핑 테이블 (UserWorkSpace)
+model UserWorkspace {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workspaceId Int
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  role        String    @default("MEMBER") // OWNER, ADMIN, MEMBER, GUEST
+  status      String    @default("ACTIVE") // ACTIVE, INVITED, SUSPENDED
+
+  joinedAt    DateTime  @default(now())
+
+  @@unique([userId, workspaceId])
+  @@index([userId])
+  @@index([workspaceId])
+}
+
+// 5. 워크스페이스 초대장
+model WorkspaceInvitation {
+  id          Int       @id @default(autoincrement())
+  workspaceId Int
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  email       String
+  role        String    @default("MEMBER")
+  inviteToken String    @unique
+  expiresAt   DateTime
+
+  inviterId   Int
+  createdAt   DateTime  @default(now())
+}

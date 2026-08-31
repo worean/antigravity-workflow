@@ -50,6 +50,7 @@ typings/
 
 # TypeScript build output & info
 dist/
+src/generated/
 *.tsbuildinfo
 
 # Optional npm cache directory
