@@ -14,6 +14,7 @@ import { getSocket } from '@/lib/socketClient';
 import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '@/types';
 import { getUsers, getProjects, getGroups } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { prefRepository } from '@/lib/prefRepository';
 import {
   ChatCategoryNav,
   ChatChannelSidebar,
@@ -43,7 +44,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
 
   // Channels
   const [channels, setChannels] = useState<ChatChannel[]>([]);
-  const [selectedChannelId, setSelectedChannelId] = useState<number | null>(propChannelId || null);
+  const [selectedChannelId, setSelectedChannelId] = useState<number | null>(() => {
+    return propChannelId ?? prefRepository.selectedChannelId ?? null;
+  });
   const [activeCategory, setActiveCategory] = useState<ChannelType | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<ChannelType, boolean>>({
@@ -85,13 +88,19 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     try {
       const data = await getChannels();
       setChannels(data);
-      if (!selectedChannelId && data.length > 0) {
-        setSelectedChannelId(data[0].id);
+      if (data.length > 0) {
+        setSelectedChannelId((prev) => {
+          const currentTarget = prev ?? prefRepository.selectedChannelId;
+          const exists = data.some((c) => c.id === currentTarget);
+          const resolvedId = exists ? (currentTarget as number) : data[0].id;
+          prefRepository.selectedChannelId = resolvedId;
+          return resolvedId;
+        });
       }
     } catch (err) {
       console.error('Failed to fetch channels:', err);
     }
-  }, [selectedChannelId]);
+  }, []);
 
   useEffect(() => {
     fetchChannels();
@@ -101,8 +110,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   }, [fetchChannels]);
 
   useEffect(() => {
-    if (propChannelId !== undefined) {
+    if (propChannelId !== undefined && propChannelId !== null) {
       setSelectedChannelId(propChannelId);
+      prefRepository.selectedChannelId = propChannelId;
     }
   }, [propChannelId]);
 
@@ -221,6 +231,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     (cId: number) => {
       if (cId === selectedChannelId) return;
       setSelectedChannelId(cId);
+      prefRepository.selectedChannelId = cId;
       if (onSelectChannel) onSelectChannel(cId);
     },
     [selectedChannelId, onSelectChannel]

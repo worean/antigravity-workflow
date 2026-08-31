@@ -35,6 +35,8 @@ interface WorkspaceContextType {
   // 🧭 라우팅 및 네비게이션
   prevRoute: string | null;
   setPrevRoute: (route: string | null) => void;
+  selectedChannelId: number | null;
+  setSelectedChannelId: (channelId: number | null) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -163,10 +165,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 5. 🧭 라우팅 및 네비게이션 이력
   const [prevRoute, setPrevRouteState] = useState<string | null>(() => prefRepository.prevRoute);
+  const [selectedChannelId, setSelectedChannelIdState] = useState<number | null>(() => prefRepository.selectedChannelId);
 
   const setPrevRoute = useCallback((route: string | null) => {
     setPrevRouteState(route);
     prefRepository.prevRoute = route;
+  }, []);
+
+  const setSelectedChannelId = useCallback((channelId: number | null) => {
+    setSelectedChannelIdState(channelId);
+    prefRepository.selectedChannelId = channelId;
   }, []);
 
   // 6. 워크스페이스 전환 함수 (전환 시 전역 쿼리 캐시 리셋 및 새 워크스페이스 데이터 로드)
@@ -235,6 +243,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSidebarSubmenus,
         prevRoute,
         setPrevRoute,
+        selectedChannelId,
+        setSelectedChannelId,
       }}
     >
       {children}

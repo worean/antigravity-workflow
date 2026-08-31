@@ -31,6 +31,7 @@ export interface PrefSchema {
   activeWorkspaceId: number | null;
   activeTab: string;
   selectedProjectId: number | null;
+  selectedChannelId: number | null;
   prevRoute: string | null;
   sidebarSubmenus: Record<string, boolean>;
 }
@@ -47,6 +48,7 @@ export const DEFAULT_PREFS: PrefSchema = {
   activeWorkspaceId: null,
   activeTab: 'dashboard',
   selectedProjectId: null,
+  selectedChannelId: null,
   prevRoute: null,
   sidebarSubmenus: {
     projects: false,
@@ -75,6 +77,7 @@ export class PrefRepository {
     activeWorkspaceId: 'active_workspace_id',
     activeTab: 'activeTab',
     selectedProjectId: 'selectedProjectId',
+    selectedChannelId: 'selectedChannelId',
     prevRoute: 'pref_prev_route',
     sidebarSubmenus: 'pref_sidebar_submenus',
   };
@@ -197,6 +200,16 @@ export class PrefRepository {
     this.writeStorage(this.keys.selectedProjectId, value);
   }
 
+  public get selectedChannelId(): number | null {
+    const val = this.readStorage<any>(this.keys.selectedChannelId, null);
+    if (!val) return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  }
+  public set selectedChannelId(value: number | null) {
+    this.writeStorage(this.keys.selectedChannelId, value);
+  }
+
   public get prevRoute(): string | null {
     return this.readStorage<string | null>(this.keys.prevRoute, null);
   }
@@ -251,6 +264,7 @@ export class PrefRepository {
       activeWorkspaceId: this.activeWorkspaceId,
       activeTab: this.activeTab,
       selectedProjectId: this.selectedProjectId,
+      selectedChannelId: this.selectedChannelId,
       prevRoute: this.prevRoute,
       sidebarSubmenus: this.sidebarSubmenus,
     };
@@ -265,6 +279,7 @@ export class PrefRepository {
     if (partial.activeWorkspaceId !== undefined) this.activeWorkspaceId = partial.activeWorkspaceId;
     if (partial.activeTab !== undefined) this.activeTab = partial.activeTab;
     if (partial.selectedProjectId !== undefined) this.selectedProjectId = partial.selectedProjectId;
+    if (partial.selectedChannelId !== undefined) this.selectedChannelId = partial.selectedChannelId;
     if (partial.prevRoute !== undefined) this.prevRoute = partial.prevRoute;
     if (partial.sidebarSubmenus !== undefined) this.sidebarSubmenus = partial.sidebarSubmenus;
   }

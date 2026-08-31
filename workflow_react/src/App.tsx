@@ -342,7 +342,7 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'chat' && (
             <ChatPage
-              key={`tab-chat-${isAuthenticated ? user?.id : 'guest'}-${selectedChannelId || 'none'}-${issueRefreshKey}`}
+              key={`tab-chat-${isAuthenticated ? user?.id : 'guest'}`}
               selectedChannelId={selectedChannelId}
               onSelectChannel={(cId) => navigate('chat', null, null, 'view', true, { channelId: cId })}
               onOpenAuth={() => setIsAuthModalOpen(true)}
