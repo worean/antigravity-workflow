@@ -40,9 +40,15 @@ python .agents/skills/api-spec-analyzer/scripts/api_inspector.py list
 
 ### 2. 특정 도메인의 API 명세 및 소스 경로 조회
 ```bash
+# 기본 도메인 명세 조회
 python .agents/skills/api-spec-analyzer/scripts/api_inspector.py get issues
 python .agents/skills/api-spec-analyzer/scripts/api_inspector.py get projects
 python .agents/skills/api-spec-analyzer/scripts/api_inspector.py get tags
+
+# 특정 서브 라우트 핀포인트 조회
+python .agents/skills/api-spec-analyzer/scripts/api_inspector.py get projects/members
+python .agents/skills/api-spec-analyzer/scripts/api_inspector.py get issues/batch-schedules
+python .agents/skills/api-spec-analyzer/scripts/api_inspector.py get sprints/discussions
 ```
 
 ### 3. 엔드포인트 또는 키워드 핀포인트 검색

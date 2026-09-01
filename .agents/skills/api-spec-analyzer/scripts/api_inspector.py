@@ -21,62 +21,131 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "
 DOCS_API_DIR = os.path.join(ROOT_DIR, "docs", "api")
 SERVER_MODULES_DIR = os.path.join(ROOT_DIR, "workflow_server", "src", "modules")
 
-DOMAIN_MAP = {
-    "auth": {"doc": "auth.md", "module": "auth"},
-    "users": {"doc": "users.md", "module": "users"},
-    "projects": {"doc": "projects/README.md", "module": "projects", "subs": ["members.md", "groups.md"]},
-    "issues": {"doc": "issues/README.md", "module": "issues", "subs": ["batch-schedules.md", "reactions.md"]},
-    "comments": {"doc": "comments/README.md", "module": "comments", "subs": ["reactions.md"]},
-    "sprints": {"doc": "sprints/README.md", "module": "sprints", "subs": ["issues.md", "discussions.md", "worklogs.md"]},
-    "groups": {"doc": "groups/README.md", "module": "groups", "subs": ["members.md"]},
-    "chat": {"doc": "chat/README.md", "module": "chat", "subs": ["channels.md", "messages.md", "reactions.md"]},
-    "workspaces": {"doc": "workspaces/README.md", "module": "workspaces", "subs": ["members.md", "invitations.md"]},
-    "tags": {"doc": "tags.md", "module": "tags"},
-    "worklogs": {"doc": "worklogs.md", "module": "worklogs"},
-    "custom-fields": {"doc": "custom-fields.md", "module": "customFields"},
-    "attachments": {"doc": "attachments.md", "module": "attachments"},
-    "link-previews": {"doc": "link-previews.md", "module": "linkPreviews"},
-    "activity-logs": {"doc": "activity-logs.md", "module": "activityLogs"},
-    "favorites": {"doc": "favorites.md", "module": "favorites"},
-}
+def to_camel_case(snake_str):
+    components = re.split(r'[-_]', snake_str)
+    return components[0] + ''.join(x.title() for x in components[1:])
+
+def discover_api_domains():
+    """
+    docs/api 디렉토리를 동적으로 스캔하여 도메인 맵을 구축합니다.
+    - docs/api/*.md (README.md 제외) -> 단일 파일 도메인
+    - docs/api/<folder>/ -> 복합 도메인 (README.md 및 하위 *.md 파일들)
+    - workflow_server/src/modules/ 내의 해당 모듈 폴더를 자동 매칭
+    """
+    domain_map = {}
+    if not os.path.exists(DOCS_API_DIR):
+        return domain_map
+
+    # 1. 서버에 존재하는 모듈 폴더 목록 수집
+    server_modules = {}
+    if os.path.exists(SERVER_MODULES_DIR):
+        for entry in os.listdir(SERVER_MODULES_DIR):
+            m_path = os.path.join(SERVER_MODULES_DIR, entry)
+            if os.path.isdir(m_path):
+                server_modules[entry.lower()] = entry
+                server_modules[re.sub(r'[-_]', '', entry.lower())] = entry
+
+    # 2. docs/api 디렉토리 탐색
+    for entry in sorted(os.listdir(DOCS_API_DIR)):
+        full_path = os.path.join(DOCS_API_DIR, entry)
+        if os.path.isdir(full_path):
+            domain_name = entry
+            sub_files = [f for f in sorted(os.listdir(full_path)) if f.endswith(".md") and f.lower() != "readme.md"]
+            
+            # 서버 모듈 매칭
+            module_name = domain_name
+            cand_camel = to_camel_case(domain_name)
+            if domain_name.lower() in server_modules:
+                module_name = server_modules[domain_name.lower()]
+            elif cand_camel.lower() in server_modules:
+                module_name = server_modules[cand_camel.lower()]
+
+            domain_map[domain_name] = {
+                "doc": f"{domain_name}/README.md" if os.path.exists(os.path.join(full_path, "README.md")) else f"{domain_name}/",
+                "module": module_name,
+                "is_dir": True,
+                "subs": sub_files
+            }
+        elif os.path.isfile(full_path) and entry.endswith(".md") and entry.lower() != "readme.md":
+            domain_name = entry[:-3] # remove .md
+            
+            # 서버 모듈 매칭
+            module_name = domain_name
+            cand_camel = to_camel_case(domain_name)
+            if domain_name.lower() in server_modules:
+                module_name = server_modules[domain_name.lower()]
+            elif cand_camel.lower() in server_modules:
+                module_name = server_modules[cand_camel.lower()]
+
+            domain_map[domain_name] = {
+                "doc": entry,
+                "module": module_name,
+                "is_dir": False
+            }
+
+    return domain_map
 
 def cmd_list(args):
-    print("\n========================================================")
-    print(" 📌 AntiGravity Backend API Domains & Route Hierarchy")
-    print("========================================================")
-    print(f"{'Domain':<16} | {'Docs Path':<35} | {'Sub-routes'}")
+    domain_map = discover_api_domains()
+    print("\n==========================================================================")
+    print(" 📌 AntiGravity Backend API Domains & Route Hierarchy (Auto-Discovered)")
+    print("==========================================================================")
+    print(f"{'Domain':<16} | {'Docs Path':<32} | {'Sub-routes'}")
     print("-" * 75)
-    for domain, info in sorted(DOMAIN_MAP.items()):
-        subs = ", ".join(info.get("subs", [])) if "subs" in info else "-"
-        print(f"{domain:<16} | docs/api/{info['doc']:<26} | {subs}")
-    print("========================================================\n")
+    for domain, info in sorted(domain_map.items()):
+        subs = ", ".join(info.get("subs", [])) if info.get("subs") else "-"
+        print(f"{domain:<16} | docs/api/{info['doc']:<23} | {subs}")
+    print("==========================================================================\n")
 
 def cmd_get(args):
-    domain = args.domain.lower()
-    if domain not in DOMAIN_MAP:
+    domain_map = discover_api_domains()
+    raw_input = args.domain.strip()
+    
+    # 서브 라우트 직접 지정 (예: projects/members) 처리
+    sub_doc_target = None
+    if "/" in raw_input or "\\" in raw_input:
+        parts = re.split(r'[/\\]', raw_input)
+        domain = parts[0].lower()
+        sub_name = parts[1].lower().replace(".md", "") + ".md"
+        sub_doc_target = sub_name
+    else:
+        domain = raw_input.lower()
+
+    if domain not in domain_map:
         print(f"❌ 도메인 '{domain}'을(를) 찾을 수 없습니다.")
-        print(f"사용 가능한 도메인: {', '.join(sorted(DOMAIN_MAP.keys()))}")
+        print(f"현재 발견된 도메인: {', '.join(sorted(domain_map.keys()))}")
         return
 
-    info = DOMAIN_MAP[domain]
-    doc_path = os.path.join(DOCS_API_DIR, info["doc"])
+    info = domain_map[domain]
+    
+    if sub_doc_target:
+        doc_rel_path = f"{domain}/{sub_doc_target}"
+    else:
+        doc_rel_path = info["doc"]
+
+    doc_path = os.path.join(DOCS_API_DIR, doc_rel_path)
     module_path = os.path.join(SERVER_MODULES_DIR, info["module"])
 
     print(f"\n🏷️ [API Domain: {domain.upper()}]")
-    print(f"📖 문서 경로: docs/api/{info['doc']}")
+    print(f"📖 문서 경로: docs/api/{doc_rel_path}")
     print(f"💻 서버 모듈: workflow_server/src/modules/{info['module']}/\n")
 
     if os.path.exists(doc_path):
         with open(doc_path, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read().lstrip("\ufeff")
-            print("--- [ API Specification Summary ] ---")
+            print(f"--- [ API Specification: docs/api/{doc_rel_path} ] ---")
             lines = content.splitlines()
-            for line in lines[:35]:
+            for line in lines[:40]:
                 print(line)
-            if len(lines) > 35:
-                print(f"\n... (총 {len(lines)}줄, 전체 내용은 docs/api/{info['doc']} 참조)")
+            if len(lines) > 40:
+                print(f"\n... (총 {len(lines)}줄, 전체 내용은 docs/api/{doc_rel_path} 참조)")
     else:
-        print("⚠️ 문서 파일이 존재하지 않습니다.")
+        print(f"⚠️ 문서 파일({doc_path})이 존재하지 않습니다.")
+
+    if info.get("subs") and not sub_doc_target:
+        print(f"\n📑 추가 서브 라우트 문서:")
+        for s in info["subs"]:
+            print(f"   - docs/api/{domain}/{s} (조회: python api_inspector.py get {domain}/{s[:-3]})")
 
     if os.path.exists(module_path):
         routes_file = os.path.join(module_path, f"{info['module']}.routes.ts")
@@ -85,7 +154,7 @@ def cmd_get(args):
             with open(routes_file, "r", encoding="utf-8", errors="ignore") as f:
                 r_lines = f.read().lstrip("\ufeff").splitlines()
                 for line in r_lines:
-                    if "router." in line or "Router()" in line:
+                    if "router." in line or "Router()" in line or "Router = " in line:
                         print("  ", line.strip())
 
 def cmd_search(args):
