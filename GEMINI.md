@@ -57,5 +57,6 @@
   - `backend-developer`: Node.js + Express + TS + Prisma ORM 기반 백엔드(`workflow_server/`) 전담 개발자 에이전트.
   - `api-viewer`: `docs/api/` 및 백엔드 도메인 소스(`workflow_server/src/modules/`)를 분석하여 API 설명 및 세부 구현 동작을 안내하는 전담 뷰어 에이전트.
 - **Skills (`.agents/skills/`)**:
+  - `react-component-developer`: React 컴포넌트, 페이지, 훅, 컨텍스트 및 라이브러리 개발 표준 절차(디렉토리 규격, API 스펙 분석, 기능 설계, 서브 컴포넌트 모듈화 구현)를 안내하는 전담 개발 스킬.
   - `react-component-reviewer`: React 컴포넌트의 서브 컴포넌트 모듈화(400줄 제한), 모달 Colocation 및 Ghost State 누락 여부를 정적 분석하고 검증하는 스킬.
   - `api-spec-reader`: `docs/api/` 폴더를 실시간 스캔(Auto-Discovery)하고 `api_inspector.py`를 통해 API 엔드포인트/도메인 정보를 핀포인트로 조회/검색하는 실행 기술(Skill).
