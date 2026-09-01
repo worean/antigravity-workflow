@@ -1,4 +1,4 @@
-# 📌 AntiGravity Workflow System - Unified Agent Instructions
+﻿# 📌 AntiGravity Workflow System - Unified Agent Instructions
 
 ## 1. Project Context & Structure
 이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 백엔드 REST API 서버 프로젝트입니다:
@@ -46,3 +46,12 @@
 
 1. **Self-Annealing Loop**: 오류 및 컴파일 에러 발생 시 원인을 파악하여 자동 정정 테스트 후 보고합니다.
 2. **Modular Scalability**: 신규 기능 추가 시 거대한 단일 서비스 파일에 추가하지 않고, `services/{newAction}.service.ts` 전담 서비스 파일로 생성하여 확장합니다.
+
+---
+
+## 6. Custom Agents & Skills Architecture
+- **Agents (`.agents/agents/`)**:
+  - `api-viewer`: `docs/api/` 및 백엔드 도메인 소스(`workflow_server/src/modules/`)를 분석하여 API 설명 및 세부 구현 동작을 안내하는 전담 뷰어 에이전트.
+- **Skills (`.agents/skills/`)**:
+  - `api-spec-reader`: `docs/api/` 폴더를 실시간 스캔(Auto-Discovery)하고 `api_inspector.py`를 통해 API 엔드포인트/도메인 정보를 핀포인트로 조회/검색하는 실행 기술(Skill).
+
