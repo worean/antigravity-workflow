@@ -51,6 +51,8 @@
 
 ## 6. Custom Agents & Skills Architecture
 - **Agents (`.agents/agents/`)**:
+  - `fe-developer`: React 18 + Vite + TS + TanStack Query 기반 프론트엔드(`workflow_react/`) 전담 개발자 에이전트.
+  - `be-developer`: Node.js + Express + TS + Prisma ORM 기반 백엔드(`workflow_server/`) 전담 개발자 에이전트.
   - `api-viewer`: `docs/api/` 및 백엔드 도메인 소스(`workflow_server/src/modules/`)를 분석하여 API 설명 및 세부 구현 동작을 안내하는 전담 뷰어 에이전트.
 - **Skills (`.agents/skills/`)**:
   - `api-spec-reader`: `docs/api/` 폴더를 실시간 스캔(Auto-Discovery)하고 `api_inspector.py`를 통해 API 엔드포인트/도메인 정보를 핀포인트로 조회/검색하는 실행 기술(Skill).

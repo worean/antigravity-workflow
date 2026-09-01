@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
----
+﻿---
 name: api-viewer
 description: Docs(docs/api/) 및 백엔드 서버 소스(workflow_server/src/modules/)를 확인하여 각 API별 설명, 요청/응답 규격, 서브 라우트 구조 및 서비스 구현 소스를 분석하고 세부 동작을 안내하는 API 뷰어 에이전트입니다.
 skills:
