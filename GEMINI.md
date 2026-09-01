@@ -1,9 +1,11 @@
-﻿# 📌 AntiGravity Workflow System - Unified Agent Instructions
+﻿// -*- coding: utf-8 -*-
+# 📌 AntiGravity Workflow System - Unified Agent Instructions
 
 ## 1. Project Context & Structure
-이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 백엔드 REST API 서버 프로젝트입니다:
+이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 풀스택 웹 애플리케이션 프로젝트입니다:
 
 - **`workflow_server/`**: Node.js + Express + TypeScript + Prisma ORM 기반의 백엔드 REST API 프로젝트
+- **`workflow_react/`**: React 18 + TypeScript + Vite + TanStack Query 기반의 프론트엔드 SPA 웹 애플리케이션
 
 ---
 
@@ -21,20 +23,45 @@
 
 ---
 
-## 3. Sub-Service Unit Testing Standards (`src/tests/`)
+## 3. Frontend Architecture & Development Standards (`workflow_react/`)
+
+### 3.1 Directory Structure
+- **`src/api/`**: 도메인별 Axios REST API 통신 및 TanStack Query 커스텀 훅 (`auth`, `issues`, `projects`, `tags`, `sprints` 등).
+- **`src/components/`**: 
+  - `common/`: 공통 UI 컴포넌트 (`Button`, `Card`, `TagBadge`, `TagInput`, `ModalWrapper` 등).
+  - `kanban/`: 칸반 보드 컬럼, 카드, 다중 필터바 컴포넌트.
+  - `issueDetail/`: 이슈 상세 뷰/드로어, 인라인 에디터, 댓글/대댓글 트리, 작업로그.
+  - `chat/`, `dashboard/`, `layout/`: 실시간 채팅, 대시보드 위젯, 네비게이션 레이아웃.
+- **`src/context/`**: 전역 상태 컨텍스트 (`AuthContext`, `WorkspaceContext`).
+- **`src/types/`**: TypeScript 모델 및 DTO 인터페이스 정의.
+- **`src/utils/`**: 임시저장소(`draftStorage.ts`), 날짜 포맷터, 색상/태그 헬퍼.
+
+### 3.2 State Management & Smooth Rendering Policy
+- **Server State (TanStack Query v5)**:
+  - `placeholderData: (previousData) => previousData`를 적용하여 데이터 페칭 간 깜빡임(Blinking)을 방지합니다.
+  - `setQueriesData`를 활용한 In-place 캐시 즉시 갱신(Optimistic / Smooth Updates)을 우선 적용합니다.
+  - 컴포넌트의 불필요한 전체 리마운트(key 강제 변경)를 지양하고 내부 상태의 부드러운 전환을 보장합니다.
+- **Draft Persistence (`draftStorage.ts`)**:
+  - 이슈/프로젝트 생성 및 편집 폼은 `localStorage`에 600ms 디바운스로 자동 임시 저장되며, 재진입 시 복원 배너를 제공합니다.
+- **Design Tokens & Theme**:
+  - CSS Variables 기반의 다크 모던 테크(VS Code / Linear 스타일) 시스템을 준수합니다.
+
+---
+
+## 4. Sub-Service Unit Testing Standards (`src/tests/`)
 
 신규 기능 개발 및 이슈 수정 시 다음 단위 테스트 작성 지침을 엄격히 준수해야 합니다:
 
 1. **테스트 파일 위치**: 모든 테스트 코드는 `src/tests/` 디렉터리 하위에 작성합니다.
 2. **Service 단위 및 경우의 수(Use-Case) 검증**: 테스트 코드는 Sub-Service 단위로 작성되며, 해당 서비스에서 제공하는 다양한 경우의 수(성공, 실패, 예외, 경계 조건 등)에 맞춰 테스트를 진행합니다.
 3. **파일명 명명 규칙**: `{domain}.{service}.test.ts` 파일명을 엄격히 준수합니다.
-   - `domain`: 서비스가 속한 범주 (예: `auth`, `projects`, `issues` 등)
-   - `service`: 대상 서비스 기능 명칭 (예: `jwtAuth`, `createProject`, `emailLogin` 등)
-   - **예시**: `src/tests/auth.jwtAuth.test.ts`, `src/tests/projects.createProject.test.ts`
+   - `domain`: 서비스가 속한 범주 (예: `auth`, `projects`, `issues`, `tags` 등)
+   - `service`: 대상 서비스 기능 명칭 (예: `jwtAuth`, `createProject`, `getTags` 등)
+   - **예시**: `src/tests/auth.jwtAuth.test.ts`, `src/tests/tags.getTags.test.ts`
 
 ---
 
-## 4. Language & File Encoding Standards
+## 5. Language & File Encoding Standards
 
 - **한국어 우선**: 모든 질의응답 및 설명, 마크다운 문서는 한국어로 진행합니다.
 - **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서 파일은 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다. (단, JSON 파일 및 CLI 패키지 파일은 파싱 호환성을 위해 Plain UTF-8 적용)
@@ -42,16 +69,15 @@
 
 ---
 
-## 5. Operating Principles
+## 6. Operating Principles
 
 1. **Self-Annealing Loop**: 오류 및 컴파일 에러 발생 시 원인을 파악하여 자동 정정 테스트 후 보고합니다.
 2. **Modular Scalability**: 신규 기능 추가 시 거대한 단일 서비스 파일에 추가하지 않고, `services/{newAction}.service.ts` 전담 서비스 파일로 생성하여 확장합니다.
 
 ---
 
-## 6. Custom Agents & Skills Architecture
+## 7. Custom Agents & Skills Architecture
 - **Agents (`.agents/agents/`)**:
   - `api-viewer`: `docs/api/` 및 백엔드 도메인 소스(`workflow_server/src/modules/`)를 분석하여 API 설명 및 세부 구현 동작을 안내하는 전담 뷰어 에이전트.
 - **Skills (`.agents/skills/`)**:
   - `api-spec-reader`: `docs/api/` 폴더를 실시간 스캔(Auto-Discovery)하고 `api_inspector.py`를 통해 API 엔드포인트/도메인 정보를 핀포인트로 조회/검색하는 실행 기술(Skill).
-
