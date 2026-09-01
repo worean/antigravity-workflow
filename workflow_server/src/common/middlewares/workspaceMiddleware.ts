@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 import { Request, Response, NextFunction } from 'express';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';

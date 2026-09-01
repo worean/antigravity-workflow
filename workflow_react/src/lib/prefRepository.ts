@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import type { User } from '@/types';
+﻿import type { User } from '@/types';
 
 /**
  * 🛠️ 앱 환경설정 데이터 스키마 (App Preference Schema)

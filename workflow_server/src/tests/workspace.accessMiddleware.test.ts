@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import express, { Request, Response } from 'express';
 import request from 'supertest';

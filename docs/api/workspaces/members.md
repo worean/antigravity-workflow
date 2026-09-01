@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 👥 Workspace Members API (`/api/workspaces/:id/members`)
+﻿# 👥 Workspace Members API (`/api/workspaces/:id/members`)
 
 워크스페이스 내 멤버 목록 및 퇴출(제거)을 담당하는 서브 라우트입니다.
 

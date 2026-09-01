@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '#lib/prisma.js';
 import { createProjectService } from '../modules/projects/services/createProject.service.js';
 import { getProjectService } from '../modules/projects/services/getProject.service.js';

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import axios from 'axios';
+﻿import axios from 'axios';
 import type { HealthStatus } from '@/types';
 import { prefRepository } from '@/lib/prefRepository';
 

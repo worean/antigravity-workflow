@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🏛️ WorkspaceContext 기반 UI/편집 상태 관리 및 영속성 아키텍처
+﻿# 🏛️ WorkspaceContext 기반 UI/편집 상태 관리 및 영속성 아키텍처
 
 > **문서 버전**: v1.1.0  
 > **최종 갱신**: 2026-08-31  

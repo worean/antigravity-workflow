@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import { extractTags, getTagColor } from '../modules/tags/services/extractTags.js';
 
 describe('Tags Service - extractTags Unit Tests', () => {

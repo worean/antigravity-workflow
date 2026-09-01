@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📌 AntiGravity Workflow System - Unified Agent Instructions
+﻿# 📌 AntiGravity Workflow System - Unified Agent Instructions
 
 ## 1. Project Context & Reference Architecture
 이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 풀스택 웹 애플리케이션입니다:

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Building2, Trash2, X } from 'lucide-react';
 import type { Project, Group } from '@/types';
 import { Button } from '@/components/common';

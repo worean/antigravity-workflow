@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, TreeDropTarget } from '@/types/wbs';
 import {

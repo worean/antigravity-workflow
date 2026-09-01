@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 import React, { useState } from 'react';
 import { UserPlus, X, Send, Copy, Check, KeyRound } from 'lucide-react';
 import { useWorkspace } from '@/context/WorkspaceContext';

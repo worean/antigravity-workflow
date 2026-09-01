@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Worklog, User } from '@/types';
 import { Card, Spinner } from '@/components/common';
 import { WorklogListItem } from './WorklogListItem';

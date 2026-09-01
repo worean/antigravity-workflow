@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import crypto from 'crypto';
+﻿import crypto from 'crypto';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 

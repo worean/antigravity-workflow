@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { getChannelsService } from './services/getChannels.service.js';
 import { createChannelService } from './services/createChannel.service.js';
 import { getMessagesService } from './services/getMessages.service.js';

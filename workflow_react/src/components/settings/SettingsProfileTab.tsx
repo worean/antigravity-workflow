@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useRef } from 'react';
+﻿import React, { useRef } from 'react';
 import type { User as UserType } from '@/types';
 import {
   Camera,

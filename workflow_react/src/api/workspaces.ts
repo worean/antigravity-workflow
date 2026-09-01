@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { apiClient } from '@/lib/apiClient';
+﻿import { apiClient } from '@/lib/apiClient';
 import type { Workspace, WorkspaceDetail, WorkspaceMember } from '@/types';
 
 export const workspaceKeys = {

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const updateMemberRoleService = async (projectId: number, userId: number, role: string, actorUserId?: number) => {
   if (!projectId || !userId || !role) throw new Error('projectId, userId, and role are required');

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as chatController from './chat.controller.js';
 import { requireAuth } from '../../common/middlewares/authMiddleware.js';
 

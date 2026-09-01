@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# ❤️ Issue Reactions & Likes API (`/api/issues/toggle-like`)
+﻿# ❤️ Issue Reactions & Likes API (`/api/issues/toggle-like`)
 
 이슈에 대한 좋아요(Like) 등록 및 토글 처리를 담당하는 서브 라우트입니다.
 

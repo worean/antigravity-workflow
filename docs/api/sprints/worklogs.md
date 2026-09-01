@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# ⏱️ Sprint Worklogs API (`/api/sprints/:id/worklogs`)
+﻿# ⏱️ Sprint Worklogs API (`/api/sprints/:id/worklogs`)
 
 스프린트에 포함된 이슈들의 총 작업 소요 시간 및 팀원별 작업 기여도를 집계하는 서브 라우트입니다.
 

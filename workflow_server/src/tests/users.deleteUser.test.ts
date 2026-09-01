@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: users / Service: deleteUser]
  * - 기능: 사용자 계정 삭제 REST API 단위 테스트
  * - 경우의 수: 계정 삭제 성공 (200 OK), 존재하지 않는 유저 ID 삭제 요청 예외 (400 Bad Request)

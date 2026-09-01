@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🎯 Sprint Issues Assignment API (`/api/sprints/:id/issues`)
+﻿# 🎯 Sprint Issues Assignment API (`/api/sprints/:id/issues`)
 
 백로그 이슈들을 특정 스프린트로 할당하거나 제외하는 서브 라우트입니다.
 

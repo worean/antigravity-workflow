@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: sprints / Service: assignIssuesAndDates]
  * - 기능: 스프린트 이슈 할당/해제 및 이슈 일정 기반 시작일/기한 자동 계산 단위/API 테스트
  * - 경우의 수:

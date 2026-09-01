@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📨 Chat Messages API (`/api/chat/channels/:channelId/messages`)
+﻿# 📨 Chat Messages API (`/api/chat/channels/:channelId/messages`)
 
 특정 채널의 메시지 히스토리 조회, 메시지 전송 및 읽음 처리를 담당하는 서브 라우트입니다.
 

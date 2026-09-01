@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { useState, useEffect, useCallback, type RefObject } from 'react';
+﻿import { useState, useEffect, useCallback, type RefObject } from 'react';
 import type { Project, Sprint, Issue } from '@/types';
 import { getProjects, getSprints, getIssues } from '@/services/api';
 

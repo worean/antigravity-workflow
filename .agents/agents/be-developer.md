@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
----
+﻿---
 name: be-developer
 description: Node.js + Express + TypeScript + Prisma ORM 기반의 백엔드(workflow_server/) 전담 개발자 에이전트입니다. 3-Tier 모듈러 아키텍처, Sub-Service, REST API, 트랜잭션 및 Vitest 단위 테스트를 전담합니다.
 skills:

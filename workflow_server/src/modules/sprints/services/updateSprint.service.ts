@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const updateSprintService = async (id: number, data: any) => {
   if (!id) throw new Error('Sprint ID is required');

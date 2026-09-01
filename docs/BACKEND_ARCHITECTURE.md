@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🏛️ AntiGravity Workflow System - Backend Server Architecture
+﻿# 🏛️ AntiGravity Workflow System - Backend Server Architecture
 
 ## 1. System Overview & Technology Stack
 

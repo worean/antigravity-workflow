@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: users / Service: getUsers]
  * - 기능: 전체 사용자 목록 조회 REST API 단위 테스트
  * - 경우의 수: 사용자 목록 배열 정상 반환 (200 OK)

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# ⭐ Favorites API (`/api/favorites`)
+﻿# ⭐ Favorites API (`/api/favorites`)
 
 프로젝트, 이슈, 스프린트, 채팅 채널 등에 대한 사용자별 즐겨찾기 등록/해제(토글) 및 조회를 담당합니다.
 

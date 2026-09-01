@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { createSprintService } from './services/createSprint.service.js';
 import { getSprintsService } from './services/getSprints.service.js';
 import { getSprintService } from './services/getSprint.service.js';

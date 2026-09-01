@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: issues / Service: fullWorkflowLifecycle]
  * - 기능: 이슈 생성 ➔ 댓글 작성 ➔ 좋아요/취소 ➔ 상태 변경 라이프사이클 통합 시나리오 테스트
  */

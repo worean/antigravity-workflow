@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToggleFavorite } from '@/api/favorites';

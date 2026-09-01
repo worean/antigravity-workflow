@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { memo } from 'react';
+﻿import React, { memo } from 'react';
 import { Crown } from 'lucide-react';
 import type { ChatChannel, User } from '@/types';
 import { Avatar } from '@/components/common';

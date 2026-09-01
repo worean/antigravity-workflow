@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const removeMemberService = async (projectId: number, userId: number, actorUserId?: number) => {
   if (!projectId || !userId) throw new Error('projectId and userId are required');

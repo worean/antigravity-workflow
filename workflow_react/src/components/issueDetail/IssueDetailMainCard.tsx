@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Issue, User, Project, CustomFieldDefinition } from '@/types';
 import { IssueDetailView } from './IssueDetailView';
 import { IssueDetailEditForm } from './IssueDetailEditForm';

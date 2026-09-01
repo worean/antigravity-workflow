@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { ArrowLeft, Play, CheckCircle2, RotateCcw, Edit3, Trash2 } from 'lucide-react';
 import type { Sprint } from '@/types';
 import { Button, StatusBadge, ProjectBadge, FavoriteButton } from '@/components/common';

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import jwt from 'jsonwebtoken';
+﻿import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { prisma } from '#lib/prisma.js';
 

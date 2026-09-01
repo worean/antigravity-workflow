@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Server as SocketIOServer, Socket } from 'socket.io';
+﻿import { Server as SocketIOServer, Socket } from 'socket.io';
 import http from 'http';
 import https from 'https';
 import jwt from 'jsonwebtoken';

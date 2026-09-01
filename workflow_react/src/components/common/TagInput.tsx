@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Hash } from 'lucide-react';
 import { useTags } from '@/api/tags';
 import { TagBadge } from './TagBadge';

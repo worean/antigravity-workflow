@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🏢 Project Groups API (`/api/projects/:id/groups`)
+﻿# 🏢 Project Groups API (`/api/projects/:id/groups`)
 
 프로젝트에 부서나 그룹(팀) 단위로 권한을 부여하고 관리하는 서브 라우트입니다.
 

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Zap } from 'lucide-react';
 import type { Sprint } from '@/types';
 import type { SprintStatusFilter } from './SprintToolbar';

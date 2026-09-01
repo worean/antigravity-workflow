@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: issues / Service: updateIssue]
  * - 기능: 이슈 정보(제목, 내용, 진척도 등) 수정 REST API 단위 테스트
  * - 경우의 수: 이슈 정보 변경 성공 (200 OK), 존재하지 않는 이슈 ID 수정 요청 예외 (404/400 Bad Request)

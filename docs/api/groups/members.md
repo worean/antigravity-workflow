@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 👥 Group Members API (`/api/groups/:id/members`)
+﻿# 👥 Group Members API (`/api/groups/:id/members`)
 
 부서 및 그룹에 사용자를 소속시키고 직책/역할을 부여하는 서브 라우트입니다.
 

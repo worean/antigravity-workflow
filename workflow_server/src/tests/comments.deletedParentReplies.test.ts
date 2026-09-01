@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: comments / Service: deletedParentReplies]
  * - 기능: 상위 댓글이 삭제되었을 때 대댓글 보존 및 가상 부모 표현 단위 및 REST API 테스트
  * - 경우의 수:

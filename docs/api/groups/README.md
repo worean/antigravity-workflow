@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🏢 Groups & Organization API (`/api/groups`)
+﻿# 🏢 Groups & Organization API (`/api/groups`)
 
 회사 조직도, 본부/팀/부서 계층 구조(Hierarchy) 및 그룹 관리를 담당합니다.
 

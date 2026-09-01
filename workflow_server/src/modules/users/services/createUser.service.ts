@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import bcrypt from 'bcryptjs';
+﻿import bcrypt from 'bcryptjs';
 import { prisma } from '#lib/prisma.js';
 
 export const createUserService = async (data: {

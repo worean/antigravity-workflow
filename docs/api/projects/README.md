@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📁 Projects API (`/api/projects`)
+﻿# 📁 Projects API (`/api/projects`)
 
 통합 프로젝트 관리 시스템의 기본 CRUD 및 다중 필터링 조회를 담당합니다.
 

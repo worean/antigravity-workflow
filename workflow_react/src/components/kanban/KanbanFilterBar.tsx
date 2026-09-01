@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Filter, Search, Plus } from 'lucide-react';
 import type { Project, User } from '@/types';
 import { useTags } from '@/api/tags';

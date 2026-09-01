@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🌐 AntiGravity Backend REST API Overview
+﻿# 🌐 AntiGravity Backend REST API Overview
 
 ## 1. 개요
 AntiGravity 백엔드 서버는 **Node.js + Express + TypeScript + Prisma ORM** 기반의 3-Tier 모듈형 REST API 서버입니다.

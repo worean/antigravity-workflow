@@ -1,5 +1,4 @@
-﻿# -*- coding: utf-8 -*-
-"""
+﻿"""
 AntiGravity API Spec & Source Inspector CLI
 Docs(/docs/api)와 Backend(/workflow_server/src/modules)의 API 명세 및 구현 소스를 빠르게 검색/조회하는 헬퍼 도구입니다.
 """

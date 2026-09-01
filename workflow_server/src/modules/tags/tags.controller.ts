@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { getTagsService } from './services/getTags.service.js';
 import { createTagService } from './services/createTag.service.js';
 import { deleteTagService } from './services/deleteTag.service.js';

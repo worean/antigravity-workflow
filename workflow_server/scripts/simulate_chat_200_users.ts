@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🚀 [AntiGravity Chat Simulation] 200-User Concurrent Chat & Smart Notification Throttler Benchmark
  */
 

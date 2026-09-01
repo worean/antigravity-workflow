@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📎 Attachments API (`/api/attachments`)
+﻿# 📎 Attachments API (`/api/attachments`)
 
 이슈 파일 첨부, Base64/바이너리 업로드 및 조회를 담당합니다.
 

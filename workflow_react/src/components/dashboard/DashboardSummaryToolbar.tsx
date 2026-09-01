@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Terminal, RefreshCw, LogIn, Plus } from 'lucide-react';
 import type { User } from '@/types';
 import { Button, Avatar } from '@/components/common';

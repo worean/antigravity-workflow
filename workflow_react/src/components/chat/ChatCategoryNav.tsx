@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { memo } from 'react';
+﻿import React, { memo } from 'react';
 import { MessageSquare, Plus } from 'lucide-react';
 import type { ChannelType } from '@/types';
 

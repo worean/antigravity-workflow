@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-export * from './ChatCategoryNav';
+﻿export * from './ChatCategoryNav';
 export * from './ChatChannelSidebar';
 export * from './ChatHeader';
 export * from './ChatMessageList';

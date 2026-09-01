@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 

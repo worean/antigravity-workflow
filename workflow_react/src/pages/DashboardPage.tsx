@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import type { Issue } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';

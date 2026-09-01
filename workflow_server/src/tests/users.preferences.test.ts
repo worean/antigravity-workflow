@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '#lib/prisma.js';
 import { updateUserService } from '../modules/users/services/updateUser.service.js';
 import { getUserService } from '../modules/users/services/getUser.service.js';

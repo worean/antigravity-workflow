@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📋 Issues API (`/api/issues`)
+﻿# 📋 Issues API (`/api/issues`)
 
 일감(Issue) 생성, 조회, 수정, 삭제 및 태그/스케줄 관리를 담당하는 핵심 API입니다.
 

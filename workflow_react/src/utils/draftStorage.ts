@@ -1,6 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-
-export interface IssueDraft {
+﻿export interface IssueDraft {
   title?: string;
   description?: string;
   projectId?: number;

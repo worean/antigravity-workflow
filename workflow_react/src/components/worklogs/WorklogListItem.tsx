@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { CheckSquare, Clock } from 'lucide-react';
 import type { Worklog, User } from '@/types';
 import { UserBadge } from '@/components/common';

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Folder, LogIn, Sliders, Plus } from 'lucide-react';
 import { Button } from '@/components/common';
 

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 😀 Comment Reactions API (`/api/comments/:id/reactions`)
+﻿# 😀 Comment Reactions API (`/api/comments/:id/reactions`)
 
 댓글에 이모지 반응(👍, ❤️, 🎉 등)을 추가하거나 취소(토글)하는 서브 라우트입니다.
 

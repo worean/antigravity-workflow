@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 👥 Project Members API (`/api/projects/:id/members`)
+﻿# 👥 Project Members API (`/api/projects/:id/members`)
 
 프로젝트에 참여하는 멤버를 추가하고, 역할을 변경하거나 제외하는 서브 라우트입니다.
 

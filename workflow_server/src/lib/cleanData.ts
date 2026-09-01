@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from './prisma.js';
+﻿import { prisma } from './prisma.js';
 import { seedDatabase } from './seed.js';
 
 export async function cleanAllExceptAdmin() {

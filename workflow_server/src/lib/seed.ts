@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 import path from 'path';
 import { globalPrisma } from './globalPrisma.js';
 import { workspaceManager } from './workspaceManager.js';

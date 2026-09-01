@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Sprint } from '@/types';
 import { Card, Spinner } from '@/components/common';
 import { SprintCard } from './SprintCard';

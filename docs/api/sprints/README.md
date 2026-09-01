@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🏃 Sprints API (`/api/sprints`)
+﻿# 🏃 Sprints API (`/api/sprints`)
 
 애자일 스크럼 스프린트 생성, 기간 설정, 번다운 및 스프린트 주기를 관리합니다.
 

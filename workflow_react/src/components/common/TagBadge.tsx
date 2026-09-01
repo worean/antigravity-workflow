@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Hash } from 'lucide-react';
 import type { Tag } from '@/types';
 

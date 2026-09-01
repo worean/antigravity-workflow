@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# ✉️ Workspace Invitations API (`/api/workspaces/invitations`)
+﻿# ✉️ Workspace Invitations API (`/api/workspaces/invitations`)
 
 워크스페이스 초대 링크(토큰) 생성, 초대장 목록 조회 및 초대 수락을 통한 가입을 담당하는 서브 라우트입니다.
 

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 export const SettingsHeaderToolbar: React.FC = () => {

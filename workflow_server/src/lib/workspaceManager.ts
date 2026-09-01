@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 import { PrismaClient as WorkspacePrismaClient, Prisma as WorkspacePrisma } from '../generated/workspace-client/index.js';
 

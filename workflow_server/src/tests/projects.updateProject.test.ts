@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: projects / Service: updateProject]
  * - 기능: 프로젝트 정보(이름, 설명 등) 수정 REST API 단위 테스트
  * - 경우의 수: 프로젝트 수정 성공 (200 OK), 존재하지 않는 프로젝트 ID 수정 요청 예외 (404/400 Bad Request)

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { globalPrisma } from '#lib/globalPrisma.js';
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
 
 export const getInvitationsService = async (workspaceId: number) => {
   if (!workspaceId) throw new Error('Workspace ID is required');

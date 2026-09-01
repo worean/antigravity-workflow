@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📅 Batch Schedules API (`/api/issues/batch-schedules`)
+﻿# 📅 Batch Schedules API (`/api/issues/batch-schedules`)
 
 WBS나 Gantt 차트에서 여러 일감의 시작 계획일(`plannedStartDate`)과 마감일(`dueDate`)을 한 번의 요청으로 일괄 변경하는 서브 라우트입니다.
 

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma, type PrismaTx } from '#lib/prisma.js';
+﻿import { prisma, type PrismaTx } from '#lib/prisma.js';
 
 export const getChannelsService = async (userId: number, tx?: PrismaTx) => {
   if (!userId) throw new Error('User ID is required');

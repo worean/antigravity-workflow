@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '#lib/prisma.js';
 import { toggleFavoriteService } from '../modules/favorites/services/toggleFavorite.service.js';
 import { getFavoritesService } from '../modules/favorites/services/getFavorites.service.js';

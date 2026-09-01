@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { FolderKanban, Plus, LogIn } from 'lucide-react';
 import type { Project } from '@/types';
 import { Button, Card, Spinner } from '@/components/common';

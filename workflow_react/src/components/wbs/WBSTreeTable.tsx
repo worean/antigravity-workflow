@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, type RefObject } from 'react';
+﻿import React, { useState, type RefObject } from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, TreeDropTarget } from '@/types/wbs';
 import { WBSTreeRow } from './WBSTreeRow';

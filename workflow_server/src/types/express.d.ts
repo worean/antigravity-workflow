@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 import type { User as GlobalUser, Workspace as GlobalWorkspace } from '../generated/global-client/index.js';
 import type { PrismaClient as WorkspacePrismaClient } from '../generated/workspace-client/index.js';
 

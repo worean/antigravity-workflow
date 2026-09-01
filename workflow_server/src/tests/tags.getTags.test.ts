@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '#lib/prisma.js';
 import { getTagsService } from '../modules/tags/services/getTags.service.js';
 import { createTagService } from '../modules/tags/services/createTag.service.js';

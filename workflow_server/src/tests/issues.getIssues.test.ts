@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: issues / Service: getIssues]
  * - 기능: 전체 이슈 목록 조회 REST API 단위 테스트
  * - 경우의 수: 전체 이슈 목록 배열 정상 반환 (200 OK)

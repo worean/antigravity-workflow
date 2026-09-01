@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📜 Activity Logs API (`/api/activity-logs`)
+﻿# 📜 Activity Logs API (`/api/activity-logs`)
 
 시스템 전반의 CRUD 활동 감사 로그(누가, 언제, 어떤 엔티티를 변경했는지) 조회를 담당합니다.
 

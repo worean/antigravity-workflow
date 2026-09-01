@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { PrismaClient as GlobalPrismaClient, Prisma as GlobalPrisma } from '../generated/global-client/index.js';
+﻿import { PrismaClient as GlobalPrismaClient, Prisma as GlobalPrisma } from '../generated/global-client/index.js';
 
 export const getGlobalPrismaClient = () => {
   return new GlobalPrismaClient({

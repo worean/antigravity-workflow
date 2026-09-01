@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🔑 Authentication API (`/api/auth`)
+﻿# 🔑 Authentication API (`/api/auth`)
 
 사용자 인증, 소셜(Google) 로그인, 이메일 로그인 및 현재 세션 정보 조회를 담당합니다.
 

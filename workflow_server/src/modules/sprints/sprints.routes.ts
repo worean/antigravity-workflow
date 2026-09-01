@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as sprintsController from './sprints.controller.js';
 import { requireAuth, optionalAuth } from '../../common/middlewares/authMiddleware.js';
 

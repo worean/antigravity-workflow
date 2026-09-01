@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 😃 Chat Reactions API (`/api/chat/messages/:messageId/reactions`)
+﻿# 😃 Chat Reactions API (`/api/chat/messages/:messageId/reactions`)
 
 채팅 메시지에 이모지 반응(👍, ❤️, 🚀 등)을 토글하는 서브 라우트입니다.
 

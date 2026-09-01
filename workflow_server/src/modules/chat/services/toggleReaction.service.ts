@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 import { broadcastToChannel } from '../../../lib/socket.js';
 
 export const toggleReactionService = async (messageId: number, userId: number, emoji: string) => {

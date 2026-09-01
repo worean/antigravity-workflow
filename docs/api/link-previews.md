@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🔗 Link Previews API (`/api/link-previews`)
+﻿# 🔗 Link Previews API (`/api/link-previews`)
 
 외부 웹페이지 링크의 OpenGraph 메타데이터(제목, 설명, 썸네일 이미지) 추출 및 캐시 저장을 담당합니다.
 

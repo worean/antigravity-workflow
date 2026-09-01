@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { toggleFavoriteService } from './services/toggleFavorite.service.js';
 import { getFavoritesService } from './services/getFavorites.service.js';
 

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 💬 Comments API (`/api/comments`)
+﻿# 💬 Comments API (`/api/comments`)
 
 이슈의 댓글 및 계층형 대댓글(Thread) 등록, 조회, 삭제를 담당합니다.
 

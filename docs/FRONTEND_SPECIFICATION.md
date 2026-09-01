@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📌 AntiGravity Frontend Specification (프론트엔드 설계 사양서)
+﻿# 📌 AntiGravity Frontend Specification (프론트엔드 설계 사양서)
 
 ## 1. 개요
 AntiGravity Workflow 프론트엔드는 **React 18 + TypeScript + Vite + TanStack Query** 기반의 이슈 및 일감 관리(Issue & Task Management) SPA 시스템입니다.

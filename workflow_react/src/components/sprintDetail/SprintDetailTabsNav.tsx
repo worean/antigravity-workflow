@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { MessageSquare, Clock, FileText, Layers } from 'lucide-react';
 
 export type SprintDetailTabType = 'discussions' | 'worklogs' | 'notes' | 'issues';

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Star, ArrowUpRight } from 'lucide-react';
 import type { Issue } from '@/types';
 import { Button, CountBadge, StatusBadge, ProjectBadge } from '@/components/common';

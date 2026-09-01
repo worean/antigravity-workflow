@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import fs from 'fs';
+﻿import fs from 'fs';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 

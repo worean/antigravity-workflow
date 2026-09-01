@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { type RefObject } from 'react';
+﻿import React, { type RefObject } from 'react';
 import type { TopHeader, BottomHeaders } from '@/types/wbs';
 
 interface WBSGanttHeaderProps {

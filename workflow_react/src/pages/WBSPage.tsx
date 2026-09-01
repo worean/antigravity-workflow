@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Issue } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Spinner } from '@/components/common';

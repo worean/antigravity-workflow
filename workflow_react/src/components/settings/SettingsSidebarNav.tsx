@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { User, Layers, Users, Sliders, Palette, Server } from 'lucide-react';
 
 export type SettingsTabType = 'profile' | 'workspace' | 'organization' | 'customFields' | 'display' | 'system';

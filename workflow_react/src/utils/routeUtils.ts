@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-export type RootTabType =
+﻿export type RootTabType =
   | 'dashboard'
   | 'projects'
   | 'issues'

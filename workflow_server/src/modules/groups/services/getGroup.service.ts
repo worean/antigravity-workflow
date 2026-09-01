@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const getGroupService = async (id: number, currentUser?: any) => {
   if (!id) throw new Error('Group ID is required');

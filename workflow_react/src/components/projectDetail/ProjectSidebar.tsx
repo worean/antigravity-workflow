@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Project } from '@/types';
 import { Avatar, StatusBadge, PriorityBadge } from '@/components/common';
 import { formatDateOnly, getDDayStatus } from '@/utils/dateUtils';

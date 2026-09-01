@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const updateProjectService = async (id: number, data: any, modifierUserId?: number) => {
   if (!id) throw new Error('Project ID is required');

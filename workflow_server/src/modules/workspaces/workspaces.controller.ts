@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { createWorkspaceService } from './services/createWorkspace.service.js';
 import { getMyWorkspacesService } from './services/getMyWorkspaces.service.js';
 import { getWorkspaceDetailService } from './services/getWorkspaceDetail.service.js';

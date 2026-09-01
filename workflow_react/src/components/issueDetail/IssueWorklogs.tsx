@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { Clock, Plus } from 'lucide-react';
 import type { Worklog } from '@/types';
 import { Avatar } from '@/components/common';

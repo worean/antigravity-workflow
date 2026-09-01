@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# ⏱️ Worklogs API (`/api/worklogs`)
+﻿# ⏱️ Worklogs API (`/api/worklogs`)
 
 이슈별 작업 시간(분 단위 정수 및 시간 단위 소수점) 기록 및 조회를 담당합니다.
 

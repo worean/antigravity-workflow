@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Project } from '@/types';
 import { MarkdownViewer, MarkdownEditor } from '@/components/common';
 

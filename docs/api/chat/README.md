@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 💬 Chat & Realtime Messaging API (`/api/chat`)
+﻿# 💬 Chat & Realtime Messaging API (`/api/chat`)
 
 프로젝트 및 팀 협업을 위한 실시간 채팅 채널, 메시지 송수신, 읽음 처리 및 이모지 반응 API입니다.
 

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 💬 Sprint Discussions API (`/api/sprints/:id/discussions`)
+﻿# 💬 Sprint Discussions API (`/api/sprints/:id/discussions`)
 
 스프린트에 할당된 모든 이슈들의 댓글 및 논의 내용을 한눈에 집계하여 조회하는 서브 라우트입니다.
 

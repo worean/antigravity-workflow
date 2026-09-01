@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { io, Socket } from 'socket.io-client';
+﻿import { io, Socket } from 'socket.io-client';
 import { getCurrentBackendHostUrl } from './apiClient';
 import { prefRepository } from './prefRepository';
 

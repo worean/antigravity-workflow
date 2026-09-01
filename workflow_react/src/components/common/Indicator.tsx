@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // 1. Loading Spinner Component with Debounce / Delay Support

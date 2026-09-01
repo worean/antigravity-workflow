@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Layers, MessageSquare, Clock, FileText, AlertCircle } from 'lucide-react';
 import type { Sprint, Issue, User } from '@/types';
 import { ModalWrapper, Button, StatusBadge } from '@/components/common';

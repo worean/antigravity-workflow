@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 
 export interface UseDelayedLoadingOptions {
   delayMs?: number;       // 스피너 노출 지연 시간 (기본: 1000ms = 1초)

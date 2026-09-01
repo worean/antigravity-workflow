@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Issue, User } from '@/types';
 import { STATUS_LIST, parseStatusCategory } from '@/utils/statusUtils';
 import { KanbanColumn } from './KanbanColumn';

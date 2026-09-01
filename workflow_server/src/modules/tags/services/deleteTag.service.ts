@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma, type PrismaTx } from '#lib/prisma.js';
+﻿import { prisma, type PrismaTx } from '#lib/prisma.js';
 
 export const deleteTagService = async (id: number, tx?: PrismaTx) => {
   const db = tx ?? prisma;

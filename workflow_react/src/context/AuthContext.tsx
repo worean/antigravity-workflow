@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/types';
 import { getMe, loginEmail, registerUser } from '@/services/api';
 import { queryClient } from '@/lib/queryClient';

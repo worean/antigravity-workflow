@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useRef, useEffect, useCallback } from 'react';
+﻿import React, { useRef, useEffect, useCallback } from 'react';
 import { Send, Paperclip, AtSign, X, Loader2 } from 'lucide-react';
 import type { ChatChannel } from '@/types';
 import { Button } from '@/components/common';

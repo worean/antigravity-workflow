@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🎨 AntiGravity Frontend Design System & UI Guide (디자인 및 UI 가이드)
+﻿# 🎨 AntiGravity Frontend Design System & UI Guide (디자인 및 UI 가이드)
 
 ## 1. 디자인 철학 및 비주얼 테마
 - **Dark Modern Tech**: VS Code / Linear 스타일의 딥 다크 테마 기반으로 시각적 피로도를 최소화하고 일감 및 코드 가독성을 극대화합니다.

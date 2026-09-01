@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
----
+﻿---
 name: fe-developer
 description: React 18 + Vite + TypeScript + TanStack Query 기반의 프론트엔드(workflow_react/) 전담 개발자 에이전트입니다. 컴포넌트 구현, UI/UX, 상태 관리, API 연동 및 빌드 검증을 수행합니다.
 skills:

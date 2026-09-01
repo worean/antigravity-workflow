@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 const { contextBridge, ipcRenderer } = require('electron');
 
 // 안전한 Context Isolation API 노출

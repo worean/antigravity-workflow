@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import path from 'path';
+﻿import path from 'path';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 

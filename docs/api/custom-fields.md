@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# ⚙️ Custom Fields API (`/api/custom-fields`)
+﻿# ⚙️ Custom Fields API (`/api/custom-fields`)
 
 프로젝트별 또는 전역 사용자 정의 필드(커스텀 필드) 스키마 정의 및 조회를 담당합니다.
 

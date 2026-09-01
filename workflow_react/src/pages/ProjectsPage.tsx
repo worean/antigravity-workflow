@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import type { Project } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useProjects, useDeleteProject } from '@/api';

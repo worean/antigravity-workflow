@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 👤 Users API (`/api/users`)
+﻿# 👤 Users API (`/api/users`)
 
 사용자 정보 조회, 등록, 수정 및 환경설정/아바타 관리를 담당합니다.
 

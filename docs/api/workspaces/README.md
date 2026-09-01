@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🏢 Workspaces API (`/api/workspaces`)
+﻿# 🏢 Workspaces API (`/api/workspaces`)
 
 멀티테넌트 워크스페이스 생성, 테넌트 격리 및 워크스페이스 전환을 관리합니다.
 

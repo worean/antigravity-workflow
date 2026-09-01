@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 🏛️ AntiGravity Workflow System - Architecture Index
+﻿# 🏛️ AntiGravity Workflow System - Architecture Index
 
 AntiGravity Workflow 시스템의 아키텍처는 **Backend Server**와 **Frontend Client**의 전담 아키텍처 문서로 분리되어 관리됩니다:
 

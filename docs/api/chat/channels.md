@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-# 📢 Chat Channels API (`/api/chat/channels`)
+﻿# 📢 Chat Channels API (`/api/chat/channels`)
 
 채팅 채널(공개 채널, 프로젝트 전용 채널, 1:1 Direct Message) 목록 조회 및 생성을 담당하는 서브 라우트입니다.
 
