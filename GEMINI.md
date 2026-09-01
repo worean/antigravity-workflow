@@ -22,6 +22,8 @@
 - **Subpath Imports**: 상대 경로 대신 `#lib/prisma.js` 등의 Path Alias 사용.
 
 ### 2.2 Frontend Coding Standards (`workflow_react/`)
+- **Sub-Component Modular Architecture (Max 400줄)**: 거대 단일 컴포넌트 금지. 모든 대형 UI는 `src/components/{domain}/` 하위의 전담 서브 컴포넌트들로 역할을 분할하여 구성.
+- **Modal Colocation & Ghost State 금지**: 모달은 전용 서브 컴포넌트 내부에 Colocation 배치하거나 JSX 렌더링 트리를 필수 연결. `const [, setX] = useState(...)` 형태의 언팩 린트 묵살 패턴 절대 금지.
 - **Server State (TanStack Query v5)**: `placeholderData: (previousData) => previousData` 적용으로 데이터 페칭 깜빡임 방지, `setQueriesData` 기반 In-place 캐시 즉시 갱신 (Optimistic Updates), 불필요한 전체 리마운트(key 강제 변경) 지양.
 - **Draft Persistence (`draftStorage.ts`)**: 600ms 디바운스 자동 임시 저장 및 페이지 재진입 시 복원 배너 제공.
 - **Design Tokens**: CSS Variables 기반 다크 모던 테크(VS Code / Linear 스타일) 테마 및 색상 시스템 준수.
@@ -38,6 +40,7 @@
 ## 4. Language & File Encoding Standards
 - **한국어 우선**: 모든 질의응답, 문서 및 설명은 한국어로 진행합니다.
 - **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서는 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다 (JSON 등 예외).
+- **상단 coding 주석 금지**: 파일 첫 줄에 `// -*- coding: utf-8 -*-` 등의 불필요한 헤더를 작성하지 않습니다.
 - **Clickable Links**: 파일 경로 언급 시 `[filename](file:///absolute/path/to/file)` 포맷을 준수합니다.
 
 ---
@@ -50,8 +53,9 @@
 
 ## 6. Custom Agents & Skills Architecture
 - **Agents (`.agents/agents/`)**:
-  - `frontend-developer`: React 18 + Vite + TS + TanStack Query 기반 프론트엔드(`workflow_react/`) 전담 개발자 에이전트.
+  - `frontend-developer`: React 18 + Vite + TS + TanStack Query 기반 프론트엔드(`workflow_react/`) 전담 개발자 에이전트 (개발 마무리 시 `react-component-reviewer` 스킬 실행 필수).
   - `backend-developer`: Node.js + Express + TS + Prisma ORM 기반 백엔드(`workflow_server/`) 전담 개발자 에이전트.
   - `api-viewer`: `docs/api/` 및 백엔드 도메인 소스(`workflow_server/src/modules/`)를 분석하여 API 설명 및 세부 구현 동작을 안내하는 전담 뷰어 에이전트.
 - **Skills (`.agents/skills/`)**:
+  - `react-component-reviewer`: React 컴포넌트의 서브 컴포넌트 모듈화(400줄 제한), 모달 Colocation 및 Ghost State 누락 여부를 정적 분석하고 검증하는 스킬.
   - `api-spec-reader`: `docs/api/` 폴더를 실시간 스캔(Auto-Discovery)하고 `api_inspector.py`를 통해 API 엔드포인트/도메인 정보를 핀포인트로 조회/검색하는 실행 기술(Skill).

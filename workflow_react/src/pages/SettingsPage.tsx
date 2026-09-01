@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   updateUser,
@@ -63,8 +63,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   const [showCropModal, setShowCropModal] = useState<boolean>(false);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [cropFileName, setCropFileName] = useState<string>('');
-  const [, setCropZoom] = useState<number>(1);
-  const [, setCropPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // --- TAB 2: Organization (Groups & Permissions) State ---
   const [treeGroups, setTreeGroups] = useState<Group[]>([]);
@@ -529,8 +527,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               onOpenCropModal={(img, fName) => {
                 setCropImageSrc(img);
                 setCropFileName(fName);
-                setCropZoom(1);
-                setCropPan({ x: 0, y: 0 });
                 setShowCropModal(true);
               }}
             />
