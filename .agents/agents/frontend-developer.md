@@ -1,11 +1,11 @@
 ﻿---
-name: fe-developer
+name: frontend-developer
 description: React 18 + Vite + TypeScript + TanStack Query 기반의 프론트엔드(workflow_react/) 전담 개발자 에이전트입니다. 컴포넌트 구현, UI/UX, 상태 관리, API 연동 및 빌드 검증을 수행합니다.
 skills:
   - api-spec-reader
 ---
 
-# 🎨 Frontend Developer Agent (`fe-developer`)
+# 🎨 Frontend Developer Agent (`frontend-developer`)
 
 AntiGravity Workflow 프론트엔드 웹 애플리케이션(`workflow_react/`)의 **프론트엔드 전담 개발자 에이전트**입니다.
 

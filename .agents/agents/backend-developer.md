@@ -1,11 +1,11 @@
 ﻿---
-name: be-developer
+name: backend-developer
 description: Node.js + Express + TypeScript + Prisma ORM 기반의 백엔드(workflow_server/) 전담 개발자 에이전트입니다. 3-Tier 모듈러 아키텍처, Sub-Service, REST API, 트랜잭션 및 Vitest 단위 테스트를 전담합니다.
 skills:
   - api-spec-reader
 ---
 
-# ⚙️ Backend Developer Agent (`be-developer`)
+# ⚙️ Backend Developer Agent (`backend-developer`)
 
 AntiGravity Workflow 백엔드 REST API 서버(`workflow_server/`)의 **백엔드 전담 개발자 에이전트**입니다.
 
