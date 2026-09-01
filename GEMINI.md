@@ -1,82 +1,55 @@
 ﻿// -*- coding: utf-8 -*-
 # 📌 AntiGravity Workflow System - Unified Agent Instructions
 
-## 1. Project Context & Structure
-이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 풀스택 웹 애플리케이션 프로젝트입니다:
+## 1. Project Context & Reference Architecture
+이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 풀스택 웹 애플리케이션입니다:
+- **`workflow_server/`**: Node.js + Express + TypeScript + Prisma ORM 기반 백엔드 REST API
+- **`workflow_react/`**: React 18 + TypeScript + Vite + TanStack Query 기반 프론트엔드 SPA
 
-- **`workflow_server/`**: Node.js + Express + TypeScript + Prisma ORM 기반의 백엔드 REST API 프로젝트
-- **`workflow_react/`**: React 18 + TypeScript + Vite + TanStack Query 기반의 프론트엔드 SPA 웹 애플리케이션
-
----
-
-## 2. Backend Architecture & Coding Rules (`workflow_server/`)
-
-### 2.1 3-Tier Layered Modular Architecture
-모든 백엔드 기능 개발 및 추가 시 반드시 다음 3계층 아키텍처 규칙을 엄격히 준수해야 합니다.
-- **Routes (`src/modules/{domain}/{domain}.routes.ts`)**: HTTP 라우팅 매핑 및 미들웨어 바인딩만 담당.
-- **Controllers (`src/modules/{domain}/{domain}.controller.ts`)**: HTTP Request 파싱, Response 반환, 에러 캡처만 담당.
-- **Sub-Services (`src/modules/{domain}/services/{action}.service.ts`)**: 단일 기능(Use-Case) 단위로 파일 분할(파일당 30~50줄). 순수 비즈니스 로직 및 Prisma DB 쿼리 전담 (Express 객체 사용 금지).
-
-### 2.2 Security & Authentication Standards
-- **Strict JWT Verification Only**: 사용자 신원은 오직 서버 암호 서명이 검증된 **JWT Access Token (`jwt.verify`)**의 payload.userId로만 인지해야 합니다. `req.body.userId` 등 임의의 입력 데이터 기반 유저 우회 인가 행위는 심각한 보안 취약점이므로 금지합니다.
-- **Path Alias**: 상대 경로 대신 `#lib/prisma.js` 형태의 Subpath Imports를 사용합니다.
+> **📖 상세 아키텍처 참조 (필요 시 선택적 열람)**:
+> 세부 디렉토리 구조, 데이터 모델 및 설계 명세는 필요할 때 아래 전담 문서를 참조합니다.
+> - **백엔드 아키텍처**: [`docs/BACKEND_ARCHITECTURE.md`](file:///C:/Users/admin/antigravity-workflow/docs/BACKEND_ARCHITECTURE.md)
+> - **프론트엔드 아키텍처**: [`docs/FRONTEND_ARCHITECTURE.md`](file:///C:/Users/admin/antigravity-workflow/docs/FRONTEND_ARCHITECTURE.md)
+> - **프론트엔드 기능/디자인 명세**: [`docs/FRONTEND_SPECIFICATION.md`](file:///C:/Users/admin/antigravity-workflow/docs/FRONTEND_SPECIFICATION.md), [`docs/FRONTEND_DESIGN_SYSTEM.md`](file:///C:/Users/admin/antigravity-workflow/docs/FRONTEND_DESIGN_SYSTEM.md)
+> - **REST API 도메인 명세**: [`docs/api/README.md`](file:///C:/Users/admin/antigravity-workflow/docs/api/README.md)
 
 ---
 
-## 3. Frontend Architecture & Development Standards (`workflow_react/`)
+## 2. Core Development Standards
 
-### 3.1 Directory Structure
-- **`src/api/`**: 도메인별 Axios REST API 통신 및 TanStack Query 커스텀 훅 (`auth`, `issues`, `projects`, `tags`, `sprints` 등).
-- **`src/components/`**: 
-  - `common/`: 공통 UI 컴포넌트 (`Button`, `Card`, `TagBadge`, `TagInput`, `ModalWrapper` 등).
-  - `kanban/`: 칸반 보드 컬럼, 카드, 다중 필터바 컴포넌트.
-  - `issueDetail/`: 이슈 상세 뷰/드로어, 인라인 에디터, 댓글/대댓글 트리, 작업로그.
-  - `chat/`, `dashboard/`, `layout/`: 실시간 채팅, 대시보드 위젯, 네비게이션 레이아웃.
-- **`src/context/`**: 전역 상태 컨텍스트 (`AuthContext`, `WorkspaceContext`).
-- **`src/types/`**: TypeScript 모델 및 DTO 인터페이스 정의.
-- **`src/utils/`**: 임시저장소(`draftStorage.ts`), 날짜 포맷터, 색상/태그 헬퍼.
+### 2.1 Backend Coding Standards (`workflow_server/`)
+- **3-Tier Layered Architecture**: Routes (미들웨어 바인딩) ➔ Controllers (DTO 파싱/응답 직렬화) ➔ Sub-Services (순수 비즈니스 로직 및 Prisma 쿼리 전담, 30~50줄).
+- **Strict JWT Verification**: 사용자 신원은 오직 암호 검증된 JWT Access Token (`jwt.verify` -> `payload.userId`)으로만 인지 (임의 `userId` 바디 입력 우회 인가 금지).
+- **Subpath Imports**: 상대 경로 대신 `#lib/prisma.js` 등의 Path Alias 사용.
 
-### 3.2 State Management & Smooth Rendering Policy
-- **Server State (TanStack Query v5)**:
-  - `placeholderData: (previousData) => previousData`를 적용하여 데이터 페칭 간 깜빡임(Blinking)을 방지합니다.
-  - `setQueriesData`를 활용한 In-place 캐시 즉시 갱신(Optimistic / Smooth Updates)을 우선 적용합니다.
-  - 컴포넌트의 불필요한 전체 리마운트(key 강제 변경)를 지양하고 내부 상태의 부드러운 전환을 보장합니다.
-- **Draft Persistence (`draftStorage.ts`)**:
-  - 이슈/프로젝트 생성 및 편집 폼은 `localStorage`에 600ms 디바운스로 자동 임시 저장되며, 재진입 시 복원 배너를 제공합니다.
-- **Design Tokens & Theme**:
-  - CSS Variables 기반의 다크 모던 테크(VS Code / Linear 스타일) 시스템을 준수합니다.
+### 2.2 Frontend Coding Standards (`workflow_react/`)
+- **Server State (TanStack Query v5)**: `placeholderData: (previousData) => previousData` 적용으로 데이터 페칭 깜빡임 방지, `setQueriesData` 기반 In-place 캐시 즉시 갱신 (Optimistic Updates), 불필요한 전체 리마운트(key 강제 변경) 지양.
+- **Draft Persistence (`draftStorage.ts`)**: 600ms 디바운스 자동 임시 저장 및 페이지 재진입 시 복원 배너 제공.
+- **Design Tokens**: CSS Variables 기반 다크 모던 테크(VS Code / Linear 스타일) 테마 및 색상 시스템 준수.
 
 ---
 
-## 4. Sub-Service Unit Testing Standards (`src/tests/`)
-
-신규 기능 개발 및 이슈 수정 시 다음 단위 테스트 작성 지침을 엄격히 준수해야 합니다:
-
-1. **테스트 파일 위치**: 모든 테스트 코드는 `src/tests/` 디렉터리 하위에 작성합니다.
-2. **Service 단위 및 경우의 수(Use-Case) 검증**: 테스트 코드는 Sub-Service 단위로 작성되며, 해당 서비스에서 제공하는 다양한 경우의 수(성공, 실패, 예외, 경계 조건 등)에 맞춰 테스트를 진행합니다.
-3. **파일명 명명 규칙**: `{domain}.{service}.test.ts` 파일명을 엄격히 준수합니다.
-   - `domain`: 서비스가 속한 범주 (예: `auth`, `projects`, `issues`, `tags` 등)
-   - `service`: 대상 서비스 기능 명칭 (예: `jwtAuth`, `createProject`, `getTags` 등)
-   - **예시**: `src/tests/auth.jwtAuth.test.ts`, `src/tests/tags.getTags.test.ts`
+## 3. Sub-Service Unit Testing Standards (`src/tests/`)
+1. **테스트 파일 위치**: `workflow_server/src/tests/` 하위 작성.
+2. **Use-Case 검증**: Sub-Service 단위로 성공, 실패, 예외, 경계 조건 케이스를 포괄 검증.
+3. **파일명 명명 규칙**: `{domain}.{service}.test.ts` (예: `src/tests/auth.jwtAuth.test.ts`, `src/tests/tags.getTags.test.ts`).
 
 ---
 
-## 5. Language & File Encoding Standards
-
-- **한국어 우선**: 모든 질의응답 및 설명, 마크다운 문서는 한국어로 진행합니다.
-- **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서 파일은 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다. (단, JSON 파일 및 CLI 패키지 파일은 파싱 호환성을 위해 Plain UTF-8 적용)
-- **Clickable File Links**: 대화 및 답변 시 파일 경로 언급할 때는 `[filename](file:///absolute/path/to/file)` 지침 준수.
-
----
-
-## 6. Operating Principles
-
-1. **Self-Annealing Loop**: 오류 및 컴파일 에러 발생 시 원인을 파악하여 자동 정정 테스트 후 보고합니다.
-2. **Modular Scalability**: 신규 기능 추가 시 거대한 단일 서비스 파일에 추가하지 않고, `services/{newAction}.service.ts` 전담 서비스 파일로 생성하여 확장합니다.
+## 4. Language & File Encoding Standards
+- **한국어 우선**: 모든 질의응답, 문서 및 설명은 한국어로 진행합니다.
+- **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서는 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다 (JSON 등 예외).
+- **Clickable Links**: 파일 경로 언급 시 `[filename](file:///absolute/path/to/file)` 포맷을 준수합니다.
 
 ---
 
-## 7. Custom Agents & Skills Architecture
+## 5. Operating Principles
+1. **Self-Annealing Loop**: 오류 발생 시 원인 분석 ➔ 자동 정정 ➔ 테스트 검증 후 보고합니다.
+2. **Modular Scalability**: 신규 기능 추가 시 거대 단일 파일 지양, `services/{action}.service.ts` 단위 파일 분할로 확장합니다.
+
+---
+
+## 6. Custom Agents & Skills Architecture
 - **Agents (`.agents/agents/`)**:
   - `api-viewer`: `docs/api/` 및 백엔드 도메인 소스(`workflow_server/src/modules/`)를 분석하여 API 설명 및 세부 구현 동작을 안내하는 전담 뷰어 에이전트.
 - **Skills (`.agents/skills/`)**:
