@@ -2,6 +2,7 @@
 import React from 'react';
 import { Filter, Search, Plus } from 'lucide-react';
 import type { Project, User } from '@/types';
+import { useTags } from '@/api/tags';
 import { getProjectMembers } from '@/utils/projectMembers';
 
 interface KanbanFilterBarProps {
@@ -9,6 +10,8 @@ interface KanbanFilterBarProps {
   handleProjectFilterChange: (projId: number | 'ALL') => void;
   filterAssigneeId: number | 'ALL' | 'MY';
   handleAssigneeFilterChange: (assigneeId: number | 'ALL' | 'MY') => void;
+  filterTag?: string;
+  handleTagFilterChange?: (tagName: string) => void;
   searchTerm: string;
   handleSearchChange: (search: string) => void;
   projects: Project[];
@@ -23,6 +26,8 @@ export const KanbanFilterBar: React.FC<KanbanFilterBarProps> = ({
   handleProjectFilterChange,
   filterAssigneeId,
   handleAssigneeFilterChange,
+  filterTag = 'ALL',
+  handleTagFilterChange,
   searchTerm,
   handleSearchChange,
   projects,
@@ -31,6 +36,8 @@ export const KanbanFilterBar: React.FC<KanbanFilterBarProps> = ({
   onOpenCreateIssue,
   onOpenAuth,
 }) => {
+  const { data: allTags = [] } = useTags();
+
   return (
     <div
       style={{
@@ -88,29 +95,58 @@ export const KanbanFilterBar: React.FC<KanbanFilterBarProps> = ({
         ))}
       </select>
 
+      {/* 🏷️ Tag Filter Dropdown */}
+      {handleTagFilterChange && (
+        <select
+          value={filterTag}
+          onChange={(e) => handleTagFilterChange(e.target.value)}
+          className="input-field"
+          style={{ width: 'auto', minWidth: '120px' }}
+        >
+          <option value="ALL">전체 태그 ({allTags.length})</option>
+          {allTags.map((t) => (
+            <option key={t.id} value={t.name}>
+              #{t.name} ({t.issuesCount ?? t.totalCount ?? 0})
+            </option>
+          ))}
+        </select>
+      )}
+
       {/* Search Bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: '160px' }}>
         <Search size={13} color="var(--text-muted)" />
         <input
           type="text"
           className="input-field"
-          placeholder="이슈 검색 (제목/설명)..."
+          placeholder="이슈 검색 또는 #태그..."
           value={searchTerm}
           onChange={(e) => handleSearchChange(e.target.value)}
         />
       </div>
 
-      {/* Auth Buttons */}
-      {!isAuthenticated && onOpenAuth && (
-        <button className="btn btn-primary btn-sm" onClick={onOpenAuth}>
-          로그인
-        </button>
-      )}
-      {isAuthenticated && (
-        <button className="btn btn-primary btn-sm" onClick={onOpenCreateIssue}>
-          <Plus size={13} /> 이슈 생성
-        </button>
-      )}
+      {/* Quick Create Action */}
+      <button
+        onClick={() => {
+          if (!isAuthenticated && onOpenAuth) {
+            onOpenAuth();
+            return;
+          }
+          onOpenCreateIssue();
+        }}
+        className="btn-primary"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '4px 10px',
+          fontSize: '0.78rem',
+          height: '26px',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <Plus size={13} />
+        <span>새 이슈</span>
+      </button>
     </div>
   );
 };

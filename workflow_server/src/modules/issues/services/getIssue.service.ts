@@ -21,6 +21,7 @@ export const getIssueService = async (
       children: { include: { status: true, priority: true, assignee: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } } } },
       parent: { select: { id: true, title: true, issueNumber: true } },
       attachments: true,
+      tags: true,
       watchers: { include: { user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } } } },
       likes: { include: { user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } } } },
       worklogs: { include: { user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } } } },

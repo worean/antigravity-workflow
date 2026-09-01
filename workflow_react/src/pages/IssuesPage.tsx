@@ -44,6 +44,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   // Filters (Single Source of Truth from Props/URL)
   const filterProjectId = selectedProjectId || 'ALL';
   const filterAssigneeId = selectedAssigneeId || 'ALL';
+  const [filterTag, setFilterTag] = useState<string>('ALL');
   const [localSearchTerm, setLocalSearchTerm] = useState<string>(searchTermProp || '');
 
   // Sync search term when prop changes from outside
@@ -58,10 +59,12 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   // 2. Issues Query
   const queryProjectId = filterProjectId === 'ALL' ? undefined : Number(filterProjectId);
   const queryAssigneeId = filterAssigneeId === 'MY' ? 'my' : filterAssigneeId === 'ALL' ? undefined : Number(filterAssigneeId);
+  const queryTag = filterTag === 'ALL' ? undefined : filterTag;
 
   const { data: issues = [], isLoading: loading, refetch: refetchIssues } = useIssues({
     projectId: queryProjectId,
     assigneeId: queryAssigneeId,
+    tag: queryTag,
     search: localSearchTerm.trim() || undefined,
     all: true,
   });
@@ -223,6 +226,8 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         handleProjectFilterChange={handleProjectFilterChange}
         filterAssigneeId={filterAssigneeId}
         handleAssigneeFilterChange={handleAssigneeFilterChange}
+        filterTag={filterTag}
+        handleTagFilterChange={(t) => setFilterTag(t)}
         searchTerm={localSearchTerm}
         handleSearchChange={handleSearchChange}
         projects={projects}
@@ -249,6 +254,9 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         handleOpenDeleteConfirm={handleOpenDeleteConfirm}
         handleToggleLike={handleToggleLike}
         onSelectIssue={onSelectIssue}
+        onTagClick={(tagName) => {
+          setFilterTag(tagName);
+        }}
         onOpenAuth={onOpenAuth}
       />
 

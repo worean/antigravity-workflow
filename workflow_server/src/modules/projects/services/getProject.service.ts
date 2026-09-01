@@ -25,7 +25,8 @@ export const getProjectService = async (id: number) => {
       priority: true,
       sprints: true,
       milestones: true,
-      customFieldDefs: true
+      customFieldDefs: true,
+      tags: true
     }
   });
 

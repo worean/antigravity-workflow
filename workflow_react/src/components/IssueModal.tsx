@@ -36,6 +36,7 @@ import {
   Clock,
   Plus,
   GitBranch,
+  Hash,
 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
@@ -55,6 +56,8 @@ import {
   StatusSelect,
   PrioritySelect,
   IssueTypeSelect,
+  TagBadge,
+  TagInput,
 } from './common';
 
 import { hoursToMinutes, formatWorklogTime } from '@/utils/worklogUtils';
@@ -96,6 +99,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
   const [projectId, setProjectId] = useState<number>(initialProjectId || projects[0]?.id || 1);
   const [parentId, setParentId] = useState<number | null>(initialParentId ?? selectedIssue?.parentId ?? null);
   const [candidateParentIssues, setCandidateParentIssues] = useState<Issue[]>([]);
@@ -186,6 +190,11 @@ export const IssueModal: React.FC<IssueModalProps> = ({
         setIsEditing(false);
         setTitle(selectedIssue.title || '');
         setDescription(selectedIssue.description || '');
+        setTags(
+          Array.isArray(selectedIssue.tags)
+            ? selectedIssue.tags.map((t: any) => t.name || t)
+            : []
+        );
         setProjectId(selectedIssue.projectId || projects[0]?.id || 1);
         setAssigneeId(selectedIssue.assigneeId || selectedIssue.assignee?.id || undefined);
         setPriorityId(selectedIssue.priorityId || selectedIssue.priority?.id || 1);
@@ -228,6 +237,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
         setIsEditing(true);
         setTitle('');
         setDescription('');
+        setTags([]);
         setProjectId(projects[0]?.id || 1);
         setAssigneeId(undefined);
         setPriorityId(getDefaultPriority());
@@ -367,6 +377,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           return await updateIssue(selectedIssue.id, {
             title,
             description,
+            tags,
             projectId: Number(projectId),
             parentId: parentId ? Number(parentId) : null,
             assigneeId: assigneeId ? Number(assigneeId) : undefined,
@@ -381,6 +392,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           return await createIssue({
             title,
             description,
+            tags,
             projectId: Number(projectId),
             parentId: parentId ? Number(parentId) : null,
             assigneeId: assigneeId ? Number(assigneeId) : undefined,
@@ -576,6 +588,14 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                 <PriorityBadge priority={selectedIssue.priorityId || selectedIssue.priority} size="sm" />
               </div>
 
+              {/* 🏷️ Tags List */}
+              {Array.isArray(selectedIssue.tags) && selectedIssue.tags.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '10px' }}>
+                  {selectedIssue.tags.map((t) => (
+                    <TagBadge key={t.id || t.name} tag={t} size="sm" />
+                  ))}
+                </div>
+              )}
 
               <MarkdownViewer content={selectedIssue.description} placeholder="작성된 상세 설명이 없습니다." style={{ marginBottom: '10px' }} />
 
@@ -1166,7 +1186,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               )}
 
               <div className="form-group">
-                <label className="form-label">이슈 제목 (Title)</label>
+                <label className="form-label">이슈 제목 (Title) *</label>
                 <input
                   type="text"
                   className="input-field"
@@ -1174,6 +1194,19 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
+                />
+              </div>
+
+              {/* 🏷️ 태그 입력 영역 */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Hash size={13} color="var(--primary)" />
+                  <span>태그 (해시태그)</span>
+                </label>
+                <TagInput
+                  tags={tags}
+                  onChange={setTags}
+                  placeholder="#태그 #태그1 입력 (스페이스/엔터로 등록)"
                 />
               </div>
 

@@ -9,4 +9,5 @@ export * from './worklogs';
 export * from './groups';
 export * from './favorites';
 export * from './workspaces';
+export * from './tags';
 

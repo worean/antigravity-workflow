@@ -62,8 +62,19 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
       sprints: true,
       milestones: true,
       customFieldDefs: true,
+      tags: true,
     },
   });
+
+  // 🏷️ 태그 동기화
+  if (data.tags !== undefined) {
+    const { syncProjectTagsService } = await import('../../tags/services/syncProjectTags.service.js');
+    await syncProjectTagsService(Number(id), data.tags);
+  } else if (description !== undefined || name !== undefined) {
+    const { syncProjectTagsService } = await import('../../tags/services/syncProjectTags.service.js');
+    const tagSource = `${name ?? updated.name} ${description ?? updated.description ?? ''}`;
+    await syncProjectTagsService(Number(id), tagSource);
+  }
 
   try {
     const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
@@ -77,6 +88,7 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
     });
   } catch {}
 
-  return updated;
+  const { getProjectService } = await import('./getProject.service.js');
+  return await getProjectService(Number(id), targetUserId);
 };
 

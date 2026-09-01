@@ -1,9 +1,9 @@
 ﻿import React, { useState } from 'react';
 import { createProject } from '@/services/api';
-import { FolderPlus } from 'lucide-react';
+import { FolderPlus, Hash } from 'lucide-react';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from './ActionFeedbackModal';
-import { ModalWrapper, Button } from './common';
+import { ModalWrapper, Button, TagInput } from './common';
 import type { Project } from '@/types';
 
 interface ProjectModalProps {
@@ -16,6 +16,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onS
   const [name, setName] = useState<string>('');
   const [key, setKey] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
 
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
 
@@ -24,13 +25,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onS
 
     await executeAction(
       async () => {
-        return await createProject({ name, key: key.toUpperCase(), description });
+        return await createProject({ name, key: key.toUpperCase(), description, tags });
       },
       {
         onSuccess: (createdProject) => {
           setName('');
           setKey('');
           setDescription('');
+          setTags([]);
           onSuccess(createdProject);
           onClose();
         },
@@ -91,6 +93,15 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onS
             />
           </div>
 
+          {/* 🏷️ 태그 입력 영역 */}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Hash size={12} color="var(--primary)" />
+              <span>프로젝트 태그</span>
+            </label>
+            <TagInput tags={tags} onChange={setTags} placeholder="#태그 #태그1 입력 (스페이스/엔터)" />
+          </div>
+
           <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
             <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={isPending} style={{ flex: 1 }}>
               취소
@@ -100,9 +111,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onS
               variant="primary"
               size="sm"
               isLoading={isPending}
+              disabled={!name.trim() || !key.trim()}
               style={{ flex: 1 }}
             >
-              생성
+              생성하기
             </Button>
           </div>
         </form>

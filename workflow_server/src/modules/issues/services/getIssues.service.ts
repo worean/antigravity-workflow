@@ -18,6 +18,8 @@ export const getIssuesService = async (query: any = {}, currentUserId?: number) 
     statusId,
     priorityId,
     parentId,
+    tag,
+    tagId,
     search,
     page: pageQuery,
     limit,
@@ -34,6 +36,14 @@ export const getIssuesService = async (query: any = {}, currentUserId?: number) 
   const where: any = {};
   if (projectId) where.projectId = Number(projectId);
   if (sprintId) where.sprintId = Number(sprintId);
+
+  // 🏷️ 태그 필터링 (tag="태그명" 또는 tagId=1)
+  if (tagId) {
+    where.tags = { some: { id: Number(tagId) } };
+  } else if (tag && String(tag).trim()) {
+    const cleanTag = String(tag).trim().replace(/^#/, '');
+    where.tags = { some: { name: cleanTag } };
+  }
 
   // Assignee 필터링: 'my'/'me' / 'null'/'unassigned' / 숫자 ID 지원
   if (assigneeId !== undefined && assigneeId !== '' && assigneeId !== 'ALL') {
@@ -62,11 +72,22 @@ export const getIssuesService = async (query: any = {}, currentUserId?: number) 
     where.parentId = parentId === 'null' ? null : Number(parentId);
   }
 
-  if (search) {
-    where.OR = [
-      { title: { contains: String(search) } },
-      { description: { contains: String(search) } }
-    ];
+  if (search && String(search).trim()) {
+    const trimmedSearch = String(search).trim();
+    if (trimmedSearch.startsWith('#')) {
+      const cleanTag = trimmedSearch.replace(/^#/, '');
+      where.OR = [
+        { tags: { some: { name: cleanTag } } },
+        { title: { contains: cleanTag } },
+        { description: { contains: cleanTag } }
+      ];
+    } else {
+      where.OR = [
+        { title: { contains: trimmedSearch } },
+        { description: { contains: trimmedSearch } },
+        { tags: { some: { name: trimmedSearch } } }
+      ];
+    }
   }
 
   // 정렬 (Sorting) 처리
@@ -115,6 +136,7 @@ export const getIssuesService = async (query: any = {}, currentUserId?: number) 
         type: true,
         priority: true,
         status: true,
+        tags: true,
         assignee: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
         author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
         sprint: { select: { id: true, name: true } },

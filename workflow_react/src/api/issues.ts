@@ -11,6 +11,8 @@ export interface IssueQueryParams {
   statusId?: number;
   priorityId?: number;
   parentId?: number | null;
+  tag?: string;
+  tagId?: number;
   search?: string;
   limit?: number | 'all';
   take?: number;
@@ -32,6 +34,8 @@ export const getIssues = async (filters?: IssueQueryParams): Promise<Issue[]> =>
     if (filters.sprintId !== undefined) params.sprintId = filters.sprintId;
     if (filters.assigneeId !== undefined) params.assigneeId = filters.assigneeId;
     if (filters.authorId !== undefined) params.authorId = filters.authorId;
+    if (filters.tag !== undefined) params.tag = filters.tag;
+    if (filters.tagId !== undefined) params.tagId = filters.tagId;
     if (filters.search) params.search = filters.search;
     if (filters.statusId !== undefined) params.statusId = filters.statusId;
     if (filters.typeId !== undefined) params.typeId = filters.typeId;
@@ -68,13 +72,16 @@ export const createIssue = async (data: {
   typeId?: number;
   plannedStartDate?: string | null;
   dueDate?: string | null;
+  actualStartDate?: string | null;
+  actualEndDate?: string | null;
+  tags?: string[] | any;
   customFields?: any;
 }): Promise<Issue> => {
   const res = await apiClient.post('/issues', data);
   return res.data;
 };
 
-export const updateIssue = async (id: number, data: Partial<Issue>): Promise<Issue> => {
+export const updateIssue = async (id: number, data: Partial<Issue> | any): Promise<Issue> => {
   const res = await apiClient.put(`/issues/${id}`, data);
   return res.data;
 };

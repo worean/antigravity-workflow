@@ -80,6 +80,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
   // Form Fields
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
   const [projectId, setProjectId] = useState<number>(0);
   const [parentId, setParentId] = useState<number | null>(null);
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
@@ -132,6 +133,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
   const populateFromOriginal = (issueData: Issue) => {
     setTitle(issueData.title);
     setDescription(issueData.description || '');
+    setTags(Array.isArray(issueData.tags) ? issueData.tags.map((t: any) => t.name || t) : []);
     setProjectId(issueData.projectId || 1);
     setParentId(issueData.parentId || null);
     setAssigneeId(issueData.assigneeId || undefined);
@@ -192,6 +194,10 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
         // 임시 저장본 복원
         setTitle(draft.title ?? issueData.title);
         setDescription(draft.description ?? (issueData.description || ''));
+        setTags(
+          (draft as any).tags ||
+            (Array.isArray(issueData.tags) ? issueData.tags.map((t: any) => t.name || t) : [])
+        );
         setProjectId(draft.projectId ?? issueData.projectId ?? 1);
         setParentId(draft.parentId !== undefined ? draft.parentId : issueData.parentId || null);
         setAssigneeId(draft.assigneeId !== undefined ? draft.assigneeId : issueData.assigneeId || undefined);
@@ -314,6 +320,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
         return await updateIssue(issue.id, {
           title,
           description,
+          tags,
           projectId,
           parentId: parentId || undefined,
           assigneeId: assigneeId || undefined,
@@ -590,6 +597,8 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
                 setTitle={setTitle}
                 description={description}
                 setDescription={setDescription}
+                tags={tags}
+                setTags={setTags}
                 projectId={projectId}
                 setProjectId={setProjectId}
                 parentId={parentId}

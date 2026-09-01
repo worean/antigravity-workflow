@@ -61,7 +61,14 @@ export const createProjectService = async (data: any, ownerId?: number) => {
     }
   });
 
-  // 6. 비관계형 활동 로그 기록
+  // 6. 🏷️ 태그 동기화
+  if (data.tags !== undefined || description || name) {
+    const { syncProjectTagsService } = await import('../../tags/services/syncProjectTags.service.js');
+    const tagSource = data.tags !== undefined ? data.tags : `${name} ${description || ''}`;
+    await syncProjectTagsService(project.id, tagSource);
+  }
+
+  // 7. 비관계형 활동 로그 기록
   try {
     const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
     await createActivityLogService({
@@ -78,6 +85,6 @@ export const createProjectService = async (data: any, ownerId?: number) => {
     // 로깅 오류가 핵심 비즈니스 로직을 방해하지 않음
   }
 
-  return project;
+  const { getProjectService } = await import('./getProject.service.js');
+  return await getProjectService(project.id, targetOwnerId);
 };
-

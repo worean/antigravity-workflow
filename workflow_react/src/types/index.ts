@@ -71,6 +71,17 @@ export interface Favorite {
   detail?: any;
 }
 
+export interface Tag {
+  id: number;
+  name: string;
+  color?: string;
+  issuesCount?: number;
+  projectsCount?: number;
+  totalCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Project {
   id: number;
   name: string;
@@ -90,6 +101,7 @@ export interface Project {
   members?: ProjectMember[];
   groups?: ProjectGroup[];
   sprints?: Sprint[];
+  tags?: Tag[];
   createdAt?: string;
   updatedAt?: string;
   _count?: {
@@ -158,6 +170,7 @@ export interface Issue {
   loggedHours?: number;
   customFields?: any;
   progress?: number;
+  tags?: Tag[];
   isLiked?: boolean;
   isFavorite?: boolean;
   likesCount?: number;

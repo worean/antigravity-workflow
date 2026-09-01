@@ -1,8 +1,7 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { GripVertical, Trash2, Calendar, Heart } from 'lucide-react';
 import type { Issue, User } from '@/types';
-import { PriorityBadge, IssueTypeBadge, UserBadge, FavoriteButton } from '@/components/common';
+import { PriorityBadge, IssueTypeBadge, UserBadge, FavoriteButton, TagBadge } from '@/components/common';
 import { formatDateOnly, getDDayStatus } from '@/utils/dateUtils';
 import { STATUS_LIST, parsePriorityLevel } from '@/utils/statusUtils';
 
@@ -18,6 +17,7 @@ interface KanbanCardProps {
   handleOpenDeleteConfirm: (e: React.MouseEvent, issue: Issue) => void;
   handleToggleLike: (e: React.MouseEvent, issue: Issue) => Promise<void>;
   onSelectIssue: (issue: Issue) => void;
+  onTagClick?: (tagName: string) => void;
   onOpenAuth?: () => void;
 }
 
@@ -33,6 +33,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   handleOpenDeleteConfirm,
   handleToggleLike,
   onSelectIssue,
+  onTagClick,
   onOpenAuth,
 }) => {
   const priorityLevel = parsePriorityLevel(issue.priorityId || issue.priority);
@@ -107,6 +108,21 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
       >
         {issue.title}
       </div>
+
+      {/* 🏷️ Tags List */}
+      {Array.isArray(issue.tags) && issue.tags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '1px' }}>
+          {issue.tags.map((tag) => (
+            <TagBadge
+              key={tag.id || tag.name}
+              tag={tag}
+              size="xs"
+              onClick={onTagClick}
+              clickable={!!onTagClick}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Project & Assignee info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>

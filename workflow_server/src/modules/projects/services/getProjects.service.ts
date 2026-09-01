@@ -3,6 +3,8 @@
 export const getProjectsService = async (query: any = {}, currentUserId?: number) => {
   const {
     search,
+    tag,
+    tagId,
     statusId,
     priorityId,
     ownerId,
@@ -20,6 +22,14 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
 
   if (statusId) where.statusId = Number(statusId);
   if (priorityId) where.priorityId = Number(priorityId);
+
+  // 🏷️ 태그 필터링
+  if (tagId) {
+    where.tags = { some: { id: Number(tagId) } };
+  } else if (tag && String(tag).trim()) {
+    const cleanTag = String(tag).trim().replace(/^#/, '');
+    where.tags = { some: { name: cleanTag } };
+  }
 
   // Owner 필터링
   if (ownerId !== undefined && ownerId !== '') {
@@ -44,11 +54,14 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
     }
   }
 
-  if (search) {
+  if (search && String(search).trim()) {
+    const trimmedSearch = String(search).trim();
+    const cleanTag = trimmedSearch.replace(/^#/, '');
     const searchFilter = [
-      { name: { contains: String(search) } },
-      { key: { contains: String(search) } },
-      { description: { contains: String(search) } }
+      { name: { contains: cleanTag } },
+      { key: { contains: cleanTag } },
+      { description: { contains: cleanTag } },
+      { tags: { some: { name: cleanTag } } }
     ];
     if (where.OR) {
       where.AND = [{ OR: where.OR }, { OR: searchFilter }];
@@ -90,6 +103,7 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
       groups: { include: { group: { select: { id: true, name: true, code: true } } } },
       status: true,
       priority: true,
+      tags: true,
       _count: { select: { issues: true, sprints: true } }
     },
     orderBy,

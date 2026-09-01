@@ -20,6 +20,7 @@ import {
   Avatar,
   MarkdownViewer,
   FavoriteButton,
+  TagBadge,
 } from '@/components/common';
 import { getDDayStatus } from '@/utils/dateUtils';
 
@@ -71,9 +72,18 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
         <PriorityBadge priority={issue.priorityId || issue.priority} size="sm" />
       </div>
 
-      <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '10px', color: 'var(--text-bright)' }}>
+      <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-bright)' }}>
         {issue.title}
       </h2>
+
+      {/* 🏷️ Tags */}
+      {Array.isArray(issue.tags) && issue.tags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
+          {issue.tags.map((t) => (
+            <TagBadge key={t.id || t.name} tag={t} size="sm" />
+          ))}
+        </div>
+      )}
 
       {/* Main Metadata Badges */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '6px', marginBottom: '10px' }}>

@@ -46,7 +46,12 @@ export const getProject = async (id: number): Promise<Project> => {
   return res.data;
 };
 
-export const createProject = async (data: { name: string; key: string; description?: string }): Promise<Project> => {
+export const createProject = async (data: {
+  name: string;
+  key: string;
+  description?: string;
+  tags?: string[] | any;
+}): Promise<Project> => {
   const res = await apiClient.post('/projects', data);
   return res.data;
 };
@@ -63,6 +68,7 @@ export const updateProject = async (
     dueDate?: string | null;
     actualStartDate?: string | null;
     actualEndDate?: string | null;
+    tags?: string[] | any;
   }
 ): Promise<Project> => {
   const res = await apiClient.put(`/projects/${id}`, data);

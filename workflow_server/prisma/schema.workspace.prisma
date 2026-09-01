@@ -192,6 +192,7 @@ model Project {
   testRuns        TestRun[]
   customFieldDefs CustomFieldDefinition[]
   chatChannels    ChatChannel[]
+  tags            Tag[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -318,6 +319,7 @@ model Issue {
   assignee   User? @relation("AssigneeIssues", fields: [assigneeId], references: [id])
 
   labels        Label[]
+  tags          Tag[]
   testCases     TestCase[]
   comments      Comment[]
   reminders     Reminder[]
@@ -333,6 +335,17 @@ model Issue {
   updatedAt DateTime @updatedAt
 
   @@unique([projectId, issueNumber])
+}
+
+// 태그 모델 (이슈 및 프로젝트 해시태그 분류 시스템)
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  color     String?   @default("#3b82f6")
+  issues    Issue[]
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 // 이슈 좋아요 (Like / Unlike)

@@ -1,12 +1,12 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
-import { Save, Calendar } from 'lucide-react';
+﻿import React from 'react';
+import { Save, Calendar, Hash } from 'lucide-react';
 import type { Project, User, Issue, CustomFieldDefinition } from '@/types';
 import {
   PrioritySelect,
   StatusSelect,
   IssueTypeSelect,
   MarkdownEditor,
+  TagInput,
 } from '@/components/common';
 
 interface IssueDetailEditFormProps {
@@ -14,6 +14,8 @@ interface IssueDetailEditFormProps {
   setTitle: (title: string) => void;
   description: string;
   setDescription: (description: string) => void;
+  tags?: string[];
+  setTags?: (tags: string[]) => void;
   projectId: number;
   setProjectId: (id: number) => void;
   parentId: number | null;
@@ -52,6 +54,8 @@ export const IssueDetailEditForm: React.FC<IssueDetailEditFormProps> = ({
   setTitle,
   description,
   setDescription,
+  tags = [],
+  setTags,
   projectId,
   setProjectId,
   parentId,
@@ -96,6 +100,17 @@ export const IssueDetailEditForm: React.FC<IssueDetailEditFormProps> = ({
           required
         />
       </div>
+
+      {/* 🏷️ 태그 입력 영역 */}
+      {setTags && (
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Hash size={12} color="var(--primary)" />
+            <span>태그 (해시태그)</span>
+          </label>
+          <TagInput tags={tags} onChange={setTags} placeholder="#태그 #태그1 입력 (스페이스/엔터)" />
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
         <div className="form-group" style={{ marginBottom: 0 }}>
