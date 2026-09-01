@@ -26,6 +26,7 @@ import {
 } from '@/utils/notificationUtils';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
+import { AvatarCropModal } from '@/components/AvatarCropModal';
 import { prefRepository } from '@/lib/prefRepository';
 import {
   SettingsHeaderToolbar,
@@ -44,7 +45,7 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUserLocal } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
 
   // Active Sub-Tab
@@ -59,9 +60,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
 
   // Avatar Crop Modal State
-  const [, setShowCropModal] = useState<boolean>(false);
-  const [, setCropImageSrc] = useState<string | null>(null);
-  const [, setCropFileName] = useState<string>('');
+  const [showCropModal, setShowCropModal] = useState<boolean>(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState<string>('');
   const [, setCropZoom] = useState<number>(1);
   const [, setCropPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -218,11 +219,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
 
     await executeAction(
       async () => {
-        return await updateUser(user!.id, {
+        const updated = await updateUser(user!.id, {
           name: name.trim(),
-          avatar: avatar || undefined,
-          avatarColor: avatarColor || undefined,
+          avatar: avatar ?? null,
+          avatarColor: avatarColor ?? null,
         });
+        if (updated && updateUserLocal) {
+          updateUserLocal(updated);
+        }
+        return updated;
       },
       {
         onSuccess: async () => {
@@ -630,6 +635,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       </div>
 
       <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />
+
+      {showCropModal && (
+        <AvatarCropModal
+          isOpen={showCropModal}
+          imageSrc={cropImageSrc}
+          fileName={cropFileName}
+          onClose={() => setShowCropModal(false)}
+          onCropComplete={(croppedPngDataUrl) => {
+            setAvatar(croppedPngDataUrl);
+            setShowCropModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };
