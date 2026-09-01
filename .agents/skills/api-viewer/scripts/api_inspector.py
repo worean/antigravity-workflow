@@ -186,7 +186,7 @@ def main():
     subparsers.add_parser("list", help="전체 API 도메인 및 라우트 계층 목록")
     
     get_p = subparsers.add_parser("get", help="특정 도메인의 API 명세 및 소스 정보 조회")
-    get_p.add_argument("domain", help="도메인 이름 (예: projects, issues, tags, chat 등)")
+    get_p.add_argument("domain", help="도메인 이름 (예: projects, issues, tags, chat 등 또는 projects/members)")
 
     search_p = subparsers.add_parser("search", help="API 엔드포인트 또는 설명 키워드 검색")
     search_p.add_argument("query", help="검색 키워드")
