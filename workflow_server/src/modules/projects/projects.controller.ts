@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { createProjectService } from './services/createProject.service.js';
 import { getProjectsService } from './services/getProjects.service.js';
 import { getProjectService } from './services/getProject.service.js';
@@ -40,7 +40,8 @@ export const getProjects = async (req: Request, res: Response) => {
 
 export const getProject = async (req: Request, res: Response) => {
   try {
-    const project = await getProjectService(Number(req.params.id || req.query.id));
+    const currentUserId = req.user ? req.user.id : undefined;
+    const project = await getProjectService(Number(req.params.id || req.query.id), currentUserId);
     res.json(project);
   } catch (error: any) {
     const isNotFound = error.message.includes('not found');

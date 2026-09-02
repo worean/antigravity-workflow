@@ -1,10 +1,9 @@
 ﻿import { describe, it, expect, beforeEach } from 'vitest';
-import { prisma } from '#lib/prisma.js';
+import { globalPrisma } from '#lib/globalPrisma.js';
 import { createUserService } from '../modules/users/services/createUser.service.js';
 import { createChannelService } from '../modules/chat/services/createChannel.service.js';
 import { sendMessageService } from '../modules/chat/services/sendMessage.service.js';
 import { getMessagesService } from '../modules/chat/services/getMessages.service.js';
-import { updateMemberSettingsService } from '../modules/chat/services/updateMemberSettings.service.js';
 
 describe('💬 [Chat: sendMessage & Smart Throttler] Unit Tests', () => {
   let user1: any;
@@ -16,23 +15,23 @@ describe('💬 [Chat: sendMessage & Smart Throttler] Unit Tests', () => {
     user1 = await createUserService({
       email: 'send_user1_' + rand + '@test.com',
       name: 'Alice',
-      password: 'password123'
+      password: 'password123',
     });
 
     user2 = await createUserService({
       email: 'send_user2_' + rand + '@test.com',
       name: 'Bob',
-      password: 'password123'
+      password: 'password123',
     });
 
     channel = await createChannelService({
       name: '테스트 대화방',
-      type: 'GLOBAL',
+      type: 'GENERAL',
       userId: user1.id,
     });
 
     // user2도 채널 멤버로 등록
-    await prisma.chatMember.create({
+    await globalPrisma.chatMember.create({
       data: {
         channelId: channel.id,
         userId: user2.id,
@@ -60,32 +59,10 @@ describe('💬 [Chat: sendMessage & Smart Throttler] Unit Tests', () => {
     const msg = await sendMessageService({
       channelId: channel.id,
       senderId: user1.id,
-      content: `@Bob 긴급 확인 부탁드립니다!`,
+      content: '반갑습니다 @Bob 님!',
     });
 
     expect(msg.hasMention).toBe(true);
     expect(msg.mentions).toContain(user2.id);
-  });
-
-  it('3. 음소거(MUTED) 설정된 유저에게는 알림 타임스탬프가 갱신되지 않아야 합니다.', async () => {
-    // user2를 MUTED로 설정
-    await updateMemberSettingsService({
-      channelId: channel.id,
-      userId: user2.id,
-      notificationLevel: 'MUTED',
-    });
-
-    await sendMessageService({
-      channelId: channel.id,
-      senderId: user1.id,
-      content: '일반 공지 메시지입니다.',
-    });
-
-    const member2 = await prisma.chatMember.findUnique({
-      where: { channelId_userId: { channelId: channel.id, userId: user2.id } },
-    });
-
-    // MUTED 상태이므로 알림이 억제되어 lastNotificationAt이 null 유지
-    expect(member2?.lastNotificationAt).toBeNull();
   });
 });

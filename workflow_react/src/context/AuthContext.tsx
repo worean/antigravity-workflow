@@ -1,6 +1,6 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '@/types';
-import { getMe, loginEmail, registerUser } from '@/services/api';
+import { getMe, loginEmail, registerUser, verifyEmail as verifyEmailApi, resendVerification as resendVerificationApi, loginGoogle } from '@/services/api';
 import { queryClient } from '@/lib/queryClient';
 import { disconnectSocket, getSocket } from '@/lib/socketClient';
 import { prefRepository } from '@/lib/prefRepository';
@@ -10,8 +10,12 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<void>;
-  signup: (email: string, name: string, password?: string) => Promise<void>;
+  login: (email: string, password?: string) => Promise<{ requireVerification?: boolean; email?: string } | void>;
+  loginWithGoogle: (accessToken: string) => Promise<void>;
+  signup: (email: string, name: string, password?: string) => Promise<{ requireVerification?: boolean; email?: string }>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<string>;
+  loginWithTokenAndUser: (token: string, user: User) => void;
   logout: () => void;
   updateUserLocal: (updated: User) => void;
 }
@@ -46,33 +50,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [token]);
 
-  // 로그인 동작
+  // 세션 설정 공통 헬퍼
+  const setSession = (newToken: string, newUser: User) => {
+    prefRepository.authToken = newToken;
+    prefRepository.currentUser = newUser;
+    prefRepository.syncFromUserProfile(newUser.preferences);
+
+    setToken(newToken);
+    setUser(newUser);
+
+    disconnectSocket();
+    getSocket(newToken);
+    queryClient.clear();
+    queryClient.invalidateQueries();
+  };
+
+  // 일반 이메일 로그인
   const login = async (email: string, password?: string) => {
     const res = await loginEmail(email, password);
+    if (res.requireVerification) {
+      return { requireVerification: true, email: res.email };
+    }
     if (res.token) {
-      prefRepository.authToken = res.token;
-      prefRepository.currentUser = res.user;
-      prefRepository.syncFromUserProfile(res.user.preferences);
-
-      setToken(res.token);
-      setUser(res.user);
-
-      // 소켓 재연결 및 쿼리 캐시 무효화/리패치
-      disconnectSocket();
-      getSocket(res.token);
-      queryClient.clear();
-      queryClient.invalidateQueries();
+      setSession(res.token, res.user);
     }
   };
 
-  // 회원가입 동작
-  const signup = async (email: string, name: string, password?: string) => {
-    await registerUser(email, name, password);
-    // signup 후 자동 로그인 시도
-    await login(email, password);
+  // Google OAuth 로그인
+  const loginWithGoogle = async (accessToken: string) => {
+    const res = await loginGoogle(accessToken);
+    if (res.token) {
+      setSession(res.token, res.user);
+    }
   };
 
-  // 로그아웃 동작
+  // 회원가입
+  const signup = async (email: string, name: string, password?: string) => {
+    const res = await registerUser(email, name, password);
+    return res;
+  };
+
+  // 6자리 OTP 이메일 인증
+  const verifyEmail = async (email: string, code: string) => {
+    const res = await verifyEmailApi(email, code);
+    if (res.token) {
+      setSession(res.token, res.user);
+    }
+  };
+
+  // 인증번호 재발송
+  const resendVerification = async (email: string) => {
+    const res = await resendVerificationApi(email);
+    return res.message || '인증코드가 재발송되었습니다.';
+  };
+
+  // URL 리다이렉트 등으로 들어왔을 때 즉시 세션 설정
+  const loginWithTokenAndUser = (newToken: string, newUser: User) => {
+    setSession(newToken, newUser);
+  };
+
+  // 로그아웃
   const logout = () => {
     prefRepository.clearAuth();
     disconnectSocket();
@@ -96,7 +133,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!token && !!user,
         isLoading,
         login,
+        loginWithGoogle,
         signup,
+        verifyEmail,
+        resendVerification,
+        loginWithTokenAndUser,
         logout,
         updateUserLocal,
       }}
@@ -106,10 +147,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-/**
- * Authentication을 위한 Hook으로 AuthContext에 접근할 수 있습니다.
- * 컴포넌트 등은 해당 Hook을 사용하여 인증 상태 및 사용자 정보를 가져올 수 있습니다.
- */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

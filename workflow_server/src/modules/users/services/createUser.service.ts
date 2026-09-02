@@ -1,5 +1,6 @@
 ﻿import bcrypt from 'bcryptjs';
 import { prisma } from '#lib/prisma.js';
+import { globalPrisma } from '#lib/globalPrisma.js';
 
 export const createUserService = async (data: {
   email: string;
@@ -18,7 +19,7 @@ export const createUserService = async (data: {
 
   const role = email.trim().toLowerCase() === 'worean@naver.com' ? 'ADMIN' : 'MEMBER';
 
-  return await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email,
       name,
@@ -38,4 +39,22 @@ export const createUserService = async (data: {
       updatedAt: true,
     },
   });
+
+  // Global DB에도 동기화
+  await globalPrisma.user.upsert({
+    where: { id: user.id },
+    update: { email: user.email, name: user.name, avatar: user.avatar, role: user.role },
+    create: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      password: hashedPassword,
+      role: user.role,
+      avatar: user.avatar,
+      avatarColor: user.avatarColor,
+      isEmailVerified: true,
+    },
+  }).catch(() => {});
+
+  return user;
 };

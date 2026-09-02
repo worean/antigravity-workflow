@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, type RefObject } from 'react';
+import { useState, useEffect, useCallback, useRef, type RefObject } from 'react';
 import type { Project, Sprint, Issue } from '@/types';
 import { getProjects, getSprints, getIssues } from '@/services/api';
 
@@ -34,6 +34,11 @@ export const useWBSProjectData = ({
   const [updatingIssueId, setUpdatingIssueId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const onFilterChangeRef = useRef(onFilterChange);
+  useEffect(() => {
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
+
   // 1. Initial Load: Projects
   useEffect(() => {
     let isMounted = true;
@@ -46,7 +51,9 @@ export const useWBSProjectData = ({
           const matched = initialProjectId ? pList.find((p) => p.id === initialProjectId) : null;
           const targetId = matched ? matched.id : pList[0].id;
           setSelectedProjectId(targetId);
-          if (onFilterChange) onFilterChange(targetId);
+          if (!initialProjectId && onFilterChangeRef.current) {
+            onFilterChangeRef.current(targetId);
+          }
         } else {
           setIsInitialLoading(false);
         }
@@ -59,7 +66,7 @@ export const useWBSProjectData = ({
     return () => {
       isMounted = false;
     };
-  }, [onFilterChange]);
+  }, [initialProjectId]);
 
   // 2. Load Sprints & Issues when Project/Sprint changes
   const loadProjectData = useCallback(

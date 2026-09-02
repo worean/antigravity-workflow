@@ -18,6 +18,7 @@ export interface CreateChannelParams {
   type: ChannelType;
   topic?: string;
   icon?: string;
+  workspaceId?: number;
   projectId?: number;
   groupId?: number;
   targetUserId?: number;
@@ -60,73 +61,60 @@ export const updateMemberSettings = async (
 export const toggleReaction = async (
   messageId: number,
   emoji: string
-): Promise<{ messageId: number; channelId: number; emoji: string; action: 'ADDED' | 'REMOVED'; reactions: any[] }> => {
+): Promise<{ messageId: number; reactions: { emoji: string; count: number; users: { id: number; name: string }[] }[] }> => {
   const res = await apiClient.post(`/chat/messages/${messageId}/reactions`, { emoji });
   return res.data;
 };
 
 // ----------------------------------------------------
-// 2. Query Keys
-// ----------------------------------------------------
-export const chatKeys = {
-  all: ['chat'] as const,
-  channels: () => [...chatKeys.all, 'channels'] as const,
-  messages: (channelId: number) => [...chatKeys.all, 'messages', channelId] as const,
-};
-
-// ----------------------------------------------------
-// 3. TanStack Query Hooks
+// 2. TanStack Query Hooks (with Realtime Sync)
 // ----------------------------------------------------
 
-export const useChannels = () => {
-  return useQuery({
-    queryKey: chatKeys.channels(),
-    queryFn: getChannels,
-    refetchInterval: 15000,
-  });
-};
-
-export const useChannelMessages = (channelId: number | null) => {
-  return useQuery({
-    queryKey: chatKeys.messages(channelId || 0),
-    queryFn: () => (channelId ? getMessages(channelId) : Promise.resolve({ channelId: 0, messages: [], hasMore: false, nextCursor: null })),
-    enabled: Boolean(channelId),
-  });
-};
-
-/**
- * 실시간 전체 안 읽은 채팅 통계 훅 (메뉴바 배지용)
- */
-export const useUnreadChatStats = () => {
+export const useChatChannels = (options?: { enabled?: boolean }) => {
   const queryClient = useQueryClient();
-  const { data: channels = [], refetch } = useChannels();
 
-  // Socket.IO 이벤트 리스너로 실시간 쿼리 무효화
+  const query = useQuery({
+    queryKey: ['chat', 'channels'],
+    queryFn: getChannels,
+    placeholderData: (previousData) => previousData,
+    staleTime: 1000 * 60 * 2, // 2분 캐시
+    enabled: options?.enabled ?? true,
+  });
+
   useEffect(() => {
     const socket = getSocket();
+    if (!socket) return;
 
-    const handleUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels() });
+    const handleNewMessage = () => {
+      queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
     };
 
-    socket.on('chat:new_message', handleUpdate);
-    socket.on('chat:unread_cleared', handleUpdate);
-    socket.on('chat:notification', handleUpdate);
+    const handleReaction = () => {
+      queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
+    };
+
+    socket.on('new_message', handleNewMessage);
+    socket.on('reaction_updated', handleReaction);
 
     return () => {
-      socket.off('chat:new_message', handleUpdate);
-      socket.off('chat:unread_cleared', handleUpdate);
-      socket.off('chat:notification', handleUpdate);
+      socket.off('new_message', handleNewMessage);
+      socket.off('reaction_updated', handleReaction);
     };
   }, [queryClient]);
 
-  const totalUnreadCount = channels.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-  const hasMentionUnread = channels.some((c) => (c.unreadCount || 0) > 0 && c.mySettings?.notificationLevel === 'MENTIONS_ONLY');
+  return query;
+};
+
+export const useUnreadChatStats = () => {
+  const { data: channels = [] } = useChatChannels();
+
+  const totalUnreadCount = channels.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+  const hasMentionUnread = channels.some((c) => (c.unreadCount || 0) > 0 && c.hasMention);
 
   return {
     totalUnreadCount,
     hasMentionUnread,
     channels,
-    refetch,
   };
 };

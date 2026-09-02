@@ -1,4 +1,4 @@
-﻿import { io, Socket } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { getCurrentBackendHostUrl } from './apiClient';
 import { prefRepository } from './prefRepository';
 
@@ -14,7 +14,7 @@ export const getSocket = (token?: string): Socket => {
       auth: {
         token: authToken,
       },
-      autoConnect: true,
+      autoConnect: !!authToken,
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
@@ -26,6 +26,9 @@ export const getSocket = (token?: string): Socket => {
     });
 
     socket.on('connect_error', (err) => {
+      if (err.message?.includes('Token required')) {
+        return;
+      }
       console.warn('⚠️ [Socket.IO] Connection error:', err.message);
     });
   } else {

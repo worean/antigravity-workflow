@@ -1,83 +1,61 @@
-﻿import { prisma } from '#lib/prisma.js';
-import { broadcastToChannel } from '../../../lib/socket.js';
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
+import { broadcastToChannel } from '#lib/socket.js';
 
-export const toggleReactionService = async (messageId: number, userId: number, emoji: string) => {
-  if (!messageId) throw new Error('Message ID is required');
-  if (!userId) throw new Error('User ID is required');
-  if (!emoji || !emoji.trim()) throw new Error('Emoji is required');
+export const toggleReactionService = async (messageId: number, userId: number, emoji: string, customDb?: any) => {
+  const gdb = (customDb ?? globalPrisma) as any;
 
-  const cleanEmoji = emoji.trim();
+  if (!messageId || !userId || !emoji) {
+    throw new Error('Message ID, User ID, and Emoji are required');
+  }
 
-  const message = await prisma.chatMessage.findUnique({
-    where: { id: messageId },
-  });
-
-  if (!message) throw new Error('Message not found');
-
-  const existingReaction = await prisma.chatMessageReaction.findUnique({
+  const existing = await gdb.chatMessageReaction.findUnique({
     where: {
-      messageId_userId_emoji: {
-        messageId,
-        userId,
-        emoji: cleanEmoji,
-      },
+      messageId_userId_emoji: { messageId, userId, emoji },
     },
   });
 
-  let action: 'ADDED' | 'REMOVED';
-
-  if (existingReaction) {
-    await prisma.chatMessageReaction.delete({
-      where: { id: existingReaction.id },
+  let action = 'ADDED';
+  if (existing) {
+    await gdb.chatMessageReaction.delete({
+      where: { id: existing.id },
     });
     action = 'REMOVED';
   } else {
-    await prisma.chatMessageReaction.create({
-      data: {
-        messageId,
-        userId,
-        emoji: cleanEmoji,
-      },
+    await gdb.chatMessageReaction.create({
+      data: { messageId, userId, emoji },
     });
-    action = 'ADDED';
   }
 
-  // 갱신된 전체 리액션 목록 조회
-  const allReactions = await prisma.chatMessageReaction.findMany({
+  const allReactions = await gdb.chatMessageReaction.findMany({
     where: { messageId },
-    include: {
-      user: { select: { id: true, name: true } },
-    },
+    include: { user: { select: { id: true, name: true } } },
   });
 
-  const reactionMap = new Map<string, { emoji: string; count: number; users: { id: number; name: string }[]; hasReacted: boolean }>();
+  // 이모지별 그룹핑
+  const reactionMap = new Map<string, { emoji: string; count: number; users: any[] }>();
   for (const r of allReactions) {
-    const item = reactionMap.get(r.emoji) || {
-      emoji: r.emoji,
-      count: 0,
-      users: [],
-      hasReacted: false,
-    };
-    item.count++;
-    item.users.push({ id: r.user.id, name: r.user.name || '' });
-    if (r.userId === userId) {
-      item.hasReacted = true;
+    if (!reactionMap.has(r.emoji)) {
+      reactionMap.set(r.emoji, { emoji: r.emoji, count: 0, users: [] });
     }
-    reactionMap.set(r.emoji, item);
+    const item = reactionMap.get(r.emoji)!;
+    item.count += 1;
+    item.users.push(r.user);
   }
 
-  const payload = {
-    messageId,
-    channelId: message.channelId,
-    userId,
-    emoji: cleanEmoji,
+  const formattedReactions = Array.from(reactionMap.values());
+
+  const message = await gdb.chatMessage.findUnique({ where: { id: messageId } });
+  if (message) {
+    broadcastToChannel(message.channelId, 'reaction_updated', {
+      messageId,
+      reactions: formattedReactions,
+    });
+  }
+
+  return {
     action,
-    reactions: Array.from(reactionMap.values()),
+    emoji,
+    messageId,
+    reactions: formattedReactions,
   };
-
-  // 클라이언트 소켓 이벤트 동기화 (두 이벤트 모두 브로드캐스트)
-  broadcastToChannel(message.channelId, 'chat:reaction_updated', payload);
-  broadcastToChannel(message.channelId, 'chat:message_reaction', payload);
-
-  return payload;
 };

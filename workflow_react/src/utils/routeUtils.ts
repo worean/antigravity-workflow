@@ -1,4 +1,4 @@
-﻿export type RootTabType =
+export type RootTabType =
   | 'dashboard'
   | 'projects'
   | 'issues'
@@ -181,7 +181,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
             rootTab: 'wbs',
             tab: 'wbs',
             projectId: pId,
-            issueId: null,
+            issueId: queryIssueId,
             sprintId: null,
             channelId: null,
             mode,

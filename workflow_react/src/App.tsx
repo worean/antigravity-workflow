@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -11,6 +11,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
 import { ProjectDetailPage } from '@/pages/ProjectDetailPage';
 import { IssuesPage } from '@/pages/IssuesPage';
+import { IssueDetailPage } from '@/pages/IssueDetailPage';
 import { SprintsPage } from '@/pages/SprintsPage';
 import { SprintDetailPage } from '@/pages/SprintDetailPage';
 import { WBSPage } from '@/pages/WBSPage';
@@ -33,13 +34,30 @@ import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/ut
 type IssueDetailMode = 'view' | 'edit';
 
 const AppContent: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loginWithTokenAndUser } = useAuth();
+
+  // OAuth / Email Magic Link Redirect Handler (?token=...&user=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirectToken = params.get('token');
+    const redirectUserStr = params.get('user');
+
+    if (redirectToken && redirectUserStr) {
+      try {
+        const redirectUser = JSON.parse(decodeURIComponent(redirectUserStr));
+        loginWithTokenAndUser(redirectToken, redirectUser);
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      } catch (err) {
+        console.error('Failed to parse redirect user info:', err);
+      }
+    }
+  }, [loginWithTokenAndUser]);
 
   const initialRoute = useMemo(() => {
     return parseRouteFromHash(window.location.hash);
   }, []);
 
-  const [activeTab, setActiveTabState] = useState<TabType>(initialRoute.tab === 'issue-detail' ? 'issues' : initialRoute.tab);
+  const [activeTab, setActiveTabState] = useState<TabType>(initialRoute.tab as TabType);
   const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(initialRoute.projectId);
   const [selectedAssigneeId, setSelectedAssigneeIdState] = useState<number | 'ALL' | 'MY'>(initialRoute.assigneeId);
   const [searchTerm, setSearchTermState] = useState<string>(initialRoute.search);
@@ -90,11 +108,9 @@ const AppContent: React.FC = () => {
     if (!socket) return;
 
     const handleRealtimeIssueCreated = (data: { actorId?: number; issue: Issue }) => {
-      // 1. 전체 화면 데이터 및 쿼리 캐시 자동 리프레시
       queryClient.invalidateQueries({ queryKey: issueKeys.all });
       setIssueRefreshKey(Date.now());
 
-      // 2. 🔔 타인이 생성한 이슈인 경우에만 데스크톱 알림 발송 (본인 작성 시 알림 제외)
       if (data && data.actorId && data.actorId !== user?.id && data.issue) {
         sendDesktopNotification({
           title: '신규 이슈 등록',
@@ -105,14 +121,12 @@ const AppContent: React.FC = () => {
     };
 
     const handleRealtimeIssueUpdated = (data: { actorId?: number; issue: Issue }) => {
-      // 1. 전체 화면 데이터 및 쿼리 캐시 자동 리프레시
       queryClient.invalidateQueries({ queryKey: issueKeys.all });
       if (data?.issue?.id) {
         queryClient.invalidateQueries({ queryKey: issueKeys.detail(data.issue.id) });
       }
       setIssueRefreshKey(Date.now());
 
-      // 2. 🔔 타인이 수정한 이슈인 경우에만 데스크톱 알림 발송 (본인 수정 시 알림 제외)
       if (data && data.actorId && data.actorId !== user?.id && data.issue) {
         sendDesktopNotification({
           title: '이슈 내용 갱신',
@@ -154,27 +168,26 @@ const AppContent: React.FC = () => {
       replace: boolean = false,
       extra?: { assigneeId?: number | 'ALL' | 'MY'; search?: string; channelId?: number | null; sprintId?: number | null }
     ) => {
-      const normalizedTab = tab === 'issue-detail' ? 'issues' : tab;
-      prefRepository.activeTab = normalizedTab;
+      prefRepository.activeTab = tab;
 
-      const targetSprintId = extra?.sprintId ?? (normalizedTab === 'sprint-detail' ? issueId : null);
+      const targetSprintId = extra?.sprintId ?? (tab === 'sprint-detail' ? issueId : null);
 
-      setActiveTabState(normalizedTab);
+      setActiveTabState(tab);
       setSelectedProjectIdState(projId);
       if (extra?.assigneeId !== undefined) setSelectedAssigneeIdState(extra.assigneeId);
       if (extra?.search !== undefined) setSearchTermState(extra.search);
       if (extra?.channelId !== undefined) setSelectedChannelIdState(extra.channelId);
       setSelectedSprintIdState(targetSprintId);
-      setSelectedIssueIdState(normalizedTab === 'sprint-detail' ? null : issueId);
+      setSelectedIssueIdState(tab === 'issue-detail' ? issueId : null);
       setIssueDetailModeState(mode);
 
       // Build RESTful Hierarchical Hash URL
       const newHash = buildHashFromRoute({
-        tab: (issueId ? 'issue-detail' : normalizedTab) as ActiveTabType,
+        tab: tab as ActiveTabType,
         projectId: projId,
-        issueId: normalizedTab === 'sprint-detail' ? null : issueId,
+        issueId: tab === 'issue-detail' ? issueId : null,
         sprintId: targetSprintId,
-        channelId: extra?.channelId ?? (normalizedTab === 'chat' ? selectedChannelId : null),
+        channelId: extra?.channelId ?? (tab === 'chat' ? selectedChannelId : null),
         mode,
         assigneeId: extra?.assigneeId ?? selectedAssigneeId,
         search: extra?.search ?? searchTerm,
@@ -210,8 +223,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handleUrlChange = () => {
       const route = parseRouteFromHash(window.location.hash);
-      const normalizedTab = route.tab === 'issue-detail' ? 'issues' : route.tab;
-      setActiveTabState(normalizedTab);
+      setActiveTabState(route.tab as TabType);
       setSelectedProjectIdState(route.projectId);
       setSelectedAssigneeIdState(route.assigneeId);
       setSearchTermState(route.search);
@@ -233,17 +245,14 @@ const AppContent: React.FC = () => {
     setIsIssueModalOpen(true);
   };
 
-  // 이슈 클릭 시: 기존 페이지 상태를 유지한 채 우측 슬라이드 드로어 오픈!
+  // 이슈 클릭 시: URL 변경 없이 순수 컴포넌트 State로 우측 슬라이드 드로어 오픈!
   const handleSelectIssue = (issue: Issue) => {
-    const projId = selectedProjectId || issue.projectId || null;
     setSelectedIssueIdState(issue.id);
-    navigate(activeTab, projId, issue.id, 'view', false);
   };
 
-  // 이슈 드로어 닫기
+  // 이슈 드로어 닫기: URL 변경 없이 순수 컴포넌트 State로 닫기
   const handleCloseIssueDrawer = () => {
     setSelectedIssueIdState(null);
-    navigate(activeTab, selectedProjectId, null, 'view', false);
   };
 
   // 프로젝트 클릭 시 프로젝트 상세/설정 페이지로 이동
@@ -256,9 +265,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleIssueModeChange = (newMode: IssueDetailMode) => {
-    if (selectedIssueId) {
-      navigate(activeTab, selectedProjectId, selectedIssueId, newMode, false);
-    }
+    setIssueDetailModeState(newMode);
   };
 
   // 필터 변경 시 URL 해시 업데이트
@@ -302,6 +309,13 @@ const AppContent: React.FC = () => {
         } else {
           baseCrumbs.push({ label: '이슈 칸반 보드' });
         }
+        break;
+      case 'issue-detail':
+        baseCrumbs.push(
+          { label: '이슈 목록', onClick: () => navigate('issues', selectedProjectId) },
+          ...(currentProject ? [{ label: `${currentProject.name} (${currentProject.key})`, onClick: () => navigate('issues', currentProject.id) }] : []),
+          { label: `이슈 상세 #${selectedIssueId}` }
+        );
         break;
       case 'sprints':
         if (currentProject) {
@@ -362,6 +376,7 @@ const AppContent: React.FC = () => {
           selectedProjectId={selectedProjectId}
           selectedChannelId={selectedChannelId}
           onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenSettings={() => navigate('settings')}
           onSelectProjectDetail={(pId) => navigate('project-detail', pId, null, 'view', false)}
           onSelectChatChannel={(cId: number) => navigate('chat', null, null, 'view', false, { channelId: cId })}
         />
@@ -419,6 +434,20 @@ const AppContent: React.FC = () => {
             />
           )}
 
+          {activeTab === 'issue-detail' && (
+            <IssueDetailPage
+              key={`tab-issue-detail-${selectedIssueId}`}
+              issueId={selectedIssueId}
+              projectId={selectedProjectId}
+              mode={issueDetailMode}
+              onModeChange={handleIssueModeChange}
+              onBack={() => navigate('issues', selectedProjectId)}
+              onGoToList={() => navigate('issues', selectedProjectId)}
+              onIssueUpdated={handleIssueRefreshed}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
+            />
+          )}
+
           {activeTab === 'chat' && (
             <ChatPage
               key={`tab-chat-${isAuthenticated ? user?.id : 'guest'}`}
@@ -455,9 +484,9 @@ const AppContent: React.FC = () => {
 
           {activeTab === 'wbs' && (
             <WBSPage
-              key={`tab-wbs-${selectedProjectId || 'all'}`}
+              key="tab-wbs"
               selectedProjectId={selectedProjectId}
-              onFilterChange={(pId) => navigate('wbs', pId, null, 'view', true)}
+              onFilterChange={(pId) => navigate('wbs', pId, selectedIssueId, 'view', true)}
               onSelectIssue={handleSelectIssue}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
@@ -479,9 +508,9 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      {/* Slide-over Issue Detail Drawer (우측 슬라이드 오버레이) */}
+      {/* Slide-over Issue Detail Drawer (우측 슬라이드 오버레이: Full page 이슈 상세 및 자체 Drawer를 가진 WBS 제외) */}
       <IssueDetailDrawer
-        isOpen={!!selectedIssueId}
+        isOpen={activeTab !== 'issue-detail' && activeTab !== 'wbs' && !!selectedIssueId}
         issueId={selectedIssueId}
         projectId={selectedProjectId}
         mode={issueDetailMode}

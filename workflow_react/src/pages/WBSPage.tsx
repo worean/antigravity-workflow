@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Issue } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Spinner } from '@/components/common';
@@ -13,6 +13,7 @@ import {
 import { useWBSProjectData } from '@/hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '@/hooks/useWBSGanttDrag';
 import { WBSToolbar, WBSMainSplitView } from '@/components/wbs';
+import { IssueDetailDrawer } from '@/components/issueDetail/IssueDetailDrawer';
 import { prefRepository } from '@/lib/prefRepository';
 
 interface WBSPageProps {
@@ -34,6 +35,9 @@ export const WBSPage: React.FC<WBSPageProps> = ({
   const tableBodyRef = useRef<HTMLDivElement>(null);
   const ganttBodyRef = useRef<HTMLDivElement>(null);
   const ganttHeaderRef = useRef<HTMLDivElement>(null);
+
+  // WBS Local Issue Detail Drawer State (독립 오버레이 슬라이드)
+  const [selectedDrawerIssueId, setSelectedDrawerIssueId] = useState<number | null>(null);
 
   // Preference: isSundayStart
   const isSundayStart = useMemo<boolean>(() => {
@@ -280,7 +284,10 @@ export const WBSPage: React.FC<WBSPageProps> = ({
           collapsedIds={collapsedIds}
           onToggleCollapse={toggleCollapse}
           setCollapsedIds={setCollapsedIds}
-          onSelectIssue={onSelectIssue}
+          onSelectIssue={(iss) => {
+            setSelectedDrawerIssueId(iss.id);
+            if (onSelectIssue) onSelectIssue(iss);
+          }}
           tableBodyRef={tableBodyRef}
           onTableScroll={handleTableScroll}
           leftWidth={leftWidth}
@@ -303,6 +310,16 @@ export const WBSPage: React.FC<WBSPageProps> = ({
           onMouseDownOnBar={handleMouseDownOnBar}
         />
       )}
+
+      {/* WBS Slide-over Issue Detail Drawer (독립 우측 슬라이드 오버레이) */}
+      <IssueDetailDrawer
+        isOpen={!!selectedDrawerIssueId}
+        issueId={selectedDrawerIssueId}
+        projectId={selectedProjectId}
+        onClose={() => setSelectedDrawerIssueId(null)}
+        onIssueUpdated={() => loadProjectData(false)}
+        onOpenAuth={onOpenAuth}
+      />
     </div>
   );
 };

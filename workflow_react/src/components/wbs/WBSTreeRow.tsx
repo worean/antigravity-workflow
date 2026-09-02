@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, TreeDropTarget } from '@/types/wbs';
 import {
@@ -57,6 +57,8 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
     }
   }
 
+  const mouseDownPosRef = React.useRef<{ x: number; y: number } | null>(null);
+
   return (
     <div
       key={iss.id}
@@ -66,7 +68,17 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, iss)}
       onDragEnd={onDragEnd}
-      onClick={() => onSelectIssue && onSelectIssue(iss)}
+      onMouseDown={(e) => {
+        mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+      }}
+      onClick={(e) => {
+        if (mouseDownPosRef.current) {
+          const dist = Math.hypot(e.clientX - mouseDownPosRef.current.x, e.clientY - mouseDownPosRef.current.y);
+          mouseDownPosRef.current = null;
+          if (dist > 5) return;
+        }
+        if (onSelectIssue) onSelectIssue(iss);
+      }}
       style={{
         height: '38px',
         display: 'flex',
@@ -75,7 +87,7 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
         borderTop: rowBorderTop,
         fontSize: '0.74rem',
         padding: '0 8px',
-        cursor: 'grab',
+        cursor: 'pointer',
         background: rowBg,
         boxShadow: rowBoxShadow,
         opacity: isBeingDragged ? 0.35 : 1,
@@ -89,7 +101,7 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
           ? `"${iss.title}"의 위쪽(동일 계층)으로 이동`
           : isTarget && treeDropTarget?.position === 'after'
           ? `"${iss.title}"의 아래쪽(동일 계층)으로 이동`
-          : undefined
+          : `#${iss.id} ${iss.title} - 클릭하여 상세 및 편집`
       }
       onMouseEnter={(e) => {
         if (!isTarget) e.currentTarget.style.background = '#2a2d2e';
@@ -117,6 +129,10 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
 
       {/* Title with indent and collapse arrow */}
       <div
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onSelectIssue) onSelectIssue(iss);
+        }}
         style={{
           flex: 1,
           display: 'flex',
@@ -126,6 +142,7 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
+          cursor: 'pointer',
         }}
       >
         {item.hasChildren ? (

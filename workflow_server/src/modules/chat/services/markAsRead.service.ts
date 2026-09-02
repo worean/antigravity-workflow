@@ -1,37 +1,28 @@
-﻿import { prisma } from '#lib/prisma.js';
-import { sendToUser } from '../../../lib/socket.js';
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
+import { prisma as workspacePrisma } from '#lib/prisma.js';
 
-export const markAsReadService = async (channelId: number, userId: number) => {
-  if (!channelId) throw new Error('Channel ID is required');
-  if (!userId) throw new Error('User ID is required');
-
+export const markAsReadService = async (channelId: number, userId: number, customDb?: any) => {
+  const gdb = (customDb ?? globalPrisma) as any;
   const now = new Date();
 
-  // 기존 멤버십 확인
-  const member = await prisma.chatMember.findUnique({
+  await gdb.chatMember.upsert({
     where: {
       channelId_userId: { channelId, userId },
     },
+    update: { lastReadAt: now },
+    create: { channelId, userId, lastReadAt: now },
   });
 
-  if (member) {
-    await prisma.chatMember.update({
-      where: { id: member.id },
-      data: { lastReadAt: now },
-    });
-  } else {
-    // GLOBAL 채널 등의 경우 멤버십 신규 생성
-    await prisma.chatMember.create({
-      data: {
-        channelId,
-        userId,
-        lastReadAt: now,
+  // workspace db 호환성 동기화
+  try {
+    await workspacePrisma.chatMember.upsert({
+      where: {
+        channelId_userId: { channelId, userId },
       },
+      update: { lastReadAt: now },
+      create: { channelId, userId, lastReadAt: now },
     });
-  }
+  } catch {}
 
-  // 개인 소켓에 읽음 처리 완료 알림 (Unread 배지 클리어용)
-  sendToUser(userId, 'chat:unread_cleared', { channelId });
-
-  return { success: true, channelId, lastReadAt: now };
+  return { success: true, channelId, userId, lastReadAt: now };
 };

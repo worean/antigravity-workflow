@@ -1,5 +1,5 @@
 // ==========================================
-// 🌐 Global Database Schema (schema.global.prisma)
+// Global Database Schema (schema.global.prisma)
 // ==========================================
 
 generator client {
@@ -24,12 +24,23 @@ model User {
   pushToken    String?   // APNs / FCM 푸시 토큰
   preferences  String?   @default("{}") // 전역 UI 설정 JSON 문자열
 
+  // 이메일 인증 상태 및 토큰
+  isEmailVerified         Boolean   @default(false)
+  verificationToken       String?   @unique
+  verificationCode        String?   // 6자리 OTP 인증 코드
+  verificationExpiresAt   DateTime?
+
   // 소셜 계정 연동 (1:N)
   socialAccounts SocialAccount[]
 
   // 소유 및 참여 워크스페이스
   workspaces     UserWorkspace[]
   ownedWorkspaces Workspace[]    @relation("WorkspaceOwner")
+
+  // 실시간 채팅 관계
+  chatMembers     ChatMember[]
+  sentChatMessages ChatMessage[] @relation("SentMessages")
+  chatReactions   ChatMessageReaction[]
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -66,7 +77,7 @@ model Workspace {
   ownerId     Int
   owner       User     @relation("WorkspaceOwner", fields: [ownerId], references: [id])
 
-  // 🔐 독립 Database 접속 정보
+  // 독립 Database 접속 정보
   dbType      String   @default("sqlite") // sqlite, postgres, mysql 등
   dbUrl       String   // e.g. "file:C:/.../.tmp/workspaces/ws_1.db"
   dbKey       String?  // DB 암호화 키 또는 보안 접속 키
@@ -75,6 +86,7 @@ model Workspace {
 
   members     UserWorkspace[]
   invitations WorkspaceInvitation[]
+  chatChannels ChatChannel[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -112,4 +124,88 @@ model WorkspaceInvitation {
 
   inviterId   Int
   createdAt   DateTime  @default(now())
+}
+
+// 6. 전역 및 워크스페이스 채팅 채널 (ChatChannel)
+model ChatChannel {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String   @default("GENERAL") // GENERAL(전체), PROJECT(프로젝트), GROUP(그룹), DM(1:1 다이렉트)
+  topic       String?
+  icon        String?
+  isPrivate   Boolean  @default(false)
+
+  // 워크스페이스 종속성 (DM인 경우 null, 그 외 워크스페이스 채널은 필수 바인딩)
+  workspaceId Int?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // 프로젝트 / 그룹 메타데이터 연동 ID
+  projectId   Int?
+  groupId     Int?
+
+  members     ChatMember[]
+  messages    ChatMessage[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([type])
+}
+
+// 7. 채팅방 참여 멤버 및 읽음 상태 (ChatMember)
+model ChatMember {
+  id                Int      @id @default(autoincrement())
+  channelId         Int
+  channel           ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role              String   @default("MEMBER") // OWNER, ADMIN, MEMBER
+  notificationLevel String   @default("ALL")    // ALL, MENTIONS_ONLY, MUTED
+  mutedUntil        DateTime?
+  lastReadAt        DateTime @default(now())
+
+  createdAt         DateTime @default(now())
+
+  @@unique([channelId, userId])
+  @@index([userId])
+}
+
+// 8. 채팅 메시지 (ChatMessage)
+model ChatMessage {
+  id          Int      @id @default(autoincrement())
+  channelId   Int
+  channel     ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  senderId    Int
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  content     String
+  attachments String?  // JSON Array String
+
+  reactions   ChatMessageReaction[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([channelId])
+  @@index([senderId])
+}
+
+// 9. 메시지 이모지 반응 (ChatMessageReaction)
+model ChatMessageReaction {
+  id        Int         @id @default(autoincrement())
+  messageId Int
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emoji     String
+  createdAt DateTime    @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
 }

@@ -1,6 +1,6 @@
-﻿import { prisma } from '#lib/prisma.js';
+import { prisma } from '#lib/prisma.js';
 
-export const getProjectService = async (id: number) => {
+export const getProjectService = async (id: number, currentUserId?: number) => {
   if (!id) throw new Error('Project ID is required');
   const project = await prisma.project.findUnique({
     where: { id },
@@ -31,5 +31,23 @@ export const getProjectService = async (id: number) => {
   });
 
   if (!project) throw new Error('Project not found');
-  return project;
+
+  let isFavorite = false;
+  if (currentUserId) {
+    const fav = await prisma.favorite.findUnique({
+      where: {
+        userId_targetType_targetId: {
+          userId: currentUserId,
+          targetType: 'PROJECT',
+          targetId: id,
+        },
+      },
+    });
+    isFavorite = !!fav;
+  }
+
+  return {
+    ...project,
+    isFavorite,
+  };
 };

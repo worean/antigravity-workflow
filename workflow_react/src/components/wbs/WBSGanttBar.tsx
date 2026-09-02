@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, DragState } from '@/types/wbs';
 import { formatDateOnly, diffDays } from '@/utils/dateUtils';
@@ -48,9 +48,9 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
   // 날짜/범위가 실제로 원래 값과 다르게 변동되었는지 여부
   const isDatesChanged = Boolean(
     dragState &&
-      !isBeingDragged &&
-      (curStart?.getTime() !== item.startDate?.getTime() ||
-        curEnd?.getTime() !== item.endDate?.getTime())
+    !isBeingDragged &&
+    (curStart?.getTime() !== item.startDate?.getTime() ||
+      curEnd?.getTime() !== item.endDate?.getTime())
   );
 
   // 드래그로 인해 영향을 받아 일정이 변동되는 연관 일감(상위 부모 일감 또는 하위 자손 일감) 점선 피드백
@@ -67,6 +67,8 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
     barLeft = diffStartDays * dayWidth;
     barWidth = durationDays * dayWidth;
   }
+
+  const mouseDownPosRef = React.useRef<{ x: number; y: number } | null>(null);
 
   const prog = iss.progress || 0;
 
@@ -95,33 +97,46 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
             border: isBeingDragged
               ? `2.5px solid ${item.color.dragBorder}`
               : isDashedFeedback
-              ? `2px dashed ${item.color.dragBorder}`
-              : `2px solid ${item.color.border}`,
+                ? `2px dashed ${item.color.dragBorder}`
+                : `2px solid ${item.color.border}`,
             boxShadow: isBeingDragged
               ? `0 4px 14px ${item.color.base}88`
               : isDashedFeedback
-              ? `0 2px 8px ${item.color.base}55`
-              : '0 2px 4px rgba(0,0,0,0.3)',
+                ? `0 2px 8px ${item.color.base}55`
+                : '0 2px 4px rgba(0,0,0,0.3)',
             display: 'flex',
             alignItems: 'center',
             userSelect: 'none',
-            cursor: 'grab',
+            cursor: 'pointer',
             transition: isBeingDragged ? 'none' : 'left 0.08s ease, width 0.08s ease, box-shadow 0.15s',
             boxSizing: 'border-box',
             overflow: 'hidden',
           }}
-          title={`#${iss.issueNumber || iss.id} ${iss.title} (${prog}%) - 더블 클릭 시 상세 보기`}
+          title={`#${iss.issueNumber || iss.id} ${iss.title} (${prog}%) - 클릭 시 상세 및 편집`}
           onMouseDown={(e) => {
+            mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
             if (curStart && curEnd) {
               onMouseDownOnBar(e, iss, 'move', curStart, curEnd);
             }
           }}
           onClick={(e) => {
             e.stopPropagation();
+            if (mouseDownPosRef.current) {
+              const dist = Math.hypot(e.clientX - mouseDownPosRef.current.x, e.clientY - mouseDownPosRef.current.y);
+              mouseDownPosRef.current = null;
+              if (dist > 4) {
+                return;
+              }
+            }
+            if (onSelectIssue) {
+              onSelectIssue(iss);
+            }
           }}
           onDoubleClick={(e) => {
             e.stopPropagation();
-            if (onSelectIssue) onSelectIssue(iss);
+            if (onSelectIssue) {
+              onSelectIssue(iss);
+            }
           }}
         >
           {/* Left Resize Handle */}

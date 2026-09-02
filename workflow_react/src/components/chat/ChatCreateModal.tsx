@@ -9,6 +9,7 @@ import { createChannel } from '@/api/chat';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { useWorkspace } from '@/context/WorkspaceContext';
 
 export interface ChatCreateModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ export interface ChatCreateModalProps {
 export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
   isOpen,
   onClose,
-  initialType = 'GLOBAL',
+  initialType = 'GENERAL',
   allWorkspaceUsers = [],
   allWorkspaceProjects = [],
   allWorkspaceGroups = [],
@@ -32,6 +33,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
   onSuccess,
 }) => {
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
+  const { currentWorkspace } = useWorkspace();
   const overlayProps = useOverlayClickClose(onClose);
 
   const [createType, setCreateType] = useState<ChannelType>(initialType);
@@ -92,6 +94,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
           name: payloadName,
           type: createType,
           topic: createTopic.trim() || undefined,
+          workspaceId: createType === 'DM' ? undefined : (currentWorkspace?.id || undefined),
           projectId: createType === 'PROJECT' ? (createProjectId ? Number(createProjectId) : undefined) : undefined,
           groupId: createType === 'GROUP' ? (createGroupId ? Number(createGroupId) : undefined) : undefined,
           targetUserId: createType === 'DM' ? (createTargetUserId ? Number(createTargetUserId) : undefined) : undefined,
@@ -197,7 +200,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
                 value={createType}
                 onChange={(e) => setCreateType(e.target.value as ChannelType)}
               >
-                <option value="GLOBAL">📢 공용 채널 (전체 공개)</option>
+                <option value="GENERAL">📢 워크스페이스 전체 채널 (공지/공유)</option>
                 <option value="PROJECT">📁 프로젝트 전용 채널</option>
                 <option value="GROUP">👥 그룹/부서 전용 채널</option>
                 <option value="DM">💬 1:1 다이렉트 메시지 (DM)</option>
@@ -251,20 +254,6 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
                     ))}
                   </select>
                 </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                    채널명 <span style={{ color: '#f43f5e' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    value={createName}
-                    onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="예: 백엔드 개발 회의"
-                    required
-                  />
-                </div>
               </>
             ) : createType === 'GROUP' ? (
               <>
@@ -286,27 +275,16 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
                     <option value="">-- 그룹을 선택하세요 --</option>
                     {allWorkspaceGroups.map((g) => (
                       <option key={g.id} value={g.id}>
-                        {g.name} ({g.code || `ID:${g.id}`})
+                        [{g.code || `GRP-${g.id}`}] {g.name}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                    채널명 <span style={{ color: '#f43f5e' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    value={createName}
-                    onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="예: 플랫폼본부 전체방"
-                    required
-                  />
-                </div>
               </>
-            ) : (
+            ) : null}
+
+            {/* 3. 채널명 (DM이 아닌 경우) */}
+            {createType !== 'DM' && (
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
                   채널명 <span style={{ color: '#f43f5e' }}>*</span>
@@ -314,68 +292,69 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
                 <input
                   type="text"
                   className="input-field"
+                  placeholder="예: 공지사항, 자유토론방"
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
-                  placeholder="예: 공지사항, 자유토론, 기술공유"
                   required
-                  autoFocus
                 />
               </div>
             )}
 
-            {/* 3. 토픽 / 설명 */}
-            {createType !== 'DM' && (
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                  채널 주제 / 토픽
-                </label>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={createTopic}
-                  onChange={(e) => setCreateTopic(e.target.value)}
-                  placeholder="채널의 목적이나 주요 논의 주제"
-                />
-              </div>
-            )}
+            {/* 4. 채널 설명/주제 */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                채널 설명 (선택)
+              </label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="채널의 목적이나 주제를 입력하세요"
+                value={createTopic}
+                onChange={(e) => setCreateTopic(e.target.value)}
+              />
+            </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+            {/* Footer Buttons */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px',
+                marginTop: '8px',
+                borderTop: '1px solid var(--border-light, #3c3c3c)',
+                paddingTop: '12px',
+              }}
+            >
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary btn-sm"
                 onClick={onClose}
                 disabled={isPending}
-                style={{ flex: 1 }}
               >
                 취소
               </button>
+
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn btn-primary btn-sm"
                 disabled={isPending}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
+                style={{ minWidth: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
-                {isPending ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> 생성 중...
-                  </>
-                ) : (
-                  '채널 생성'
-                )}
+                {isPending && <Loader2 size={12} className="spin" />}
+                <span>생성</span>
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />
+      {/* Action Error Modal */}
+      {errorState.isOpen && (
+        <ActionFeedbackModal
+          state={errorState}
+          onClose={closeErrorModal}
+        />
+      )}
     </>
   );
 };
