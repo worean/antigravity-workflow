@@ -54,31 +54,87 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
 
     if (isNewlyOpened) {
       setCreateType(initialType);
-      setCreateName('');
       setCreateTopic('');
       setCreateTargetUserId(null);
-      setCreateProjectId(allWorkspaceProjects[0]?.id || null);
-      setCreateGroupId(allWorkspaceGroups[0]?.id || null);
+
+      const defaultProjectId = allWorkspaceProjects[0]?.id || null;
+      setCreateProjectId(defaultProjectId);
+
+      const defaultGroupId = allWorkspaceGroups[0]?.id || null;
+      setCreateGroupId(defaultGroupId);
+
+      if (initialType === 'PROJECT') {
+        const p = allWorkspaceProjects.find((x) => x.id === defaultProjectId);
+        setCreateName(p ? p.name : '');
+      } else if (initialType === 'GROUP') {
+        const g = allWorkspaceGroups.find((x) => x.id === defaultGroupId);
+        setCreateName(g ? g.name : '');
+      } else {
+        setCreateName('');
+      }
+    } else {
+      // 🔒 비동기로 프로젝트/그룹 데이터가 로딩되었을 때 자동 보정
+      if (createType === 'PROJECT' && !createProjectId && allWorkspaceProjects.length > 0) {
+        const firstProj = allWorkspaceProjects[0];
+        setCreateProjectId(firstProj.id);
+        if (!createName) setCreateName(firstProj.name);
+      }
+      if (createType === 'GROUP' && !createGroupId && allWorkspaceGroups.length > 0) {
+        const firstGrp = allWorkspaceGroups[0];
+        setCreateGroupId(firstGrp.id);
+        if (!createName) setCreateName(firstGrp.name);
+      }
     }
-  }, [isOpen, initialType, allWorkspaceProjects, allWorkspaceGroups]);
+  }, [isOpen, initialType, allWorkspaceProjects, allWorkspaceGroups, createType, createProjectId, createGroupId, createName]);
+
+  const handleTypeChange = (newType: ChannelType) => {
+    setCreateType(newType);
+    if (newType === 'PROJECT') {
+      const pId = createProjectId || allWorkspaceProjects[0]?.id || null;
+      setCreateProjectId(pId);
+      const p = allWorkspaceProjects.find((x) => x.id === pId);
+      setCreateName(p ? p.name : '');
+    } else if (newType === 'GROUP') {
+      const gId = createGroupId || allWorkspaceGroups[0]?.id || null;
+      setCreateGroupId(gId);
+      const g = allWorkspaceGroups.find((x) => x.id === gId);
+      setCreateName(g ? g.name : '');
+    } else if (newType === 'DM') {
+      setCreateName('');
+    } else {
+      setCreateName('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    let targetProjectId = createProjectId;
+    if (createType === 'PROJECT') {
+      if (!targetProjectId && allWorkspaceProjects.length > 0) {
+        targetProjectId = allWorkspaceProjects[0].id;
+        setCreateProjectId(targetProjectId);
+      }
+      if (!targetProjectId) {
+        alert('연결할 프로젝트를 선택하세요.');
+        return;
+      }
+    }
+
+    let targetGroupId = createGroupId;
+    if (createType === 'GROUP') {
+      if (!targetGroupId && allWorkspaceGroups.length > 0) {
+        targetGroupId = allWorkspaceGroups[0].id;
+        setCreateGroupId(targetGroupId);
+      }
+      if (!targetGroupId) {
+        alert('연결할 그룹을 선택하세요.');
+        return;
+      }
+    }
+
     if (createType === 'DM' && !createTargetUserId) {
       alert('대화 상대를 선택하세요.');
-      return;
-    }
-    if (createType === 'PROJECT' && !createProjectId) {
-      alert('연결할 프로젝트를 선택하세요.');
-      return;
-    }
-    if (createType === 'GROUP' && !createGroupId) {
-      alert('연결할 그룹을 선택하세요.');
-      return;
-    }
-    if (createType !== 'DM' && !createName.trim()) {
-      alert('채널명을 입력하세요.');
       return;
     }
 
@@ -88,15 +144,23 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
         if (createType === 'DM') {
           const target = allWorkspaceUsers.find((u) => u.id === createTargetUserId);
           payloadName = target?.name || target?.email || `User #${createTargetUserId}`;
+        } else if (createType === 'PROJECT' && !payloadName) {
+          const p = allWorkspaceProjects.find((x) => x.id === targetProjectId);
+          payloadName = p?.name || '프로젝트 대화방';
+        } else if (createType === 'GROUP' && !payloadName) {
+          const g = allWorkspaceGroups.find((x) => x.id === targetGroupId);
+          payloadName = g?.name || '그룹 대화방';
+        } else if (!payloadName) {
+          payloadName = '새 대화방';
         }
 
         return await createChannel({
           name: payloadName,
           type: createType,
           topic: createTopic.trim() || undefined,
-          workspaceId: createType === 'DM' ? undefined : (currentWorkspace?.id || undefined),
-          projectId: createType === 'PROJECT' ? (createProjectId ? Number(createProjectId) : undefined) : undefined,
-          groupId: createType === 'GROUP' ? (createGroupId ? Number(createGroupId) : undefined) : undefined,
+          workspaceId: currentWorkspace?.id || undefined,
+          projectId: createType === 'PROJECT' ? (targetProjectId ? Number(targetProjectId) : undefined) : undefined,
+          groupId: createType === 'GROUP' ? (targetGroupId ? Number(targetGroupId) : undefined) : undefined,
           targetUserId: createType === 'DM' ? (createTargetUserId ? Number(createTargetUserId) : undefined) : undefined,
         });
       },
@@ -198,7 +262,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
               <select
                 className="input-field"
                 value={createType}
-                onChange={(e) => setCreateType(e.target.value as ChannelType)}
+                onChange={(e) => handleTypeChange(e.target.value as ChannelType)}
               >
                 <option value="GENERAL">📢 워크스페이스 전체 채널 (공지/공유)</option>
                 <option value="PROJECT">📁 프로젝트 전용 채널</option>

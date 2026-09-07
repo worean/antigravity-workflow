@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+﻿﻿import { Request, Response } from 'express';
 import { createWorkspaceService } from './services/createWorkspace.service.js';
 import { getMyWorkspacesService } from './services/getMyWorkspaces.service.js';
 import { getWorkspaceDetailService } from './services/getWorkspaceDetail.service.js';
@@ -9,6 +9,13 @@ import { deleteWorkspaceService } from './services/deleteWorkspace.service.js';
 import { createInvitationService } from './services/createInvitation.service.js';
 import { acceptInvitationService } from './services/acceptInvitation.service.js';
 import { getInvitationsService, deleteInvitationService } from './services/getInvitations.service.js';
+
+function resolveWorkspaceId(req: Request): number {
+  if (req.params.id && req.params.id !== 'current' && !isNaN(Number(req.params.id))) {
+    return Number(req.params.id);
+  }
+  return req.workspace?.id || 1;
+}
 
 export const createWorkspaceController = async (req: Request, res: Response) => {
   try {
@@ -36,7 +43,7 @@ export const getMyWorkspacesController = async (req: Request, res: Response) => 
 
 export const getWorkspaceDetailController = async (req: Request, res: Response) => {
   try {
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const detail = await getWorkspaceDetailService(workspaceId);
     res.status(200).json(detail);
   } catch (error: any) {
@@ -46,7 +53,7 @@ export const getWorkspaceDetailController = async (req: Request, res: Response) 
 
 export const inviteMemberController = async (req: Request, res: Response) => {
   try {
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const membership = await inviteWorkspaceMemberService({
       workspaceId,
       email: req.body.email,
@@ -61,7 +68,7 @@ export const inviteMemberController = async (req: Request, res: Response) => {
 
 export const removeMemberController = async (req: Request, res: Response) => {
   try {
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const targetUserId = Number(req.params.userId || req.body.userId);
     const result = await removeWorkspaceMemberService(workspaceId, targetUserId);
     res.status(200).json(result);
@@ -72,7 +79,7 @@ export const removeMemberController = async (req: Request, res: Response) => {
 
 export const updateWorkspaceController = async (req: Request, res: Response) => {
   try {
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const updated = await updateWorkspaceService(workspaceId, req.body);
     res.status(200).json(updated);
   } catch (error: any) {
@@ -82,7 +89,7 @@ export const updateWorkspaceController = async (req: Request, res: Response) => 
 
 export const deleteWorkspaceController = async (req: Request, res: Response) => {
   try {
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const result = await deleteWorkspaceService(workspaceId);
     res.status(200).json(result);
   } catch (error: any) {
@@ -95,7 +102,7 @@ export const createInvitationController = async (req: Request, res: Response) =>
     const user = req.user;
     if (!user) return res.status(401).json({ error: 'Unauthorized: Login required' });
 
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const result = await createInvitationService({
       workspaceId,
       email: req.body.email,
@@ -114,9 +121,9 @@ export const acceptInvitationController = async (req: Request, res: Response) =>
     const user = req.user;
     if (!user) return res.status(401).json({ error: 'Unauthorized: Login required' });
 
-    const inviteToken = req.body.token || req.body.inviteToken || (req.query.token as string);
-    const result = await acceptInvitationService(inviteToken, user);
-    res.status(200).json(result);
+    const token = String(req.body.token || req.query.token);
+    const membership = await acceptInvitationService(token, user);
+    res.status(200).json(membership);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
@@ -124,7 +131,7 @@ export const acceptInvitationController = async (req: Request, res: Response) =>
 
 export const getInvitationsController = async (req: Request, res: Response) => {
   try {
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const invitations = await getInvitationsService(workspaceId);
     res.status(200).json(invitations);
   } catch (error: any) {
@@ -134,7 +141,7 @@ export const getInvitationsController = async (req: Request, res: Response) => {
 
 export const deleteInvitationController = async (req: Request, res: Response) => {
   try {
-    const workspaceId = Number(req.params.id || req.workspace?.id);
+    const workspaceId = resolveWorkspaceId(req);
     const invitationId = Number(req.params.invitationId);
     const result = await deleteInvitationService(workspaceId, invitationId);
     res.status(200).json(result);

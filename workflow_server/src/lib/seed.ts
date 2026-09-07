@@ -21,19 +21,22 @@ export async function seedDatabase() {
   });
 
   // 2. Global DB Default Workspace
-  const defaultWsDbPath = path.resolve(process.cwd(), '.tmp/workspaces/default.db').replace(/\\/g, '/');
+  const defaultWsDbUrl = process.env.WORKSPACE_DATABASE_URL || `file:${path.resolve(process.cwd(), '.tmp/workspaces/default.db').replace(/\\/g, '/')}`;
+  const defaultDbType = process.env.TASK_STORAGE_MODE === 'postgresql' || defaultWsDbUrl.startsWith('postgresql:') ? 'postgresql' : 'sqlite';
+
   const defaultWorkspace = await globalPrisma.workspace.upsert({
     where: { slug: 'default-workspace' },
     update: {
-      dbUrl: `file:${defaultWsDbPath}`,
+      dbUrl: defaultWsDbUrl,
+      dbType: defaultDbType,
     },
     create: {
       slug: 'default-workspace',
       name: '기본 워크스페이스',
       description: '기본 시스템 워크스페이스',
       ownerId: adminUser.id,
-      dbType: 'sqlite',
-      dbUrl: `file:${defaultWsDbPath}`,
+      dbType: defaultDbType,
+      dbUrl: defaultWsDbUrl,
       status: 'ACTIVE',
     },
   });

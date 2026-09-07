@@ -1,6 +1,10 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
-export const getProjectService = async (id: number, currentUserId?: number) => {
+export const getProjectService = async (
+  id: number,
+  currentUserId?: number,
+  isAdmin: boolean = false
+) => {
   if (!id) throw new Error('Project ID is required');
   const project = await prisma.project.findUnique({
     where: { id },
@@ -26,11 +30,37 @@ export const getProjectService = async (id: number, currentUserId?: number) => {
       sprints: true,
       milestones: true,
       customFieldDefs: true,
-      tags: true
-    }
+      tags: true,
+    },
   });
 
   if (!project) throw new Error('Project not found');
+
+  // 🛡️ 접근 권한 검증 (Visibility Check)
+  if (!isAdmin) {
+    const visibility = project.visibility || 'PUBLIC';
+
+    if (visibility === 'PUBLIC') {
+      // 누구나 접근 가능
+    } else if (visibility === 'PROTECTED') {
+      const isOwner = currentUserId && project.ownerId === currentUserId;
+      const isMember = currentUserId && project.members.some((m) => m.userId === currentUserId);
+      const isGroupMember = currentUserId && project.groups.some((pg) =>
+        pg.group?.members?.some((gm) => gm.userId === currentUserId)
+      );
+
+      if (!isOwner && !isMember && !isGroupMember) {
+        throw new Error('Forbidden: You do not have access to this protected project');
+      }
+    } else if (visibility === 'PRIVATE') {
+      const isOwner = currentUserId && project.ownerId === currentUserId;
+      const isMember = currentUserId && project.members.some((m) => m.userId === currentUserId);
+
+      if (!isOwner && !isMember) {
+        throw new Error('Forbidden: You do not have access to this private project');
+      }
+    }
+  }
 
   let isFavorite = false;
   if (currentUserId) {

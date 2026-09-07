@@ -1,54 +1,21 @@
 ﻿import type { User } from '@/types';
+import { usePrefStore, DEFAULT_PREFS, type PrefSchema, type PrefStoreState } from '@/stores/usePrefStore';
+
+export { DEFAULT_PREFS, type PrefSchema, type PrefStoreState } from '@/stores/usePrefStore';
 
 /**
- * 🛠️ 앱 환경설정 데이터 스키마 (App Preference Schema)
- */
-export interface PrefSchema {
-  isSundayStart: boolean;
-  defaultPriority: number;
-  compactCards: boolean;
-  desktopNotifications: boolean;
-  backendApiUrl: string;
-  activeWorkspaceId: number | null;
-  activeTab: string;
-}
-
-/**
- * 🌟 기본 설정값 (Default Preferences)
- */
-export const DEFAULT_PREFS: PrefSchema = {
-  isSundayStart: false,
-  defaultPriority: 3,
-  compactCards: false,
-  desktopNotifications: true,
-  backendApiUrl: '',
-  activeWorkspaceId: null,
-  activeTab: 'dashboard',
-};
-
-/**
- * 🏛️ PrefRepository (앱 환경설정 및 사용자 옵션 전담 관리 클래스)
+ * 🏛️ PrefRepository (Zustand 기반 통합 브릿지 클래스)
  * 
- * LocalStorage의 키 매핑 및 타입 변환, 앱 기본 설정 I/O를 전담 관리합니다.
+ * 기존의 모든 비-React 파일(apiClient, socketClient) 및 레거시 호출부와의 100% 하위 호환성을
+ * 유지하면서, 내부적으로 Zustand `usePrefStore`를 사용하여 React의 실시간 반응성과
+ * LocalStorage 자동 영속화를 완벽하게 제공합니다.
  */
 export class PrefRepository {
   private static instance: PrefRepository;
 
-  // LocalStorage 키 매핑
-  private readonly keys: Record<keyof PrefSchema, string> = {
-    isSundayStart: 'pref_is_sunday_start',
-    defaultPriority: 'pref_default_priority',
-    compactCards: 'pref_compact_cards',
-    desktopNotifications: 'pref_desktop_notifications',
-    backendApiUrl: 'pref_backend_api_url',
-    activeWorkspaceId: 'active_workspace_id',
-    activeTab: 'activeTab',
-  };
-
-  private readonly AUTH_TOKEN_KEY = 'auth_token';
-  private readonly USER_KEY = 'user';
-
-  private constructor() {}
+  private constructor() {
+    this.migrateLegacyStorage();
+  }
 
   public static getInstance(): PrefRepository {
     if (!PrefRepository.instance) {
@@ -57,183 +24,167 @@ export class PrefRepository {
     return PrefRepository.instance;
   }
 
-  // --- 🔒 내부 스토리지 안전 I/O ---
-  private readStorage<T>(key: string, fallback: T): T {
-    if (typeof window === 'undefined') return fallback;
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (raw === null || raw === undefined) return fallback;
-      try {
-        return JSON.parse(raw) as T;
-      } catch {
-        return raw as unknown as T;
-      }
-    } catch {
-      return fallback;
-    }
-  }
-
-  private writeStorage<T>(key: string, value: T): void {
+  /**
+   * 🔄 기존 개별 LocalStorage 키를 Zustand 단일 키('ag_preferences')로 안전 마이그레이션
+   */
+  private migrateLegacyStorage(): void {
     if (typeof window === 'undefined') return;
     try {
-      if (value === null || value === undefined) {
-        window.localStorage.removeItem(key);
-      } else {
-        const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-        window.localStorage.setItem(key, serialized);
+      const state = usePrefStore.getState();
+      const legacyToken = localStorage.getItem('auth_token');
+      const legacyUser = localStorage.getItem('user');
+      const legacySunday = localStorage.getItem('pref_is_sunday_start');
+      const legacyPriority = localStorage.getItem('pref_default_priority');
+      const legacyCompact = localStorage.getItem('pref_compact_cards');
+      const legacyNoti = localStorage.getItem('pref_desktop_notifications');
+      const legacyApiUrl = localStorage.getItem('pref_backend_api_url');
+      const legacyWs = localStorage.getItem('active_workspace_id');
+
+      const updates: Partial<PrefStoreState> = {};
+      if (legacyToken && !state.authToken) updates.authToken = legacyToken;
+      if (legacyUser && !state.currentUser) {
+        try {
+          updates.currentUser = JSON.parse(legacyUser);
+        } catch {}
+      }
+      if (legacySunday !== null && state.isSundayStart === DEFAULT_PREFS.isSundayStart) {
+        updates.isSundayStart = legacySunday === 'true';
+      }
+      if (legacyPriority && state.defaultPriority === DEFAULT_PREFS.defaultPriority) {
+        const num = Number(legacyPriority);
+        if (!isNaN(num)) updates.defaultPriority = num;
+      }
+      if (legacyCompact !== null && state.compactCards === DEFAULT_PREFS.compactCards) {
+        updates.compactCards = legacyCompact === 'true';
+      }
+      if (legacyNoti !== null && state.desktopNotifications === DEFAULT_PREFS.desktopNotifications) {
+        updates.desktopNotifications = legacyNoti !== 'false';
+      }
+      if (legacyApiUrl && !state.backendApiUrl) updates.backendApiUrl = legacyApiUrl;
+      if (legacyWs && !state.activeWorkspaceId) {
+        const wsNum = Number(legacyWs);
+        if (!isNaN(wsNum)) updates.activeWorkspaceId = wsNum;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        usePrefStore.setState(updates);
       }
     } catch (e) {
-      console.warn(`[PrefRepository] Failed to write key "${key}":`, e);
+      console.warn('[PrefRepository] Migration failed:', e);
     }
   }
 
-  private removeStorage(key: string): void {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.removeItem(key);
-    } catch {}
-  }
-
-  // --- 🔹 프로퍼티 Getters & Setters ---
+  // --- 🔹 프로퍼티 Getters & Setters (Zustand 스토어와 실시간 동기화) ---
 
   public get isSundayStart(): boolean {
-    const val = this.readStorage<any>(this.keys.isSundayStart, DEFAULT_PREFS.isSundayStart);
-    return val === true || val === 'true';
+    return usePrefStore.getState().isSundayStart;
   }
   public set isSundayStart(value: boolean) {
-    this.writeStorage(this.keys.isSundayStart, value);
+    usePrefStore.getState().setSundayStart(value);
   }
 
   public get defaultPriority(): number {
-    const val = this.readStorage<any>(this.keys.defaultPriority, DEFAULT_PREFS.defaultPriority);
-    const num = Number(val);
-    return isNaN(num) || num <= 0 ? DEFAULT_PREFS.defaultPriority : num;
+    return usePrefStore.getState().defaultPriority;
   }
   public set defaultPriority(value: number) {
-    this.writeStorage(this.keys.defaultPriority, value);
+    usePrefStore.getState().setDefaultPriority(value);
   }
 
   public get compactCards(): boolean {
-    const val = this.readStorage<any>(this.keys.compactCards, DEFAULT_PREFS.compactCards);
-    return val === true || val === 'true';
+    return usePrefStore.getState().compactCards;
   }
   public set compactCards(value: boolean) {
-    this.writeStorage(this.keys.compactCards, value);
+    usePrefStore.getState().setCompactCards(value);
   }
 
   public get desktopNotifications(): boolean {
-    const val = this.readStorage<any>(this.keys.desktopNotifications, DEFAULT_PREFS.desktopNotifications);
-    return val !== false && val !== 'false';
+    return usePrefStore.getState().desktopNotifications;
   }
   public set desktopNotifications(value: boolean) {
-    this.writeStorage(this.keys.desktopNotifications, value);
+    usePrefStore.getState().setDesktopNotifications(value);
   }
 
   public get backendApiUrl(): string {
-    return this.readStorage<string>(this.keys.backendApiUrl, DEFAULT_PREFS.backendApiUrl);
+    return usePrefStore.getState().backendApiUrl;
   }
   public set backendApiUrl(value: string) {
-    this.writeStorage(this.keys.backendApiUrl, value);
+    usePrefStore.getState().setBackendApiUrl(value);
   }
 
   public get activeWorkspaceId(): number | null {
-    const val = this.readStorage<any>(this.keys.activeWorkspaceId, null);
-    if (!val) return null;
-    const num = Number(val);
-    return isNaN(num) ? null : num;
+    return usePrefStore.getState().activeWorkspaceId;
   }
   public set activeWorkspaceId(value: number | null) {
-    this.writeStorage(this.keys.activeWorkspaceId, value);
+    usePrefStore.getState().setActiveWorkspaceId(value);
   }
 
   public get activeTab(): string {
-    return this.readStorage<string>(this.keys.activeTab, DEFAULT_PREFS.activeTab);
+    return usePrefStore.getState().activeTab;
   }
   public set activeTab(value: string) {
-    this.writeStorage(this.keys.activeTab, value);
+    usePrefStore.getState().setActiveTab(value);
   }
 
   // --- 🔐 인증 및 세션 관리 ---
   public get authToken(): string | null {
-    return this.readStorage<string | null>(this.AUTH_TOKEN_KEY, null);
+    return usePrefStore.getState().authToken;
   }
   public set authToken(token: string | null) {
-    this.writeStorage(this.AUTH_TOKEN_KEY, token);
+    usePrefStore.getState().setAuthToken(token);
+    // 레거시 외부 라이브러리/스크립트 호환용
+    if (typeof window !== 'undefined') {
+      if (token) localStorage.setItem('auth_token', token);
+      else localStorage.removeItem('auth_token');
+    }
   }
 
   public get currentUser(): User | null {
-    return this.readStorage<User | null>(this.USER_KEY, null);
+    return usePrefStore.getState().currentUser;
   }
   public set currentUser(user: User | null) {
-    this.writeStorage(this.USER_KEY, user);
+    usePrefStore.getState().setCurrentUser(user);
+    if (typeof window !== 'undefined') {
+      if (user) localStorage.setItem('user', JSON.stringify(user));
+      else localStorage.removeItem('user');
+    }
   }
 
   public clearAuth(): void {
-    this.removeStorage(this.AUTH_TOKEN_KEY);
-    this.removeStorage(this.USER_KEY);
+    usePrefStore.getState().clearAuth();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+    }
   }
 
   // --- 📦 일괄 관리 메서드 ---
   public getAll(): PrefSchema {
+    const s = usePrefStore.getState();
     return {
-      isSundayStart: this.isSundayStart,
-      defaultPriority: this.defaultPriority,
-      compactCards: this.compactCards,
-      desktopNotifications: this.desktopNotifications,
-      backendApiUrl: this.backendApiUrl,
-      activeWorkspaceId: this.activeWorkspaceId,
-      activeTab: this.activeTab,
+      isSundayStart: s.isSundayStart,
+      defaultPriority: s.defaultPriority,
+      compactCards: s.compactCards,
+      desktopNotifications: s.desktopNotifications,
+      backendApiUrl: s.backendApiUrl,
+      activeWorkspaceId: s.activeWorkspaceId,
+      activeTab: s.activeTab,
     };
   }
 
   public update(partial: Partial<PrefSchema>): void {
-    if (partial.isSundayStart !== undefined) this.isSundayStart = partial.isSundayStart;
-    if (partial.defaultPriority !== undefined) this.defaultPriority = partial.defaultPriority;
-    if (partial.compactCards !== undefined) this.compactCards = partial.compactCards;
-    if (partial.desktopNotifications !== undefined) this.desktopNotifications = partial.desktopNotifications;
-    if (partial.backendApiUrl !== undefined) this.backendApiUrl = partial.backendApiUrl;
-    if (partial.activeWorkspaceId !== undefined) this.activeWorkspaceId = partial.activeWorkspaceId;
-    if (partial.activeTab !== undefined) this.activeTab = partial.activeTab;
+    usePrefStore.getState().updatePrefs(partial);
   }
 
   public resetToDefaults(): void {
-    this.update(DEFAULT_PREFS);
+    usePrefStore.getState().resetToDefaults();
   }
 
-  // --- 🔄 백엔드 사용자 프로필 동기화 ---
   public syncFromUserProfile(userPreferencesJsonOrObj: string | object | null | undefined): void {
-    if (!userPreferencesJsonOrObj) return;
-
-    try {
-      const prefs =
-        typeof userPreferencesJsonOrObj === 'string'
-          ? JSON.parse(userPreferencesJsonOrObj)
-          : userPreferencesJsonOrObj;
-
-      if (typeof prefs.isSundayStart === 'boolean') {
-        this.isSundayStart = prefs.isSundayStart;
-      }
-      if (typeof prefs.defaultPriority === 'number') {
-        this.defaultPriority = prefs.defaultPriority;
-      }
-      if (typeof prefs.compactCards === 'boolean') {
-        this.compactCards = prefs.compactCards;
-      }
-      if (typeof prefs.desktopNotifications === 'boolean') {
-        this.desktopNotifications = prefs.desktopNotifications;
-      }
-    } catch (e) {
-      console.warn('[PrefRepository] Failed to sync preferences from user profile:', e);
-    }
+    usePrefStore.getState().syncFromUserProfile(userPreferencesJsonOrObj);
   }
 
   public exportToUserProfile(): string {
-    return JSON.stringify({
-      isSundayStart: this.isSundayStart,
-      defaultPriority: this.defaultPriority,
-      compactCards: this.compactCards,
-      desktopNotifications: this.desktopNotifications,
-    });
+    return usePrefStore.getState().exportToUserProfile();
   }
 }
 
@@ -241,6 +192,11 @@ export class PrefRepository {
  * 🌟 싱글톤 인스턴스 export
  */
 export const prefRepository = PrefRepository.getInstance();
-
-// 짧은 별칭 지원 (prefRepo)
 export const prefRepo = prefRepository;
+
+/**
+ * 🎯 React 컴포넌트 전용 리액티브 구독 훅 (Zustand Selector 기반)
+ */
+export function usePreference<T>(selector: (state: PrefStoreState) => T): T {
+  return usePrefStore(selector);
+}

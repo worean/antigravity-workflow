@@ -1,4 +1,4 @@
-﻿export interface UserPreferences {
+export interface UserPreferences {
   isSundayStart?: boolean;
   defaultPriority?: number;
   compactCards?: boolean;
@@ -82,11 +82,14 @@ export interface Tag {
   updatedAt?: string;
 }
 
+export type ProjectVisibility = 'PUBLIC' | 'PROTECTED' | 'PRIVATE';
+
 export interface Project {
   id: number;
   name: string;
   key: string;
   description?: string | null;
+  visibility?: ProjectVisibility;
   ownerId?: number;
   owner?: User;
   statusId?: number;

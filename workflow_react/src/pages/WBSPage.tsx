@@ -14,7 +14,7 @@ import { useWBSProjectData } from '@/hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '@/hooks/useWBSGanttDrag';
 import { WBSToolbar, WBSMainSplitView } from '@/components/wbs';
 import { IssueDetailDrawer } from '@/components/issueDetail/IssueDetailDrawer';
-import { prefRepository } from '@/lib/prefRepository';
+import { usePrefStore } from '@/stores/usePrefStore';
 
 interface WBSPageProps {
   selectedProjectId?: number | null;
@@ -39,10 +39,8 @@ export const WBSPage: React.FC<WBSPageProps> = ({
   // WBS Local Issue Detail Drawer State (독립 오버레이 슬라이드)
   const [selectedDrawerIssueId, setSelectedDrawerIssueId] = useState<number | null>(null);
 
-  // Preference: isSundayStart
-  const isSundayStart = useMemo<boolean>(() => {
-    return prefRepository.isSundayStart;
-  }, []);
+  // Preference: isSundayStart (Zustand 실시간 반응형 구독)
+  const isSundayStart = usePrefStore((s) => s.isSundayStart);
 
   // Collapse / Expand State (Set of collapsed parent issue IDs)
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());

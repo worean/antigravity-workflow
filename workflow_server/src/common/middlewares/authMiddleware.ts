@@ -1,4 +1,4 @@
-﻿import { Request, Response, NextFunction } from 'express';
+﻿﻿import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '#lib/prisma.js';
 import { globalPrisma } from '#lib/globalPrisma.js';
@@ -65,7 +65,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       try {
         const decoded = jwt.verify(token, jwtSecret) as { userId: number };
         if (decoded && decoded.userId) {
-          const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+          const user = await globalPrisma.user.findUnique({ where: { id: decoded.userId } });
           if (user) req.user = user;
         }
       } catch {

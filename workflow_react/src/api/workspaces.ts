@@ -4,8 +4,8 @@ import type { Workspace, WorkspaceDetail, WorkspaceMember } from '@/types';
 export const workspaceKeys = {
   all: ['workspaces'] as const,
   lists: () => [...workspaceKeys.all, 'list'] as const,
-  detail: (id: number) => [...workspaceKeys.all, 'detail', id] as const,
-  invitations: (id: number) => [...workspaceKeys.all, 'invitations', id] as const,
+  detail: (id?: number) => [...workspaceKeys.all, 'detail', id || 'current'] as const,
+  invitations: (id?: number) => [...workspaceKeys.all, 'invitations', id || 'current'] as const,
 };
 
 export const getWorkspaces = async (): Promise<Workspace[]> => {
@@ -23,43 +23,44 @@ export const createWorkspace = async (data: {
   return res.data;
 };
 
-export const getWorkspaceDetail = async (workspaceId: number): Promise<WorkspaceDetail> => {
-  const res = await apiClient.get<WorkspaceDetail>(`/workspaces/${workspaceId}`);
+export const getWorkspaceDetail = async (workspaceId?: number): Promise<WorkspaceDetail> => {
+  const path = workspaceId ? `/workspaces/${workspaceId}` : '/workspaces/current';
+  const res = await apiClient.get<WorkspaceDetail>(path);
   return res.data;
 };
 
 export const inviteWorkspaceMember = async (
-  workspaceId: number,
-  data: { email?: string; userId?: number; role?: string }
+  workspaceId?: number,
+  data?: { email?: string; userId?: number; role?: string }
 ): Promise<WorkspaceMember> => {
-  const res = await apiClient.post<WorkspaceMember>(`/workspaces/${workspaceId}/invite`, data);
+  const path = workspaceId ? `/workspaces/${workspaceId}/invite` : '/workspaces/current/invite';
+  const res = await apiClient.post<WorkspaceMember>(path, data);
   return res.data;
 };
 
 export const removeWorkspaceMember = async (
-  workspaceId: number,
+  workspaceId: number | undefined,
   userId: number
 ): Promise<{ success: boolean; message: string }> => {
-  const res = await apiClient.delete<{ success: boolean; message: string }>(
-    `/workspaces/${workspaceId}/members/${userId}`
-  );
+  const path = workspaceId ? `/workspaces/${workspaceId}/members/${userId}` : `/workspaces/current/members/${userId}`;
+  const res = await apiClient.delete<{ success: boolean; message: string }>(path);
   return res.data;
 };
 
 export const updateWorkspace = async (
-  workspaceId: number,
-  data: { name?: string; description?: string; icon?: string }
+  workspaceId?: number,
+  data?: { name?: string; description?: string; icon?: string }
 ): Promise<Workspace> => {
-  const res = await apiClient.put<Workspace>(`/workspaces/${workspaceId}`, data);
+  const path = workspaceId ? `/workspaces/${workspaceId}` : '/workspaces/current';
+  const res = await apiClient.put<Workspace>(path, data);
   return res.data;
 };
 
 export const deleteWorkspace = async (
-  workspaceId: number
+  workspaceId?: number
 ): Promise<{ success: boolean; message: string }> => {
-  const res = await apiClient.delete<{ success: boolean; message: string }>(
-    `/workspaces/${workspaceId}`
-  );
+  const path = workspaceId ? `/workspaces/${workspaceId}` : '/workspaces/current';
+  const res = await apiClient.delete<{ success: boolean; message: string }>(path);
   return res.data;
 };
 
@@ -75,27 +76,28 @@ export interface WorkspaceInvitationItem {
 }
 
 export const createWorkspaceInvitation = async (
-  workspaceId: number,
+  workspaceId: number | undefined,
   data: { email: string; role?: string; expiresInDays?: number }
 ): Promise<{ directJoined: boolean; inviteToken?: string; inviteUrl?: string; message: string }> => {
-  const res = await apiClient.post(`/workspaces/${workspaceId}/invitations`, data);
+  const path = workspaceId ? `/workspaces/${workspaceId}/invitations` : '/workspaces/current/invitations';
+  const res = await apiClient.post(path, data);
   return res.data;
 };
 
 export const getWorkspaceInvitations = async (
-  workspaceId: number
+  workspaceId?: number
 ): Promise<WorkspaceInvitationItem[]> => {
-  const res = await apiClient.get<WorkspaceInvitationItem[]>(`/workspaces/${workspaceId}/invitations`);
+  const path = workspaceId ? `/workspaces/${workspaceId}/invitations` : '/workspaces/current/invitations';
+  const res = await apiClient.get<WorkspaceInvitationItem[]>(path);
   return res.data;
 };
 
 export const deleteWorkspaceInvitation = async (
-  workspaceId: number,
+  workspaceId: number | undefined,
   invitationId: number
 ): Promise<{ success: boolean; message: string }> => {
-  const res = await apiClient.delete<{ success: boolean; message: string }>(
-    `/workspaces/${workspaceId}/invitations/${invitationId}`
-  );
+  const path = workspaceId ? `/workspaces/${workspaceId}/invitations/${invitationId}` : `/workspaces/current/invitations/${invitationId}`;
+  const res = await apiClient.delete<{ success: boolean; message: string }>(path);
   return res.data;
 };
 

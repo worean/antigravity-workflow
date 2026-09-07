@@ -1,74 +1,55 @@
-﻿import path from 'path';
-import { globalPrisma } from '#lib/globalPrisma.js';
-import { workspaceManager } from '#lib/workspaceManager.js';
+﻿﻿﻿import { globalPrisma } from '#lib/globalPrisma.js';
+
 
 export interface CreateWorkspaceParams {
   name: string;
   slug?: string;
   description?: string;
   icon?: string;
-  dbType?: string;
-  customDbUrl?: string;
 }
 
-export const createWorkspaceService = async (ownerUser: { id: number; email: string; name?: string | null; role?: string }, params: CreateWorkspaceParams) => {
+/**
+ * 🏢 워크스페이스 생성/초기화 서비스
+ * 단일 워크스페이스 구조에서는 이미 워크스페이스가 존재하면 새로 생성하지 않고
+ * 기존 단일 워크스페이스를 반환하거나 필요 시 메타데이터를 갱신합니다.
+ */
+export const createWorkspaceService = async (user: { id: number; email?: string; role?: string; name?: string | null }, params: CreateWorkspaceParams) => {
   if (!params.name || !params.name.trim()) {
     throw new Error('Workspace name is required');
   }
 
-  // 1. Slug 생성 및 고유성 검증
-  let slug = (params.slug || params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 'workspace';
-  const existing = await globalPrisma.workspace.findUnique({ where: { slug } });
+  const existing = await globalPrisma.workspace.findFirst({
+    where: { status: 'ACTIVE' },
+    orderBy: { id: 'asc' },
+  });
+
   if (existing) {
-    slug = `${slug}-${Date.now().toString(36)}`;
+    // 단일 워크스페이스 정책: 이미 존재하는 경우 기존 워크스페이스 반환
+    return existing;
   }
 
-  // 2. 워크스페이스 전용 Database URL 생성
-  const dbType = params.dbType || 'sqlite';
-  let dbUrl = params.customDbUrl;
+  const dbUrl = process.env.WORKSPACE_DATABASE_URL || 'postgresql://juyeong:qkrwndud@localhost:5432/workspace';
+  const defaultSlug = params.slug?.trim() || 'default-workspace';
 
-  if (!dbUrl) {
-    const fileName = `ws_${slug}_${Date.now()}.db`;
-    const fullPath = path.resolve(process.cwd(), '.tmp/workspaces', fileName).replace(/\\/g, '/');
-    dbUrl = `file:${fullPath}`;
-  }
-
-  // 3. Global DB에 Workspace 및 UserWorkspace(OWNER) 등록
   const workspace = await globalPrisma.workspace.create({
     data: {
-      slug,
       name: params.name.trim(),
+      slug: defaultSlug,
       description: params.description?.trim(),
       icon: params.icon,
-      ownerId: ownerUser.id,
-      dbType,
+      ownerId: user.id,
+      dbType: 'postgresql',
       dbUrl,
       status: 'ACTIVE',
       members: {
         create: {
-          userId: ownerUser.id,
+          userId: user.id,
           role: 'OWNER',
           status: 'ACTIVE',
         },
       },
     },
   });
-
-  // 4. 물리적 테넌트 데이터베이스 프로비저닝 및 기본 메타데이터/소유자 시딩
-  await workspaceManager.provisionWorkspaceDb(
-    {
-      id: workspace.id,
-      slug: workspace.slug,
-      dbUrl: workspace.dbUrl,
-      dbType: workspace.dbType,
-    },
-    {
-      id: ownerUser.id,
-      email: ownerUser.email,
-      name: ownerUser.name,
-      role: ownerUser.role,
-    }
-  );
 
   return workspace;
 };

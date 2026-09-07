@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -8,13 +8,14 @@ import {
   Clock,
   Settings,
   MessageSquare,
+  FlaskConical,
 } from 'lucide-react';
 import { ProfileCard } from './ProfileCard';
 import { SidebarBrand, SidebarNavItem, type SidebarSubitem } from './navigation';
 import { useUnreadChatStats } from '@/api/chat';
 import { useFavorites } from '@/api/favorites';
 import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useUIStore } from '@/stores/useUIStore';
 import type { Project, ChatChannel } from '@/types';
 
 export type TabType =
@@ -28,7 +29,8 @@ export type TabType =
   | 'issue-detail'
   | 'project-detail'
   | 'sprint-detail'
-  | 'settings';
+  | 'settings'
+  | 'demo-state';
 
 interface SidebarProps {
   activeTab: TabType;
@@ -58,16 +60,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectChatChannel,
 }) => {
   const { isAuthenticated } = useAuth();
-  const { sidebarSubmenus: openSubmenus, setSidebarSubmenus: setOpenSubmenus } = useWorkspace();
+  const openSubmenus = useUIStore((s) => s.sidebarSubmenus);
+  const toggleSubmenuAction = useUIStore((s) => s.toggleSidebarSubmenu);
   const { totalUnreadCount, hasMentionUnread } = useUnreadChatStats();
   const { data: favorites = [] } = useFavorites(undefined, { enabled: isAuthenticated });
 
   const toggleSubmenu = (menuId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpenSubmenus((prev) => ({
-      ...prev,
-      [menuId]: !prev[menuId],
-    }));
+    toggleSubmenuAction(menuId);
   };
 
   const favoriteProjects: Project[] = favorites
@@ -177,6 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { id: 'worklogs', label: '작업 로그', icon: Clock },
     { id: 'settings', label: '환경 설정', icon: Settings },
+    { id: 'demo-state', label: '상태 관리 실습 (Zustand)', icon: FlaskConical },
   ];
 
   return (

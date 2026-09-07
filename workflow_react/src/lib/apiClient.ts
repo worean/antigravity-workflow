@@ -2,6 +2,8 @@
 import type { HealthStatus } from '@/types';
 import { prefRepository } from '@/lib/prefRepository';
 
+export type { HealthStatus };
+
 /**
  * 백엔드 Base URL 정규화 헬퍼 (프로토콜 보정 및 끝 슬래시/api 정리)
  */
@@ -143,10 +145,7 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const workspaceId = prefRepository.activeWorkspaceId;
-  if (workspaceId) {
-    config.headers['x-workspace-id'] = String(workspaceId);
-  }
+  // 단일 워크스페이스 구조이므로 x-workspace-id 헤더 없이 백엔드가 활성 워크스페이스를 자동 바인딩합니다.
   return config;
 });
 

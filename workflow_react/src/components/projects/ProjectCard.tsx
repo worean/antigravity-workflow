@@ -1,6 +1,6 @@
-﻿import React from 'react';
-import { Layers, Users, ArrowRight, Trash2 } from 'lucide-react';
-import type { Project } from '@/types';
+﻿﻿import React from 'react';
+import { Layers, Users, ArrowRight, Trash2, Globe, ShieldCheck, Lock } from 'lucide-react';
+import type { Project, ProjectVisibility } from '@/types';
 import { FavoriteButton } from '@/components/common';
 
 interface ProjectCardProps {
@@ -10,6 +10,72 @@ interface ProjectCardProps {
   onOpenDeleteConfirm: (e: React.MouseEvent, project: Project) => void;
   onOpenAuth?: () => void;
 }
+
+const renderVisibilityBadge = (vis?: ProjectVisibility) => {
+  switch (vis) {
+    case 'PROTECTED':
+      return (
+        <span
+          title="부서/그룹 한정 보호 프로젝트"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            fontSize: '0.64rem',
+            padding: '1px 5px',
+            borderRadius: '2px',
+            background: 'rgba(215, 186, 125, 0.15)',
+            color: '#dcdcaa',
+            border: '1px solid rgba(215, 186, 125, 0.3)',
+          }}
+        >
+          <ShieldCheck size={10} />
+          <span>보호</span>
+        </span>
+      );
+    case 'PRIVATE':
+      return (
+        <span
+          title="비공개 프로젝트"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            fontSize: '0.64rem',
+            padding: '1px 5px',
+            borderRadius: '2px',
+            background: 'rgba(244, 71, 107, 0.15)',
+            color: '#f48771',
+            border: '1px solid rgba(244, 71, 107, 0.3)',
+          }}
+        >
+          <Lock size={10} />
+          <span>비공개</span>
+        </span>
+      );
+    case 'PUBLIC':
+    default:
+      return (
+        <span
+          title="전체 공개 프로젝트"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            fontSize: '0.64rem',
+            padding: '1px 5px',
+            borderRadius: '2px',
+            background: 'rgba(78, 201, 176, 0.12)',
+            color: '#4ec9b0',
+            border: '1px solid rgba(78, 201, 176, 0.25)',
+          }}
+        >
+          <Globe size={10} />
+          <span>공개</span>
+        </span>
+      );
+  }
+};
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
@@ -36,19 +102,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     >
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <span
-            style={{
-              fontSize: '0.68rem',
-              fontWeight: 700,
-              padding: '1px 5px',
-              borderRadius: '2px',
-              background: 'rgba(0, 122, 204, 0.15)',
-              color: '#9cdcfe',
-              border: '1px solid rgba(0, 122, 204, 0.3)',
-            }}
-          >
-            {project.key}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span
+              style={{
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                padding: '1px 5px',
+                borderRadius: '2px',
+                background: 'rgba(0, 122, 204, 0.15)',
+                color: '#9cdcfe',
+                border: '1px solid rgba(0, 122, 204, 0.3)',
+              }}
+            >
+              {project.key}
+            </span>
+            {renderVisibilityBadge(project.visibility)}
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <FavoriteButton

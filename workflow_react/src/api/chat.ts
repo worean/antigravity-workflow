@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 import { getSocket } from '@/lib/socketClient';
@@ -66,18 +66,21 @@ export const toggleReaction = async (
   return res.data;
 };
 
+import { usePrefStore } from '@/stores/usePrefStore';
+
 // ----------------------------------------------------
 // 2. TanStack Query Hooks (with Realtime Sync)
 // ----------------------------------------------------
 
 export const useChatChannels = (options?: { enabled?: boolean }) => {
   const queryClient = useQueryClient();
+  const activeWorkspaceId = usePrefStore((s) => s.activeWorkspaceId);
 
   const query = useQuery({
-    queryKey: ['chat', 'channels'],
+    queryKey: ['chat', 'channels', activeWorkspaceId],
     queryFn: getChannels,
     placeholderData: (previousData) => previousData,
-    staleTime: 1000 * 60 * 2, // 2분 캐시
+    staleTime: 1000 * 30, // 30초 캐시 (워크스페이스 전환 시 즉시 갱신)
     enabled: options?.enabled ?? true,
   });
 
@@ -85,13 +88,17 @@ export const useChatChannels = (options?: { enabled?: boolean }) => {
     const socket = getSocket();
     if (!socket) return;
 
-    const handleNewMessage = () => {
-      queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
+    const handleNewMessage = (payload?: any) => {
+      // 다른 워크스페이스의 메시지 이벤트는 현재 워크스페이스 캐시에 영향 주지 않음
+      if (payload?.workspaceId && activeWorkspaceId && payload.workspaceId !== activeWorkspaceId) {
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
       queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
     };
 
     const handleReaction = () => {
-      queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
     };
 
     socket.on('new_message', handleNewMessage);
@@ -101,7 +108,7 @@ export const useChatChannels = (options?: { enabled?: boolean }) => {
       socket.off('new_message', handleNewMessage);
       socket.off('reaction_updated', handleReaction);
     };
-  }, [queryClient]);
+  }, [queryClient, activeWorkspaceId]);
 
   return query;
 };

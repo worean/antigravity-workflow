@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("WORKSPACE_DATABASE_URL")
 }
 
@@ -180,6 +180,7 @@ model Project {
   actualEndDate    DateTime?
 
   syncStatus String @default("SYNCED")
+  visibility String @default("PUBLIC") // PUBLIC, PROTECTED, PRIVATE
 
   members         ProjectMember[]
   groups          ProjectGroup[]

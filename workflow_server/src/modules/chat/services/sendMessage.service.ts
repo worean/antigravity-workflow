@@ -1,4 +1,4 @@
-﻿import { globalPrisma } from '#lib/globalPrisma.js';
+import { globalPrisma } from '#lib/globalPrisma.js';
 import { broadcastToChannel } from '#lib/socket.js';
 
 export interface SendMessageDTO {
@@ -8,7 +8,7 @@ export interface SendMessageDTO {
   attachments?: any[];
 }
 
-export const sendMessageService = async (data: SendMessageDTO, customDb?: any) => {
+export const sendMessageService = async (data: SendMessageDTO, customDb?: any, currentWorkspace?: any) => {
   const { channelId, senderId, content, attachments } = data;
   const gdb = (customDb ?? globalPrisma) as any;
 
@@ -23,6 +23,10 @@ export const sendMessageService = async (data: SendMessageDTO, customDb?: any) =
   });
 
   if (!channel) throw new Error('Channel not found');
+
+  if (currentWorkspace?.id && channel.workspaceId && channel.workspaceId !== currentWorkspace.id) {
+    throw new Error('Forbidden: Channel does not belong to the current workspace');
+  }
 
   const isMember = channel.members.some((m: any) => m.userId === senderId);
   if (!isMember) {
@@ -78,6 +82,7 @@ export const sendMessageService = async (data: SendMessageDTO, customDb?: any) =
   // 5. 실시간 소켓 브로드캐스트
   broadcastToChannel(channelId, 'new_message', {
     channelId,
+    workspaceId: channel.workspaceId,
     message: { ...message, hasMention, mentionedNames, mentions },
   });
 

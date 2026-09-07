@@ -17,9 +17,13 @@ import {
 
 export const workspaceRouter = Router();
 
-// 내 워크스페이스 목록 조회 및 신규 생성
+// 단일 워크스페이스 목록 조회 및 단일화된 워크스페이스 생성/초기화
 workspaceRouter.get('/', requireAuth, getMyWorkspacesController);
 workspaceRouter.post('/', requireAuth, createWorkspaceController);
+
+// 단일 워크스페이스 상세 조회 및 수정 (ID 없이 /current 로 직접 접근 가능)
+workspaceRouter.get('/current', requireAuth, requireWorkspaceAccess, getWorkspaceDetailController);
+workspaceRouter.put('/current', requireAuth, requireWorkspaceAccess, requireWorkspaceRole('ADMIN'), updateWorkspaceController);
 
 // 초대 토큰을 통한 워크스페이스 가입
 workspaceRouter.post('/join', requireAuth, acceptInvitationController);

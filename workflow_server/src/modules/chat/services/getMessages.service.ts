@@ -1,10 +1,11 @@
-﻿import { globalPrisma } from '#lib/globalPrisma.js';
+import { globalPrisma } from '#lib/globalPrisma.js';
 
 export const getMessagesService = async (
   channelId: number,
   userId: number,
   query: any = {},
-  customDb?: any
+  customDb?: any,
+  currentWorkspace?: any
 ) => {
   const gdb = (customDb ?? globalPrisma) as any;
   const limit = Number(query.limit) || 50;
@@ -16,6 +17,10 @@ export const getMessagesService = async (
   });
 
   if (!channel) throw new Error('Channel not found');
+
+  if (currentWorkspace?.id && channel.workspaceId && channel.workspaceId !== currentWorkspace.id) {
+    throw new Error('Forbidden: Channel does not belong to the current workspace');
+  }
 
   const messages = await gdb.chatMessage.findMany({
     where: { channelId },

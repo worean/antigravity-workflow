@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("GLOBAL_DATABASE_URL")
 }
 
@@ -135,7 +135,7 @@ model ChatChannel {
   icon        String?
   isPrivate   Boolean  @default(false)
 
-  // 워크스페이스 종속성 (DM인 경우 null, 그 외 워크스페이스 채널은 필수 바인딩)
+  // 워크스페이스 종속성 (DM을 포함한 모든 채널은 해당 워크스페이스에 필수 종속 바인딩)
   workspaceId Int?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 

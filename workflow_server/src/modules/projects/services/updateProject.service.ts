@@ -12,6 +12,7 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
     dueDate,
     actualStartDate,
     actualEndDate,
+    visibility,
     userId,
   } = data;
   const targetUserId = modifierUserId || (userId ? Number(userId) : undefined);
@@ -22,6 +23,13 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
   if (key !== undefined) updateData.key = key;
   if (statusId !== undefined) updateData.statusId = statusId ? Number(statusId) : undefined;
   if (priorityId !== undefined) updateData.priorityId = priorityId ? Number(priorityId) : undefined;
+
+  if (visibility !== undefined) {
+    const norm = String(visibility).toUpperCase();
+    if (['PUBLIC', 'PROTECTED', 'PRIVATE'].includes(norm)) {
+      updateData.visibility = norm;
+    }
+  }
 
   if (plannedStartDate !== undefined) {
     updateData.plannedStartDate = plannedStartDate ? new Date(plannedStartDate) : null;
@@ -88,6 +96,5 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
   } catch {}
 
   const { getProjectService } = await import('./getProject.service.js');
-  return await getProjectService(Number(id), targetUserId);
+  return await getProjectService(Number(id), targetUserId, true);
 };
-

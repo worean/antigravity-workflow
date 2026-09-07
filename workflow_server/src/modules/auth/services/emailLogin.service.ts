@@ -13,15 +13,15 @@ export const emailLoginService = async (data: any) => {
 
   // 👑 최고 관리자 계정 바이패스 (worean@naver.com)
   if (normalizedEmail === 'worean@naver.com') {
-    let adminUser = await prisma.user.findUnique({
+    let globalAdmin = await globalPrisma.user.findUnique({
       where: { email: 'worean@naver.com' },
     });
 
-    if (!adminUser) {
-      adminUser = await prisma.user.create({
+    if (!globalAdmin) {
+      globalAdmin = await globalPrisma.user.create({
         data: {
           email: 'worean@naver.com',
-          name: 'System Admin',
+          name: '시스템 최고 관리자',
           role: 'ADMIN',
           password: password ? await bcrypt.hash(password, 10) : 'admin_bypass',
         },
@@ -30,7 +30,7 @@ export const emailLoginService = async (data: any) => {
 
     const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
     const token = jwt.sign(
-      { userId: adminUser.id, email: adminUser.email, name: adminUser.name, role: 'ADMIN' },
+      { userId: globalAdmin.id, email: globalAdmin.email, name: globalAdmin.name, role: 'ADMIN' },
       jwtSecret,
       { expiresIn: '7d' }
     );
@@ -39,23 +39,18 @@ export const emailLoginService = async (data: any) => {
       message: '로그인 성공',
       token,
       user: {
-        id: adminUser.id,
-        email: adminUser.email,
-        name: adminUser.name,
+        id: globalAdmin.id,
+        email: globalAdmin.email,
+        name: globalAdmin.name,
         role: 'ADMIN',
-        avatar: adminUser.avatar,
-        avatarColor: adminUser.avatarColor,
+        avatar: globalAdmin.avatar,
+        avatarColor: globalAdmin.avatarColor,
         isEmailVerified: true,
       },
     };
   }
 
-  // 1. Prisma (현재 작업/테스트 워크스페이스 DB) 조회
-  let user = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-  });
-
-  // 2. 없으면 Global DB 조회
+  // 1. Global DB 조회 (유저 ID의 Single Source of Truth)
   let globalUser = null;
   try {
     globalUser = await globalPrisma.user.findUnique({
@@ -65,6 +60,11 @@ export const emailLoginService = async (data: any) => {
   } catch {
     // global db optional in test
   }
+
+  // 2. Prisma (현재 작업/테스트 워크스페이스 DB) 조회
+  let user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
 
   if (!user && globalUser) {
     user = {
@@ -120,9 +120,10 @@ export const emailLoginService = async (data: any) => {
     };
   }
 
+  const effectiveUserId = globalUser ? globalUser.id : user.id;
   const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
   const token = jwt.sign(
-    { userId: user.id, email: user.email, name: user.name, role: user.role },
+    { userId: effectiveUserId, email: user.email, name: user.name, role: user.role },
     jwtSecret,
     { expiresIn: '7d' }
   );
@@ -131,7 +132,7 @@ export const emailLoginService = async (data: any) => {
     message: '로그인 성공',
     token,
     user: {
-      id: user.id,
+      id: effectiveUserId,
       email: user.email,
       name: user.name,
       role: user.role,

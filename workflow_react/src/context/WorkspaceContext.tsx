@@ -10,10 +10,10 @@ import {
 import type { Workspace, WorkspaceMember } from '@/types';
 import { prefRepository } from '@/lib/prefRepository';
 import { draftStorage, type IssueDraft } from '@/utils/draftStorage';
+import { useUIStore } from '@/stores/useUIStore';
 
 export { type IssueDraft } from '@/utils/draftStorage';
 
-// --- 🔒 내부 스토리지 안전 I/O 헬퍼 ---
 function readWsStorage<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
   try {
@@ -44,7 +44,7 @@ function writeWsStorage<T>(key: string, value: T): void {
 }
 
 interface WorkspaceContextType {
-  // 🏢 워크스페이스 기본 관리
+  // 🏢 단일 워크스페이스 관리
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   isLoadingWorkspaces: boolean;
@@ -53,7 +53,7 @@ interface WorkspaceContextType {
   inviteMember: (data: { email?: string; userId?: number; role?: string }) => Promise<WorkspaceMember>;
   refetchWorkspaces: () => void;
 
-  // 🍪 경량 일감 작성/수정 초안(Draft) 관리 (리렌더링 무부하)
+  // 🍪 경량 일감 작성/수정 초안(Draft) 관리
   getIssueDraft: (key: string | number) => IssueDraft | null;
   saveIssueDraft: (key: string | number, draft: Partial<IssueDraft>) => void;
   clearIssueDraft: (key: string | number) => void;
@@ -78,11 +78,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<number | null>(() => {
-    return prefRepository.activeWorkspaceId;
-  });
-
-  // 1. 참여 중인 워크스페이스 목록 조회
+  // 1. 단일 워크스페이스 정보 조회
   const {
     data: workspaces = [],
     isLoading: isLoadingWorkspaces,
@@ -94,71 +90,46 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     staleTime: 1000 * 60 * 5, // 5분
   });
 
-  // 2. 현재 활성 워크스페이스 계산 및 동기화
+  const currentWorkspace = workspaces[0] || null;
+
   useEffect(() => {
-    if (!isAuthenticated || workspaces.length === 0) {
-      if (!isAuthenticated) {
-        prefRepository.activeWorkspaceId = null;
-        setCurrentWorkspaceId(null);
-      }
-      return;
+    if (currentWorkspace?.id) {
+      prefRepository.activeWorkspaceId = currentWorkspace.id;
+    } else if (!isAuthenticated) {
+      prefRepository.activeWorkspaceId = null;
     }
+  }, [currentWorkspace, isAuthenticated]);
 
-    const exists = workspaces.find((w) => w.id === currentWorkspaceId);
-    if (!exists) {
-      const defaultWs = workspaces[0];
-      setCurrentWorkspaceId(defaultWs.id);
-      prefRepository.activeWorkspaceId = defaultWs.id;
-    }
-  }, [isAuthenticated, workspaces, currentWorkspaceId]);
-
-  const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) || workspaces[0] || null;
-
-  // 3. 🍪 경량 일감 초안 (React State 리렌더링 없이 조용히 Cookie/WebStorage I/O)
+  // 2. 🍪 경량 일감 초안 (단일 워크스페이스 공통 접두사)
   const getIssueDraft = useCallback((key: string | number): IssueDraft | null => {
-    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
-    return draftStorage.getIssueDraft(`${wsPrefix}${key}`);
-  }, [currentWorkspaceId]);
+    return draftStorage.getIssueDraft(`ws_${key}`);
+  }, []);
 
   const saveIssueDraft = useCallback((key: string | number, draft: Partial<IssueDraft>) => {
-    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
-    draftStorage.saveIssueDraft(`${wsPrefix}${key}`, draft);
-  }, [currentWorkspaceId]);
+    draftStorage.saveIssueDraft(`ws_${key}`, draft);
+  }, []);
 
   const clearIssueDraft = useCallback((key: string | number) => {
-    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
-    draftStorage.clearIssueDraft(`${wsPrefix}${key}`);
-  }, [currentWorkspaceId]);
+    draftStorage.clearIssueDraft(`ws_${key}`);
+  }, []);
 
   const hasIssueDraft = useCallback((key: string | number): boolean => {
-    const wsPrefix = currentWorkspaceId ? `ws${currentWorkspaceId}_` : '';
-    return draftStorage.hasIssueDraft(`${wsPrefix}${key}`);
-  }, [currentWorkspaceId]);
+    return draftStorage.hasIssueDraft(`ws_${key}`);
+  }, []);
 
-  // 4. 📐 사이드바 서브메뉴 상태 관리
-  const [sidebarSubmenus, setSidebarSubmenusState] = useState<Record<string, boolean>>(() => {
-    return readWsStorage<Record<string, boolean>>('pref_sidebar_submenus', {
-      projects: false,
-      issues: false,
-      sprints: false,
-      wbs: false,
-      chat: false,
-    });
-  });
-
+  // 3. 📐 사이드바 서브메뉴 상태 관리 (Zustand useUIStore 연동)
+  const sidebarSubmenus = useUIStore((s) => s.sidebarSubmenus);
+  const setSidebarSubmenusStore = useUIStore((s) => s.setSidebarSubmenus);
   const setSidebarSubmenus: React.Dispatch<React.SetStateAction<Record<string, boolean>>> = useCallback(
     (action) => {
-      setSidebarSubmenusState((prev) => {
-        const next = typeof action === 'function' ? action(prev) : action;
-        writeWsStorage('pref_sidebar_submenus', next);
-        return next;
-      });
+      setSidebarSubmenusStore(action as any);
     },
-    []
+    [setSidebarSubmenusStore]
   );
 
-  // 5. 🧭 라우팅, 선택 프로젝트, 선택 채널 이력
-  const [prevRoute, setPrevRouteState] = useState<string | null>(() => readWsStorage<string | null>('pref_prev_route', null));
+  // 4. 🧭 라우팅, 선택 프로젝트, 선택 채널 이력
+  const prevRoute = useUIStore((s) => s.prevRoute);
+  const setPrevRoute = useUIStore((s) => s.setPrevRoute);
   const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(() => {
     const raw = readWsStorage<any>('selectedProjectId', null);
     if (!raw) return null;
@@ -172,11 +143,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return isNaN(num) ? null : num;
   });
 
-  const setPrevRoute = useCallback((route: string | null) => {
-    setPrevRouteState(route);
-    writeWsStorage('pref_prev_route', route);
-  }, []);
-
   const setSelectedProjectId = useCallback((projectId: number | null) => {
     setSelectedProjectIdState(projectId);
     writeWsStorage('selectedProjectId', projectId);
@@ -187,52 +153,46 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     writeWsStorage('selectedChannelId', channelId);
   }, []);
 
-  // 6. 워크스페이스 전환 함수 (전환 시 전역 쿼리 캐시 리셋 및 새 워크스페이스 데이터 로드)
+  // 5. 단일 워크스페이스 전환 (no-op 유지)
   const switchWorkspace = useCallback(
-    (workspaceId: number) => {
-      if (workspaceId === currentWorkspaceId) return;
-
-      const target = workspaces.find((w) => w.id === workspaceId);
-      if (!target) return;
-
-      setCurrentWorkspaceId(workspaceId);
-      prefRepository.activeWorkspaceId = workspaceId;
-
-      // ⭐️ 이전 워크스페이스 캐시 무효화 및 새 워크스페이스 데이터 갱신
+    (_workspaceId: number) => {
+      // 단일 워크스페이스 구조이므로 캐시 무효화만 수행
       queryClient.invalidateQueries();
     },
-    [currentWorkspaceId, workspaces, queryClient]
+    [queryClient]
   );
 
-  // 7. 워크스페이스 생성 뮤테이션
+  // 6. 워크스페이스 생성/초기화 뮤테이션
   const createMutation = useMutation({
     mutationFn: createWorkspaceApi,
-    onSuccess: (newWorkspace) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workspaceKeys.lists() });
-      switchWorkspace(newWorkspace.id);
     },
   });
 
-  const createWorkspace = async (data: { name: string; slug?: string; description?: string; icon?: string }) => {
-    return createMutation.mutateAsync(data);
-  };
+  const createWorkspace = useCallback(
+    async (data: { name: string; slug?: string; description?: string; icon?: string }) => {
+      return createMutation.mutateAsync(data);
+    },
+    [createMutation]
+  );
 
-  // 8. 멤버 초대 뮤테이션
+  // 7. 멤버 초대 뮤테이션
   const inviteMutation = useMutation({
     mutationFn: (data: { email?: string; userId?: number; role?: string }) => {
-      if (!currentWorkspaceId) throw new Error('활성화된 워크스페이스가 없습니다.');
-      return inviteMemberApi(currentWorkspaceId, data);
+      return inviteMemberApi(currentWorkspace?.id, data);
     },
     onSuccess: () => {
-      if (currentWorkspaceId) {
-        queryClient.invalidateQueries({ queryKey: workspaceKeys.detail(currentWorkspaceId) });
-      }
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
     },
   });
 
-  const inviteMember = async (data: { email?: string; userId?: number; role?: string }) => {
-    return inviteMutation.mutateAsync(data);
-  };
+  const inviteMember = useCallback(
+    async (data: { email?: string; userId?: number; role?: string }) => {
+      return inviteMutation.mutateAsync(data);
+    },
+    [inviteMutation]
+  );
 
   return (
     <WorkspaceContext.Provider

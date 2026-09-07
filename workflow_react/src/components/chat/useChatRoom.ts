@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   getChannels,
   getMessages,
@@ -12,6 +12,7 @@ import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Pr
 import { getUsers, getProjects, getGroups } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { usePrefStore } from '@/stores/usePrefStore';
 
 export interface UseChatRoomProps {
   propChannelId?: number | null;
@@ -22,6 +23,7 @@ export interface UseChatRoomProps {
 export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseChatRoomProps) => {
   const { user, token, isAuthenticated } = useAuth();
   const { selectedChannelId: wsChannelId, setSelectedChannelId: setWsChannelId } = useWorkspace();
+  const activeWorkspaceId = usePrefStore((s) => s.activeWorkspaceId);
   const currentUserId = user?.id || 0;
 
   // Workspace Metadata
@@ -90,7 +92,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     getUsers().then(setAllWorkspaceUsers).catch(console.error);
     getProjects().then(setAllWorkspaceProjects).catch(console.error);
     getGroups(false).then(setAllWorkspaceGroups).catch(console.error);
-  }, [fetchChannels]);
+  }, [fetchChannels, activeWorkspaceId]);
 
   useEffect(() => {
     if (propChannelId !== undefined && propChannelId !== null) {

@@ -1,3 +1,4 @@
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
 ﻿import { Request, Response } from 'express';
 import { getChannelsService } from './services/getChannels.service.js';
 import { sendMessageService } from './services/sendMessage.service.js';
@@ -15,19 +16,21 @@ export const getChannels = async (req: Request, res: Response) => {
     const channels = await getChannelsService(req.user.id, currentWorkspace);
     res.json(channels);
   } catch (error: any) {
-    res.status(500).json({ error: error.message, errorCode: ErrorCode.INTERNAL_ERROR });
+    res.status(500).json({ error: error.message, errorCode: ErrorCode.INTERNAL_SERVER_ERROR });
   }
 };
 
 export const createChannel = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
-    const isDM = req.body.type === 'DM';
-    const workspaceId = isDM
-      ? null
-      : req.body.workspaceId
-      ? Number(req.body.workspaceId)
-      : req.workspace?.id || null;
+    let workspaceId = req.workspace?.id || (req.body.workspaceId ? Number(req.body.workspaceId) : null);
+    if (!workspaceId) {
+      const defaultWs = await globalPrisma.workspace.findFirst({
+        where: { status: 'ACTIVE' },
+        orderBy: { id: 'asc' },
+      });
+      workspaceId = defaultWs?.id || 1;
+    }
 
     const channel = await createChannelService({
       ...req.body,
@@ -47,7 +50,7 @@ export const getMessages = async (req: Request, res: Response) => {
     if (!channelId || isNaN(channelId)) {
       return res.status(400).json({ error: 'Invalid channel ID', errorCode: ErrorCode.INVALID_INPUT });
     }
-    const result = await getMessagesService(channelId, req.user.id, req.query);
+    const result = await getMessagesService(channelId, req.user.id, req.query, undefined, req.workspace);
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
@@ -66,7 +69,7 @@ export const sendMessage = async (req: Request, res: Response) => {
       senderId: req.user.id,
       content: req.body.content,
       attachments: req.body.attachments,
-    });
+    }, undefined, req.workspace);
     res.status(201).json(message);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });

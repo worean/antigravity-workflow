@@ -10,6 +10,7 @@ import {
   ProjectsHeaderToolbar,
   ProjectsGrid,
 } from '@/components/projects';
+import type { VisibilityFilterType } from '@/components/projects/ProjectsHeaderToolbar';
 
 interface ProjectsPageProps {
   onOpenCreateProject: () => void;
@@ -29,14 +30,21 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   const { isAuthenticated } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
 
-  // TanStack Query로 프로젝트 목록 로드
-  const { data: fetchedProjects = [], isLoading: loading } = useProjects();
+  const [selectedVisibility, setSelectedVisibility] = useState<VisibilityFilterType>('ALL');
+
+  // TanStack Query로 프로젝트 목록 로드 (공개 범위 필터 연동)
+  const queryParams = selectedVisibility === 'ALL' ? undefined : { visibility: selectedVisibility };
+  const { data: fetchedProjects = [], isLoading: loading } = useProjects(queryParams);
   const deleteProjectMutation = useDeleteProject();
 
   const [isCustomFieldsModalOpen, setIsCustomFieldsModalOpen] = useState<boolean>(false);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
-  const projects = externalProjects || fetchedProjects;
+  const rawProjects = externalProjects || fetchedProjects;
+  const projects =
+    selectedVisibility === 'ALL'
+      ? rawProjects
+      : rawProjects.filter((p) => (p.visibility || 'PUBLIC') === selectedVisibility);
 
   const handleCreateClick = () => {
     if (!isAuthenticated) {
@@ -75,6 +83,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
       <ProjectsHeaderToolbar
         projectsCount={projects.length}
         isAuthenticated={isAuthenticated}
+        selectedVisibility={selectedVisibility}
+        onChangeVisibility={setSelectedVisibility}
         onOpenAuth={onOpenAuth}
         onOpenCustomFields={() => setIsCustomFieldsModalOpen(true)}
         onOpenCreateProject={handleCreateClick}

@@ -1,4 +1,4 @@
-﻿import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
@@ -34,9 +34,31 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   next(err);
 });
 
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+import { globalPrisma } from '#lib/globalPrisma.js';
+import { prisma } from '#lib/prisma.js';
+
+// Health Check with Database Connectivity Verification
+app.get('/api/health', async (req, res) => {
+  try {
+    const userCount = await globalPrisma.user.count();
+    const projectCount = await prisma.project.count();
+    const workspaceCount = await globalPrisma.workspace.count();
+    res.json({
+      status: 'OK',
+      database: {
+        mode: process.env.TASK_STORAGE_MODE || 'postgresql',
+        globalDb: { status: 'CONNECTED', users: userCount, workspaces: workspaceCount },
+        workspaceDb: { status: 'CONNECTED', projects: projectCount },
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      status: 'DATABASE_ERROR',
+      error: err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Auth & Modular REST API Routers
