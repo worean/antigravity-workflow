@@ -16,6 +16,8 @@
     "electron:client": "npm run electron:dev --prefix workflow_react",
     "electron:build": "npm run electron:build --prefix workflow_react",
     "electron:dist": "npm run electron:dist --prefix workflow_react",
+    "test": "npm run test --prefix workflow_server",
+    "db:clean": "npm run db:clean --prefix workflow_server",
     "kill": "powershell -Command \"Get-NetTCPConnection -LocalPort 4000,5173 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }\""
   },
   "devDependencies": {

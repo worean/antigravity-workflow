@@ -1,5 +1,11 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+
+export interface ToastState {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
 
 export interface UIStoreState {
   // 사이드바 서브메뉴(아코디언) 펼침 상태
@@ -26,7 +32,20 @@ export interface UIStoreState {
   openIssueModal: (projectId?: number | null) => void;
   closeIssueModal: () => void;
   setIsIssueModalOpen: (open: boolean) => void;
+
+  // 3) 전역 프로젝트 생성 모달
+  isProjectModalOpen: boolean;
+  openProjectModal: () => void;
+  closeProjectModal: () => void;
+  setIsProjectModalOpen: (open: boolean) => void;
+
+  // 4) 🍞 전역 토스트 알림 상태 (3초 자동 소멸 & 신규 알림 시 즉시 리셋)
+  toast: ToastState | null;
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  hideToast: () => void;
 }
+
+let toastTimer: any = null;
 
 export const useUIStore = create<UIStoreState>()(
   persist(
@@ -68,11 +87,41 @@ export const useUIStore = create<UIStoreState>()(
       closeIssueModal: () =>
         set({ isIssueModalOpen: false, issueModalInitialProjectId: null }),
       setIsIssueModalOpen: (isIssueModalOpen) => set({ isIssueModalOpen }),
+
+      // 프로젝트 모달 제어
+      isProjectModalOpen: false,
+      openProjectModal: () => set({ isProjectModalOpen: true }),
+      closeProjectModal: () => set({ isProjectModalOpen: false }),
+      setIsProjectModalOpen: (isProjectModalOpen) => set({ isProjectModalOpen }),
+
+      // 🍞 전역 토스트 알림 제어
+      toast: null,
+      showToast: (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        if (toastTimer) {
+          clearTimeout(toastTimer);
+          toastTimer = null;
+        }
+
+        const id = Date.now();
+        set({ toast: { id, message, type } });
+
+        toastTimer = setTimeout(() => {
+          set({ toast: null });
+          toastTimer = null;
+        }, 3000);
+      },
+      hideToast: () => {
+        if (toastTimer) {
+          clearTimeout(toastTimer);
+          toastTimer = null;
+        }
+        set({ toast: null });
+      },
     }),
     {
       name: 'ag_ui_state',
       storage: createJSONStorage(() => localStorage),
-      // 모달 열림 여부는 일시적 UI 상태이므로 영속화에서 제외하고, 사이드바 상태 등만 영속화
+      // 모달/토스트 열림 여부는 일시적 UI 상태이므로 영속화에서 제외
       partialize: (state) => ({
         sidebarSubmenus: state.sidebarSubmenus,
       }),

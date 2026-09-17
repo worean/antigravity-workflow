@@ -1,6 +1,6 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
-import type { Favorite } from '@/types';
+import type { Favorite, Project, Issue } from '@/types';
 import { projectKeys } from './projects';
 import { issueKeys } from './issues';
 
@@ -45,7 +45,31 @@ export const useToggleFavorite = () => {
 
   return useMutation({
     mutationFn: toggleFavorite,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // ⚡ 프로젝트 즐겨찾기 변경 시 프로젝트 목록 캐시 In-place 실시간 갱신 (0ms 반응 및 즐겨찾기 상단 정렬)
+      if (data.targetType === 'PROJECT') {
+        queryClient.setQueriesData<Project[]>({ queryKey: projectKeys.all }, (old) => {
+          if (!Array.isArray(old)) return old;
+          const updated = old.map((p) =>
+            p.id === data.targetId ? { ...p, isFavorite: data.isFavorite } : p
+          );
+          return updated.sort((a, b) => {
+            if (a.isFavorite === b.isFavorite) return 0;
+            return a.isFavorite ? -1 : 1;
+          });
+        });
+      }
+
+      // ⚡ 이슈 즐겨찾기 변경 시 이슈 목록 캐시 In-place 실시간 갱신
+      if (data.targetType === 'ISSUE') {
+        queryClient.setQueriesData<Issue[]>({ queryKey: issueKeys.all }, (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((i) =>
+            i.id === data.targetId ? { ...i, isFavorite: data.isFavorite } : i
+          );
+        });
+      }
+
       queryClient.invalidateQueries({ queryKey: favoriteKeys.all });
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       queryClient.invalidateQueries({ queryKey: issueKeys.all });

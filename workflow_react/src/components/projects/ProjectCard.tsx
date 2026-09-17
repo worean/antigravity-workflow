@@ -1,4 +1,4 @@
-﻿﻿import React from 'react';
+import React from 'react';
 import { Layers, Users, ArrowRight, Trash2, Globe, ShieldCheck, Lock } from 'lucide-react';
 import type { Project, ProjectVisibility } from '@/types';
 import { FavoriteButton } from '@/components/common';
@@ -8,6 +8,7 @@ interface ProjectCardProps {
   isAuthenticated: boolean;
   onSelectProject: (projectId: number) => void;
   onOpenDeleteConfirm: (e: React.MouseEvent, project: Project) => void;
+  onToggleFavoriteSuccess?: (isFavorite: boolean) => void;
   onOpenAuth?: () => void;
 }
 
@@ -82,6 +83,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   isAuthenticated,
   onSelectProject,
   onOpenDeleteConfirm,
+  onToggleFavoriteSuccess,
   onOpenAuth,
 }) => {
   return (
@@ -125,6 +127,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               targetId={project.id}
               isFavorite={project.isFavorite}
               size="sm"
+              onToggleSuccess={onToggleFavoriteSuccess}
               onOpenAuth={onOpenAuth}
             />
 

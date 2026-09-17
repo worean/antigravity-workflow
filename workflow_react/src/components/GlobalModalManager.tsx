@@ -1,11 +1,13 @@
-import React from 'react';
+﻿import React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUIStore } from '@/stores/useUIStore';
-import { useProjects } from '@/api/projects';
+import { useProjects, projectKeys } from '@/api/projects';
 import { issueKeys } from '@/api/issues';
 import { AuthModal } from '@/components/AuthModal';
 import { IssueModal } from '@/components/IssueModal';
+import { ProjectModal } from '@/components/ProjectModal';
 import { ChatbotPopup, ChatbotLauncher } from '@/components/chatbot';
+import { GlobalToast } from '@/components/common';
 
 /**
  * GlobalModalManager - 전역 UI 모달 관리자
@@ -26,6 +28,10 @@ export const GlobalModalManager: React.FC = () => {
   const initialProjectId = useUIStore((s) => s.issueModalInitialProjectId);
   const closeIssueModal = useUIStore((s) => s.closeIssueModal);
 
+  // 3. 프로젝트 생성 모달 상태
+  const isProjectModalOpen = useUIStore((s) => s.isProjectModalOpen);
+  const closeProjectModal = useUIStore((s) => s.closeProjectModal);
+
   // 프로젝트 목록 캐시 조회 (이슈 생성 모달 셀렉트박스용)
   const { data: projects = [] } = useProjects();
 
@@ -34,12 +40,25 @@ export const GlobalModalManager: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['sprints'] });
   };
 
+  const handleProjectCreated = () => {
+    queryClient.invalidateQueries({ queryKey: projectKeys.all });
+    queryClient.invalidateQueries({ queryKey: ['sprints'] });
+    queryClient.invalidateQueries({ queryKey: issueKeys.all });
+  };
+
   return (
     <>
       {/* 🔐 전역 인증 모달 */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={closeAuthModal}
+      />
+
+      {/* 📁 전역 프로젝트 생성 모달 */}
+      <ProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={closeProjectModal}
+        onSuccess={handleProjectCreated}
       />
 
       {/* 📝 전역 빠른 일감 등록 모달 */}
@@ -54,6 +73,9 @@ export const GlobalModalManager: React.FC = () => {
       {/* 🤖 AI Chatbot 플로팅 어시스턴트 & 런처 버튼 */}
       <ChatbotPopup />
       <ChatbotLauncher />
+
+      {/* 🍞 앱 전역 실시간 토스트 피드백 (3초 자동 소멸) */}
+      <GlobalToast />
     </>
   );
 };

@@ -190,7 +190,12 @@ export const useDeleteProject = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteProject,
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
+      // ⚡ TanStack Query 프로젝트 목록 캐시 In-place 실시간 삭제 (0ms 반응)
+      queryClient.setQueriesData<Project[]>({ queryKey: projectKeys.all }, (old) => {
+        if (!Array.isArray(old)) return old;
+        return old.filter((p) => p.id !== deletedId);
+      });
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
   });

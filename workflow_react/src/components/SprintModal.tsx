@@ -13,6 +13,7 @@ import { formatDateOnly } from '@/utils/dateUtils';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { useUIStore } from '@/stores/useUIStore';
 
 export interface SprintModalProps {
   isOpen: boolean;
@@ -104,7 +105,7 @@ export const SprintModal: React.FC<SprintModalProps> = ({
     try {
       const projIssues = await getIssues({ projectId });
       if (!projIssues || projIssues.length === 0) {
-        alert('해당 프로젝트에 등록된 이슈가 없습니다.');
+        useUIStore.getState().showToast('해당 프로젝트에 등록된 이슈가 없습니다.', 'error');
         return;
       }
       let minStart: string | null = null;
@@ -124,18 +125,23 @@ export const SprintModal: React.FC<SprintModalProps> = ({
       if (minStart) setStartDate(minStart);
       if (maxDue) setEndDate(maxDue);
       if (!minStart && !maxDue) {
-        alert('프로젝트 이슈들에 설정된 시작일/기한이 없습니다.');
+        useUIStore.getState().showToast('프로젝트 이슈들에 설정된 시작일/기한이 없습니다.', 'error');
+      } else {
+        useUIStore.getState().showToast('프로젝트 이슈 기반으로 일정이 자동 계산되었습니다.', 'success');
       }
     } catch (err) {
       console.error(err);
-      alert('일정 자동 계산 중 오류가 발생했습니다.');
+      useUIStore.getState().showToast('일정 자동 계산 중 오류가 발생했습니다.', 'error');
     }
   };
 
   // 폼 제출 핸들러
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return alert('스프린트 이름을 입력하세요.');
+    if (!name.trim()) {
+      useUIStore.getState().showToast('스프린트 이름을 입력하세요.', 'error');
+      return;
+    }
 
     await executeAction(
       async () => {
@@ -161,8 +167,17 @@ export const SprintModal: React.FC<SprintModalProps> = ({
       {
         onSuccess: (saved) => {
           queryClient.invalidateQueries({ queryKey: ['sprints'] });
+          useUIStore.getState().showToast(
+            sprint
+              ? `'${name.trim()}' 스프린트가 수정되었습니다.`
+              : `'${name.trim()}' 스프린트가 생성되었습니다.`,
+            'success'
+          );
           if (onSuccess) onSuccess(saved);
           onClose();
+        },
+        onError: (err) => {
+          useUIStore.getState().showToast(err.response?.data?.error || '스프린트 저장에 실패했습니다.', 'error');
         },
       }
     );

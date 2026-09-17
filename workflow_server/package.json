@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "test:api:report": "tsx scripts/generate_api_report.ts",
+    "db:clean": "tsx scripts/clean_dev_db.ts",
     "prisma:generate": "prisma generate --schema=prisma/schema.global.prisma && prisma generate --schema=prisma/schema.workspace.prisma",
     "prisma:push:global": "prisma db push --schema=prisma/schema.global.prisma --accept-data-loss",
     "prisma:push:workspace": "prisma db push --schema=prisma/schema.workspace.prisma --accept-data-loss",

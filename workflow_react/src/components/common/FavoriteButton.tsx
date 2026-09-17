@@ -2,6 +2,7 @@
 import { Star } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToggleFavorite } from '@/api/favorites';
+import { useUIStore } from '@/stores/useUIStore';
 
 export interface FavoriteButtonProps {
   targetType: 'PROJECT' | 'ISSUE' | 'SPRINT' | 'CHAT_CHANNEL';
@@ -71,17 +72,30 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
     const nextState = !isFavorite;
     setLocalIsFavorite(nextState);
 
+    const targetNameMap: Record<string, string> = {
+      PROJECT: '프로젝트',
+      ISSUE: '이슈',
+      SPRINT: '스프린트',
+      CHAT_CHANNEL: '채팅방',
+    };
+    const targetName = targetNameMap[targetType] || '항목';
+
     toggleMutation.mutate(
       { targetType, targetId },
       {
         onSuccess: (data) => {
           setLocalIsFavorite(data.isFavorite);
+          useUIStore.getState().showToast(
+            `${targetName} 즐겨찾기${data.isFavorite ? '에 추가되었습니다.' : '에서 해제되었습니다.'}`,
+            'success'
+          );
           if (onToggleSuccess) {
             onToggleSuccess(data.isFavorite);
           }
         },
         onError: () => {
           setLocalIsFavorite(!nextState);
+          useUIStore.getState().showToast(`${targetName} 즐겨찾기 처리에 실패했습니다.`, 'error');
         },
       }
     );

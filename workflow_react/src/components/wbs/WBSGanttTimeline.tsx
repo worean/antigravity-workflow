@@ -5,6 +5,7 @@ import { WBSGanttHeader } from './WBSGanttHeader';
 import { WBSGanttBar } from './WBSGanttBar';
 import { updateIssue } from '@/services/api';
 import { formatDateOnly, addDays } from '@/utils/dateUtils';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface WBSGanttTimelineProps {
   items: WBSItem[];
@@ -74,9 +75,12 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
         dueDate: dueDateStr,
       });
       await loadProjectData();
+      useUIStore.getState().showToast(`이슈 #${iss.issueNumber || iss.id} 일정이 1주일 기본 설정되었습니다.`, 'success');
     } catch (err: any) {
       console.error('Failed to quick schedule issue:', err);
-      setErrorMessage(err.response?.data?.error || '일정 설정에 실패했습니다.');
+      const errMsg = err.response?.data?.error || '일정 설정에 실패했습니다.';
+      setErrorMessage(errMsg);
+      useUIStore.getState().showToast(errMsg, 'error');
     } finally {
       setUpdatingIssueId(null);
     }

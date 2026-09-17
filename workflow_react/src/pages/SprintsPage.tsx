@@ -20,6 +20,7 @@ import {
   type SprintStatusFilter,
 } from '@/components/sprints';
 import { SprintModal } from '@/components/SprintModal';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;
@@ -122,8 +123,9 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     try {
       await deleteSprint(sprintId);
       await fetchData();
+      useUIStore.getState().showToast('스프린트가 성공적으로 삭제되었습니다.', 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '스프린트 삭제 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '스프린트 삭제에 실패했습니다.', 'error');
     }
   };
 
@@ -132,8 +134,11 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     try {
       await updateSprint(sprintId, { status: newStatus });
       await fetchData();
+      const statusLabel =
+        newStatus === 'ACTIVE' ? '진행 중' : newStatus === 'COMPLETED' ? '완료' : '계획됨';
+      useUIStore.getState().showToast(`스프린트 상태가 '${statusLabel}'(으)로 변경되었습니다.`, 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '상태 변경 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '상태 변경에 실패했습니다.', 'error');
     }
   };
 
@@ -155,7 +160,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       setBacklogIssues(unassigned);
     } catch (err) {
       console.error(err);
-      alert('이슈 목록 조회 실패');
+      useUIStore.getState().showToast('이슈 목록 조회에 실패했습니다.', 'error');
     } finally {
       setManageLoading(false);
     }
@@ -172,8 +177,9 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         setSprintIssues((prev) => [...prev, { ...targetIssue, sprintId: managingSprint.id }]);
       }
       await fetchData();
+      useUIStore.getState().showToast('스프린트에 이슈가 할당되었습니다.', 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '이슈 할당 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '이슈 할당에 실패했습니다.', 'error');
     }
   };
 
@@ -188,8 +194,9 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         setBacklogIssues((prev) => [...prev, { ...targetIssue, sprintId: null }]);
       }
       await fetchData();
+      useUIStore.getState().showToast('스프린트에서 이슈가 제외되어 백로그로 이동했습니다.', 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '이슈 제외 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '이슈 제외에 실패했습니다.', 'error');
     }
   };
 
@@ -197,7 +204,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   const handleSyncSprintDates = async () => {
     if (!managingSprint) return;
     if (sprintIssues.length === 0) {
-      alert('스프린트에 할당된 이슈가 없습니다.');
+      useUIStore.getState().showToast('스프린트에 할당된 이슈가 없습니다.', 'error');
       return;
     }
 
@@ -216,7 +223,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     }
 
     if (!minStart && !maxDue) {
-      alert('할당된 이슈들에 설정된 시작일이나 기한이 없습니다.');
+      useUIStore.getState().showToast('할당된 이슈들에 설정된 시작일이나 기한이 없습니다.', 'error');
       return;
     }
 
@@ -228,9 +235,12 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       });
       setManagingSprint(updated);
       await fetchData();
-      alert(`스프린트 일정이 할당된 이슈에 맞춰 자동 갱신되었습니다!\n시작일: ${formatDateOnly(updated.startDate) || '미설정'}\n종료일: ${formatDateOnly(updated.endDate) || '미설정'}`);
+      useUIStore.getState().showToast(
+        `스프린트 일정이 자동 갱신되었습니다. (${formatDateOnly(updated.startDate) || '미설정'} ~ ${formatDateOnly(updated.endDate) || '미설정'})`,
+        'success'
+      );
     } catch (err: any) {
-      alert(err.response?.data?.error || '일정 동기화 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '일정 동기화에 실패했습니다.', 'error');
     } finally {
       setAutoCalculating(false);
     }

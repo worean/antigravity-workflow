@@ -21,6 +21,7 @@ import type { Worklog } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { prefRepository } from '@/lib/prefRepository';
+import { useUIStore } from '@/stores/useUIStore';
 import {
   X,
   PlusCircle,
@@ -330,15 +331,23 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   const isViewMode = !!selectedIssue && !isEditing;
 
   const handleToggleLike = async () => {
-    if (!selectedIssue || !isAuthenticated) return alert('로그인이 필요합니다.');
+    if (!selectedIssue || !isAuthenticated) {
+      useUIStore.getState().showToast('로그인이 필요합니다.', 'error');
+      return;
+    }
     try {
       const res = await toggleLikeIssue(selectedIssue.id);
       setIsLiked(res.isLiked);
       setLikesCount(res.likesCount);
+      useUIStore.getState().showToast(
+        res.isLiked ? '이슈를 추천했습니다.' : '이슈 추천을 취소했습니다.',
+        'success'
+      );
       if (onSuccess) onSuccess();
       if (onIssueCreated) onIssueCreated();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      useUIStore.getState().showToast(err.response?.data?.error || '추천 처리에 실패했습니다.', 'error');
     }
   };
 
@@ -352,9 +361,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       {
         onSuccess: () => {
           setShowDeleteConfirm(false);
+          useUIStore.getState().showToast(`이슈 #${selectedIssue.issueNumber || selectedIssue.id}가 삭제되었습니다.`, 'success');
           if (onSuccess) onSuccess();
           if (onIssueCreated) onIssueCreated();
           onClose();
+        },
+        onError: (err) => {
+          useUIStore.getState().showToast(err.response?.data?.error || '이슈 삭제에 실패했습니다.', 'error');
         },
       }
     );
@@ -410,9 +423,18 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           clearIssueDraft(draftKey);
           setDraftBanner(null);
           queryClient.invalidateQueries({ queryKey: issueKeys.all });
+          useUIStore.getState().showToast(
+            selectedIssue
+              ? `이슈 #${selectedIssue.issueNumber || selectedIssue.id}가 수정되었습니다.`
+              : '새 이슈가 생성되었습니다.',
+            'success'
+          );
           if (onSuccess) onSuccess(res);
           if (onIssueCreated) onIssueCreated();
           if (!selectedIssue) onClose();
+        },
+        onError: (err) => {
+          useUIStore.getState().showToast(err.response?.data?.error || '이슈 저장에 실패했습니다.', 'error');
         },
       }
 
@@ -424,7 +446,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     if (!selectedIssue) return;
     const hoursNum = parseFloat(worklogHoursInput);
     if (isNaN(hoursNum) || hoursNum <= 0) {
-      alert('유효한 작업 시간(시간 단위, 예: 1.4 또는 5.5)을 입력해 주세요.');
+      useUIStore.getState().showToast('유효한 작업 시간(시간 단위, 예: 1.4 또는 5.5)을 입력해 주세요.', 'error');
       return;
     }
 
@@ -442,12 +464,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       setWorklogHoursInput('');
       setWorklogDescInput('');
       setShowWorklogForm(false);
+      useUIStore.getState().showToast('작업 시간이 성공적으로 기록되었습니다.', 'success');
       if (onSuccess) onSuccess();
       if (onIssueCreated) onIssueCreated();
     } catch (err: any) {
 
       console.error(err);
-      alert(err.response?.data?.error || '작업 시간 기록에 실패했습니다.');
+      useUIStore.getState().showToast(err.response?.data?.error || '작업 시간 기록에 실패했습니다.', 'error');
     } finally {
       setIsLoggingWork(false);
     }

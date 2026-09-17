@@ -1,15 +1,18 @@
-﻿﻿import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { createProject } from '@/services/api';
+import { projectKeys } from '@/api/projects';
 import { FolderPlus, Hash, Globe, ShieldCheck, Lock } from 'lucide-react';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from './ActionFeedbackModal';
 import { ModalWrapper, Button, TagInput } from './common';
 import type { Project, ProjectVisibility } from '@/types';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface ProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (newProject: Project) => void;
+  onSuccess?: (newProject: Project) => void;
 }
 
 const VISIBILITY_OPTIONS: Array<{
@@ -39,6 +42,7 @@ const VISIBILITY_OPTIONS: Array<{
 ];
 
 export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const queryClient = useQueryClient();
   const [name, setName] = useState<string>('');
   const [key, setKey] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -62,13 +66,18 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onS
       },
       {
         onSuccess: (createdProject) => {
+          queryClient.invalidateQueries({ queryKey: projectKeys.all });
           setName('');
           setKey('');
           setDescription('');
           setVisibility('PUBLIC');
           setTags([]);
-          onSuccess(createdProject);
+          useUIStore.getState().showToast(`'${createdProject.name}' (${createdProject.key}) 프로젝트가 생성되었습니다.`, 'success');
+          if (onSuccess) onSuccess(createdProject);
           onClose();
+        },
+        onError: (err) => {
+          useUIStore.getState().showToast(err.response?.data?.error || '프로젝트 생성에 실패했습니다.', 'error');
         },
       }
     );

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -82,6 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (activeTab === itemId) return true;
     if (itemId === 'projects' && activeTab === 'project-detail') return true;
     if (itemId === 'issues' && activeTab === 'issue-detail') return true;
+    if (itemId === 'sprints' && activeTab === 'sprint-detail') return true;
     return false;
   };
 
@@ -90,10 +91,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return selectedProjectId === subId && (activeTab === 'project-detail' || activeTab === 'projects');
     }
     if (parentId === 'issues') {
-      return selectedProjectId === subId && activeTab === 'issues';
+      return selectedProjectId === subId && (activeTab === 'issues' || activeTab === 'issue-detail');
     }
     if (parentId === 'sprints') {
-      return selectedProjectId === subId && activeTab === 'sprints';
+      return selectedProjectId === subId && (activeTab === 'sprints' || activeTab === 'sprint-detail');
+    }
+    if (parentId === 'wbs') {
+      return selectedProjectId === subId && activeTab === 'wbs';
     }
     if (parentId === 'chat') {
       return selectedChannelId === subId && activeTab === 'chat';
@@ -153,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Zap,
       subitems: favoriteProjects.map((p): SidebarSubitem => ({
         id: p.id,
-        label: `${p.name}`,
+        label: `${p.name} (${p.key})`,
         icon: '📁',
         onClick: () => {
           if (onSelectProjectSprints) onSelectProjectSprints(p.id);
@@ -167,7 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Layers,
       subitems: favoriteProjects.map((p): SidebarSubitem => ({
         id: p.id,
-        label: `${p.name}`,
+        label: `${p.name} (${p.key})`,
         icon: '📁',
         onClick: () => {
           if (onSelectProjectWBS) onSelectProjectWBS(p.id);

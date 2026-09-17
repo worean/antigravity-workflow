@@ -24,6 +24,7 @@ export const useActionFeedback = (delayMs: number = 1000) => {
       asyncFn: () => Promise<T>,
       options?: {
         onSuccess?: (data: T) => void;
+        onError?: (err: any) => void;
       }
     ): Promise<T | null> => {
       setIsPending(true);
@@ -58,6 +59,10 @@ export const useActionFeedback = (delayMs: number = 1000) => {
           message,
           statusCode,
         });
+
+        if (options?.onError) {
+          options.onError(err);
+        }
 
         return null;
       }

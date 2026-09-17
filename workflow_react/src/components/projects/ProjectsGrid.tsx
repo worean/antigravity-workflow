@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { FolderKanban, Plus, LogIn } from 'lucide-react';
 import type { Project } from '@/types';
 import { Button, Card, Spinner } from '@/components/common';
@@ -10,6 +10,7 @@ interface ProjectsGridProps {
   isAuthenticated: boolean;
   onSelectProject: (projectId: number) => void;
   onOpenDeleteConfirm: (e: React.MouseEvent, project: Project) => void;
+  onToggleFavoriteSuccess?: (isFavorite: boolean, project: Project) => void;
   onOpenCreateProject: () => void;
   onOpenAuth?: () => void;
 }
@@ -20,6 +21,7 @@ export const ProjectsGrid: React.FC<ProjectsGridProps> = ({
   isAuthenticated,
   onSelectProject,
   onOpenDeleteConfirm,
+  onToggleFavoriteSuccess,
   onOpenCreateProject,
   onOpenAuth,
 }) => {
@@ -72,6 +74,7 @@ export const ProjectsGrid: React.FC<ProjectsGridProps> = ({
           isAuthenticated={isAuthenticated}
           onSelectProject={onSelectProject}
           onOpenDeleteConfirm={onOpenDeleteConfirm}
+          onToggleFavoriteSuccess={(isFav) => onToggleFavoriteSuccess?.(isFav, proj)}
           onOpenAuth={onOpenAuth}
         />
       ))}

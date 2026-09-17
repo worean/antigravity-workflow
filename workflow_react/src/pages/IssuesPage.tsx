@@ -12,6 +12,7 @@ import {
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { STATUS_CONFIG, parseStatusCategory } from '@/utils/statusUtils';
 import { KanbanFilterBar, KanbanBoard } from '@/components/kanban';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface IssuesPageProps {
   onOpenCreateIssue: () => void;
@@ -121,9 +122,16 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         data: { statusId: targetMeta.id },
       });
       if (onIssueUpdatedDirectly) onIssueUpdatedDirectly(updated);
+      useUIStore.getState().showToast(
+        `이슈 #${targetIssue.issueNumber || targetIssue.id} 상태가 '${targetMeta.koreanLabel}'(으)로 변경되었습니다.`,
+        'success'
+      );
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.error || '상태 변경 중 오류가 발생했습니다.');
+      useUIStore.getState().showToast(
+        err.response?.data?.error || '상태 변경 중 오류가 발생했습니다.',
+        'error'
+      );
     }
   };
 
@@ -169,14 +177,18 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     e.stopPropagation();
     if (!isAuthenticated) {
       if (onOpenAuth) onOpenAuth();
-      else alert('좋아요 기능은 로그인 후 이용 가능합니다.');
+      else useUIStore.getState().showToast('좋아요 기능은 로그인 후 이용 가능합니다.', 'error');
       return;
     }
 
     try {
       await toggleLikeMutation.mutateAsync(issue.id);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      useUIStore.getState().showToast(
+        err.response?.data?.error || '좋아요 처리에 실패했습니다.',
+        'error'
+      );
     }
   };
 
@@ -184,6 +196,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     e.stopPropagation();
     if (!isAuthenticated) {
       if (onOpenAuth) onOpenAuth();
+      else useUIStore.getState().showToast('로그인이 필요한 기능입니다.', 'error');
       return;
     }
     setDeletingIssue(issue);
@@ -196,10 +209,17 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     try {
       await deleteIssueMutation.mutateAsync(deletingIssue.id);
       if (onIssueDeletedDirectly) onIssueDeletedDirectly(deletingIssue.id);
+      useUIStore.getState().showToast(
+        `이슈 #${deletingIssue.issueNumber || deletingIssue.id}가 삭제되었습니다.`,
+        'success'
+      );
       setDeletingIssue(null);
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.error || '이슈 삭제 중 오류가 발생했습니다.');
+      useUIStore.getState().showToast(
+        err.response?.data?.error || '이슈 삭제 중 오류가 발생했습니다.',
+        'error'
+      );
     } finally {
       setDeleteLoading(false);
     }
