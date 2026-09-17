@@ -18,6 +18,7 @@ import { chatRouter } from './modules/chat/chat.routes.js';
 import { favoriteRouter } from './modules/favorites/favorites.routes.js';
 import { workspaceRouter } from './modules/workspaces/workspaces.routes.js';
 import tagRouter from './modules/tags/tags.routes.js';
+import { aiRouter } from './modules/ai/ai.routes.js';
 
 dotenv.config();
 
@@ -78,6 +79,7 @@ app.use('/api/chat', chatRouter);
 app.use('/api/favorites', favoriteRouter);
 app.use('/api/workspaces', workspaceRouter);
 app.use('/api/tags', tagRouter);
+app.use('/api/ai', aiRouter);
 
 
 

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 import re
 import sys
@@ -21,6 +21,7 @@ def review_component_file(file_path):
 
     total_lines = len(lines)
     content = "".join(lines)
+    norm_path = file_path.replace('\\', '/')
 
     # 1. 파일 크기 검사 (대규모 단일 파일 방지, 400줄 초과 시 경고)
     if total_lines > 400 and not file_path.endswith('.d.ts'):
@@ -48,8 +49,6 @@ def review_component_file(file_path):
         match = modal_state_regex.search(line)
         if match:
             modal_var = match.group(1)
-            # JSX 본문에서 해당 모달 변수가 조건부 렌더링이나 prop으로 사용되는지 확인
-            # 예: showModal && <SomeModal ...> or isOpen={showModal}
             usage_pattern = re.compile(rf'({modal_var}\s*&&|<[A-Za-z0-9_]+Modal[^>]*isOpen=\{{\s*{modal_var}\s*\}})')
             if not usage_pattern.search(content):
                 issues.append({
@@ -57,6 +56,31 @@ def review_component_file(file_path):
                     'line': idx,
                     'msg': f"모달 상태 `{modal_var}`가 선언되었으나 JSX 본문에서 조건부 마운트(`{modal_var} && <Modal />`) 또는 `isOpen={{{modal_var}}}` 패턴이 탐지되지 않았습니다. 모달 렌더링 누락 여부를 확인하세요."
                 })
+
+    # 4. 컴포넌트 레이어 내 Raw localStorage 직접 접근 검사
+    # (안전한 유틸리티 `safeStorage`나 Zustand `persist` 스토어, 인프라 파일 제외)
+    is_storage_exempt = any(exempt in norm_path for exempt in [
+        'safeStorage.ts', 'prefRepository.ts', 'draftStorage.ts', '/stores/', '/context/AuthContext.tsx'
+    ])
+    if not is_storage_exempt:
+        raw_storage_regex = re.compile(r'(localStorage\.(getItem|setItem|removeItem|clear)|window\.localStorage)')
+        for idx, line in enumerate(lines, start=1):
+            if raw_storage_regex.search(line) and not line.strip().startswith('//'):
+                issues.append({
+                    'type': 'WARNING',
+                    'line': idx,
+                    'msg': "컴포넌트 내 Raw `localStorage` 직접 접근 발견: 예외 안전성과 네임스페이스('ag_') 보장을 위해 `safeStorage` 유틸리티 또는 Zustand `persist` 미들웨어 사용을 권장합니다."
+                })
+
+    # 5. 모달 컴포넌트(*Modal.tsx)의 Portal / ModalWrapper 적용 여부 검사
+    if norm_path.endswith('Modal.tsx') and not norm_path.endswith('ModalWrapper.tsx'):
+        has_portal_usage = any(kw in content for kw in ['ModalWrapper', 'Portal', 'createPortal'])
+        if not has_portal_usage:
+            issues.append({
+                'type': 'WARNING',
+                'line': 1,
+                'msg': "모달 컴포넌트에서 `ModalWrapper` 또는 `Portal` 사용이 탐지되지 않았습니다. CSS Stacking Context 격리를 위해 Portal 기반 래퍼 사용을 권장합니다."
+            })
 
     return issues
 
@@ -70,7 +94,10 @@ def scan_directory(target_dir):
         if 'node_modules' in root or 'dist' in root or '.git' in root:
             continue
         for file in files:
-            if file.endswith(('.tsx', '.jsx')):
+            if file.endswith(('.tsx', '.jsx', '.ts')):
+                # 타입 정의나 설정 파일 제외
+                if file.endswith(('.d.ts', 'vite.config.ts')):
+                    continue
                 full_path = os.path.join(root, file)
                 total_files_checked += 1
                 issues = review_component_file(full_path)
@@ -103,7 +130,7 @@ def main():
 
     results, total_files, total_errors, total_warnings = scan_directory(target)
 
-    print(f"\n📊 검사 완료: 총 {total_files}개 컴포넌트 파일 검사됨 (오류: {total_errors}개, 경고: {total_warnings}개)\n")
+    print(f"\n📊 검사 완료: 총 {total_files}개 컴포넌트/모듈 파일 검사됨 (오류: {total_errors}개, 경고: {total_warnings}개)\n")
 
     if not results:
         print("🎉 모든 React 컴포넌트가 모듈화 및 코딩 안전 규칙을 완벽히 준수하고 있습니다!")
@@ -121,7 +148,7 @@ def main():
         print(f"❌ 총 {total_errors}개의 심각한 규칙 위반(Ghost State 등)이 발견되었습니다. 수정한 후 다시 검증하세요.")
         sys.exit(1)
     else:
-        print("⚠️ 경고 사항을 검토하여 필요한 경우 컴포넌트를 서브 모듈로 리팩토링하세요.")
+        print("⚠️ 경고 사항을 검토하여 필요한 경우 컴포넌트를 서브 모듈 및 Portal/safeStorage 표준으로 리팩토링하세요.")
         sys.exit(0)
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@
     "build": "npm run prisma:generate && tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
+    "test:api:report": "tsx scripts/generate_api_report.ts",
     "prisma:generate": "prisma generate --schema=prisma/schema.global.prisma && prisma generate --schema=prisma/schema.workspace.prisma",
     "prisma:push:global": "prisma db push --schema=prisma/schema.global.prisma --accept-data-loss",
     "prisma:push:workspace": "prisma db push --schema=prisma/schema.workspace.prisma --accept-data-loss",

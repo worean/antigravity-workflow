@@ -1,11 +1,11 @@
-﻿---
+---
 name: react-component-reviewer
-description: React 컴포넌트의 모듈화 아키텍처(Sub-components 구조), 파일 크기 제한(400줄), 모달/오버레이 Colocation 및 Ghost State([, setX] 언팩) 누락 여부를 정적 분석하고 검증하는 전담 스킬입니다.
+description: React 컴포넌트의 모듈화 아키텍처(Sub-components 구조), 파일 크기 제한(400줄), 모달/오버레이 Portal 및 Colocation, Ghost State([, setX] 언팩), LocalStorage 안전성 누락 여부를 정적 분석하고 검증하는 전담 스킬입니다.
 ---
 
 # 🛡️ React Component Reviewer Skill (`react-component-reviewer`)
 
-React 컴포넌트 개발 및 수정 시 **컴포넌트 모듈화 아키텍처**, **하위 컴포넌트(Sub-components) 분할 표준**, **모달/오버레이 유실 방지(Colocation)** 및 **안전한 상태 관리 규칙**을 자동으로 검증하는 품질 보증(QA) 스킬입니다.
+React 컴포넌트 개발 및 수정 시 **컴포넌트 모듈화 아키텍처**, **하위 컴포넌트(Sub-components) 분할 표준**, **React Portal 기반 팝업/모달 격리**, **모달/오버레이 유실 방지(Colocation)** 및 **안전한 상태 관리/LocalStorage 규칙**을 자동으로 검증하는 품질 보증(QA) 스킬입니다.
 
 ---
 
@@ -17,9 +17,13 @@ React 컴포넌트 개발 및 수정 시 **컴포넌트 모듈화 아키텍처**
    - `const [, setModalOpen] = useState(false)` 처럼 상태 변수를 생략(Unpack Ignore)하는 패턴은 화면에 렌더링되지 않는 결함의 원인이므로 엄격히 차단합니다.
 3. **모달 및 오버레이 마운트 누락 방지 (Colocation)**:
    - 모달 상태(`showXModal`, `isOpen`)를 선언했다면 해당 JSX 내부에서 반드시 모달 컴포넌트가 마운트(`showXModal && <XModal />` 또는 `isOpen={showXModal}`)되어 있는지 확인합니다.
-4. **도메인 컴포넌트 디렉토리 및 Barrel Export (`index.ts`)**:
+4. **React Portal 기반 팝업 격리 검사**:
+   - 모든 모달 컴포넌트(`*Modal.tsx`)는 부모의 CSS Stacking Context(`overflow: hidden`, `transform`, `z-index`)를 탈출하기 위해 `ModalWrapper` 또는 `Portal`을 활용해야 합니다.
+5. **Raw `localStorage` 직접 접근 방지**:
+   - 컴포넌트나 페이지 레이어에서 raw `localStorage`를 직접 호출하지 않고, `safeStorage` 유틸리티나 Zustand `persist` 미들웨어를 사용하여 예외 안전성과 네임스페이스(`ag_`)를 보장해야 합니다.
+6. **도메인 컴포넌트 디렉토리 및 Barrel Export (`index.ts`)**:
    - 도메인 하위 컴포넌트들은 `src/components/{domain}/index.ts`를 통해 깔끔하게 re-export 되어야 합니다.
-5. **설계 사양서 동기화 검증**:
+7. **설계 사양서 동기화 검증**:
    - 컴포넌트 수정/추가 시 해당 도메인의 사양서(`docs/components/{domain}_COMPONENTS.md`) 및 마스터 사양서(`docs/FRONTEND_SPECIFICATION.md`)가 함께 갱신되었는지 점검합니다.
 
 ---
@@ -39,4 +43,4 @@ python .agents/skills/react-component-reviewer/scripts/component_reviewer.py wor
 ### 3. 검사 결과 해석 및 QA 리포트 기준
 - **`[PASS]`**: 모든 컴포넌트가 모듈화 및 안전 코딩 표준을 준수함 (0 errors).
 - **`[ERROR]`**: Ghost State 등 치명적 결함 발견 ➔ 반드시 소스 수정 후 재검증.
-- **`[WARNING]`**: 400줄 초과 또는 잠재적 모달 누락 ➔ 서브 컴포넌트 분할 검토.
+- **`[WARNING]`**: 400줄 초과, Portal 미적용, raw localStorage 직접 접근 등 ➔ 서브 모듈화 및 표준 래퍼 리팩토링 권장.

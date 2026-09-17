@@ -98,13 +98,27 @@ def run_fullstack_tests():
     print("[COMPLETE] All full-stack verification steps passed cleanly!")
     return True
 
+def generate_api_report():
+    print("[Scenario QA Runner] Generating REST API Test & Inspection Report (HTML & PDF)...")
+    root_dir = os.getcwd()
+    server_dir = os.path.join(root_dir, "workflow_server")
+    result = subprocess.run(["npm", "run", "test:api:report"], cwd=server_dir, shell=True)
+    if result.returncode != 0:
+        print("[ERROR] Failed to generate API inspection report!")
+        return False
+    print("[SUCCESS] API inspection report generated successfully!")
+    return True
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--verify-docs":
         success = verify_qa_docs()
+    elif len(sys.argv) > 1 and sys.argv[1] == "--generate-api-report":
+        success = generate_api_report()
     elif len(sys.argv) > 1 and sys.argv[1] == "--run-all":
         docs_ok = verify_qa_docs()
         test_ok = run_fullstack_tests()
-        success = docs_ok and test_ok
+        report_ok = generate_api_report()
+        success = docs_ok and test_ok and report_ok
     else:
         success = verify_qa_docs()
 

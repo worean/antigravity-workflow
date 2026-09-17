@@ -35,7 +35,20 @@ description: 프론트엔드 UI/UX 조작과 실제 백엔드 API 연동을 결�
 python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --verify-docs
 ```
 
-### 2. 전체 풀스택 회귀 테스트 일괄 실행 (백엔드 단위테스트 + 프론트 빌드 + 컴포넌트 검사)
+### 2. 전체 풀스택 회귀 테스트 일괄 실행 (백엔드 단위테스트 + 프론트 빌드 + 컴포넌트 검사 + API 리포트)
 ```bash
 python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --run-all
 ```
+
+### 3. REST API 전반 호출/응답 점검 및 PDF/HTML 리포트 자동 생성
+```bash
+# 옵션 A: QA 러너를 통한 원클릭 리포트 생성
+python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --generate-api-report
+
+# 옵션 B: workflow_server npm 스크립트 직접 실행
+cd workflow_server && npm run test:api:report
+```
+- **산출물 위치**:
+  - PDF 보고서: `workflow_server/reports/api_test_inspection_report.pdf`
+  - HTML 보고서: `workflow_server/reports/api_test_inspection_report.html`
+

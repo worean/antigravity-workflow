@@ -1,0 +1,5147 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>AntiGravity Workflow REST API Test & Inspection Report</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 10mm 15mm 10mm;
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 8pt;
+        color: #64748b;
+      }
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      color: #0f172a;
+      background-color: #f8fafc;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    @media screen {
+      body {
+        max-width: 1080px;
+        margin: 0 auto;
+        background-color: #0f172a;
+        color: #f1f5f9;
+      }
+      .card, .summary-card, .metric-box {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+      }
+      .code-block {
+        background-color: #0b1120 !important;
+        color: #38bdf8 !important;
+        border-color: #1e293b !important;
+      }
+      .sub-header {
+        color: #94a3b8 !important;
+      }
+      .badge-category {
+        background-color: #334155 !important;
+        color: #93c5fd !important;
+      }
+      .text-secondary {
+        color: #94a3b8 !important;
+      }
+    }
+    .header-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .brand-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #3b82f6;
+      letter-spacing: -0.5px;
+      margin: 0 0 6px 0;
+    }
+    .report-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+    }
+    .sub-header {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .metric-box {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    .metric-val {
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .val-success { color: #10b981; }
+    .val-total { color: #3b82f6; }
+    .val-latency { color: #8b5cf6; }
+
+    .category-section {
+      margin-bottom: 28px;
+    }
+    .category-title {
+      font-size: 15px;
+      font-weight: 700;
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tc-card {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      padding: 14px 16px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .tc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .tc-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tc-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-get { background-color: #e0f2fe; color: #0284c7; }
+    .badge-post { background-color: #dcfce7; color: #15803d; }
+    .badge-put { background-color: #fef3c7; color: #b45309; }
+    .badge-delete { background-color: #fee2e2; color: #b91c1c; }
+    
+    .badge-status-200, .badge-status-201 { background-color: #dcfce7; color: #15803d; }
+    .badge-status-400 { background-color: #fef3c7; color: #b45309; }
+    .badge-status-401, .badge-status-403, .badge-status-404 { background-color: #fee2e2; color: #b91c1c; }
+
+    .badge-pass { background-color: #10b981; color: #ffffff; }
+    .badge-fail { background-color: #ef4444; color: #ffffff; }
+    .badge-category { background-color: #f1f5f9; color: #475569; }
+
+    .endpoint-path {
+      font-family: "JetBrains Mono", Consolas, Menlo, monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+    }
+    @media screen {
+      .endpoint-path { color: #cbd5e1; }
+    }
+    .tc-desc {
+      font-size: 11.5px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+    .assertion-list {
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      font-size: 11px;
+    }
+    @media screen {
+      .assertion-list { background: #0f172a; }
+    }
+    .assertion-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .assertion-item:last-child { margin-bottom: 0; }
+    .check-icon { font-weight: bold; color: #10b981; }
+
+    .req-res-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .sub-box-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    .code-block {
+      background-color: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 10.5px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 220px;
+      overflow-y: auto;
+      margin: 0;
+      line-height: 1.4;
+    }
+    .footer {
+      border-top: 1px solid #cbd5e1;
+      padding-top: 12px;
+      margin-top: 32px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div>
+      <div class="brand-title">AntiGravity Workflow System</div>
+      <div class="report-title">REST API Test & Inspection Verification Report</div>
+      <div class="sub-header">
+        프론트엔드 UI/UX 구현 대비 백엔드 REST API 호출(Request) 및 응답(Response) 전반 점검 명세서
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-weight: 700; font-size: 12px; color: #3b82f6;">Single Workspace & RBAC Engine</div>
+      <div class="sub-header">Generated: 2026. 9. 14. PM 2:09:40</div>
+      <div class="sub-header">Env: Node.js v24.14.1 / Dual-PostgreSQL</div>
+    </div>
+  </div>
+
+  <!-- Metrics Grid -->
+  <div class="metrics-grid">
+    <div class="metric-box">
+      <div class="metric-label">Total Endpoints Tested</div>
+      <div class="metric-val val-total">43</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">Verification Pass Rate</div>
+      <div class="metric-val val-success">100.0%</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">Tests Passed / Failed</div>
+      <div class="metric-val"><span class="val-success">43</span> / <span style="color:#64748b">0</span></div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-label">Avg Latency</div>
+      <div class="metric-val val-latency">50.4ms</div>
+    </div>
+  </div>
+
+  <!-- Test Results by Category -->
+  
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 System & Health</span>
+        <span class="badge badge-category">1 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/health</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 150ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HEALTH-01 - 시스템 헬스체크 및 DB 연결 상태 점검</div>
+          <div class="tc-desc">서버 가동 상태, Dual DB(Global/Workspace) 연결 및 메타데이터 카운트를 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Response contains status: "OK"</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Database connectivity is verified</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {}
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;status&quot;: &quot;OK&quot;,
+  &quot;database&quot;: {
+    &quot;mode&quot;: &quot;postgresql&quot;,
+    &quot;globalDb&quot;: {
+      &quot;status&quot;: &quot;CONNECTED&quot;,
+      &quot;users&quot;: 467,
+      &quot;workspaces&quot;: 52
+    },
+    &quot;workspaceDb&quot;: {
+      &quot;status&quot;: &quot;CONNECTED&quot;,
+      &quot;projects&quot;: 271
+    }
+  },
+  &quot;timestamp&quot;: &quot;2026-09-14T05:09:38.617Z&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Authentication & Profile</span>
+        <span class="badge badge-category">3 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/auth/login</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 49ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">AUTH-01 - 이메일 기반 로그인 및 JWT 토큰 발급</div>
+          <div class="tc-desc">등록된 관리자 이메일로 로그인하여 인증 토큰과 기본 프로필을 안전하게 수신합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Response contains JWT token</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">User email matches payload</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;email&quot;: &quot;worean@naver.com&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;message&quot;: &quot;로그인 성공&quot;,
+  &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiIs...[MASKED]&quot;,
+  &quot;user&quot;: {
+    &quot;id&quot;: 1,
+    &quot;email&quot;: &quot;worean@naver.com&quot;,
+    &quot;name&quot;: &quot;시스템 최고 관리자&quot;,
+    &quot;role&quot;: &quot;ADMIN&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null,
+    &quot;isEmailVerified&quot;: true
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/auth/me</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 45ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">AUTH-02 - 현재 로그인 사용자 프로필 조회 (/api/auth/me)</div>
+          <div class="tc-desc">발급된 JWT 토큰을 기반으로 사용자 신원, 역할(Role) 및 프로필 정보를 확인합니다. (단일 워크스페이스 정보는 /api/workspaces/current 로 분리 제공)</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns user object with ID</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">User email matches authenticated user</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;user&quot;: {
+    &quot;id&quot;: 1,
+    &quot;email&quot;: &quot;worean@naver.com&quot;,
+    &quot;name&quot;: &quot;시스템 최고 관리자&quot;,
+    &quot;role&quot;: &quot;ADMIN&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null,
+    &quot;pushToken&quot;: null,
+    &quot;preferences&quot;: &quot;{}&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-07T01:07:12.680Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T01:07:12.680Z&quot;,
+    &quot;groupMemberships&quot;: []
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/users</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 39ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">USER-01 - 전체 사용자 목록 조회 (UI 담당자/멘션 연동)</div>
+          <div class="tc-desc">태스크 담당자 배정 및 멘션 자동완성에 필요한 전체 사용자 목록을 조회합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns user array</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Users array is not empty</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 334,
+    &quot;email&quot;: &quot;chan_u1_ibb8imu1788747768287@test.com&quot;,
+    &quot;name&quot;: &quot;Channel Creator&quot;,
+    &quot;role&quot;: &quot;MEMBER&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null,
+    &quot;preferences&quot;: &quot;{}&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-07T02:22:48.468Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T02:22:48.468Z&quot;
+  },
+  {
+    &quot;id&quot;: 335,
+    &quot;email&quot;: &quot;chan_u2_ibb8imu1788747768287@test.com&quot;,
+    &quot;name&quot;: &quot;Target Partner&quot;,
+    &quot;role&quot;: &quot;MEMBER&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null,
+    &quot;preferences&quot;: &quot;{}&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-07T02:22:48.772Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T02:22:48.772Z&quot;
+  },
+  {
+    &quot;id&quot;: 2,
+    &quot;email&quot;: &quot;sync_dates_user_l41n7tr1788743265168@test.com&quot;,
+    &quot;name&quot;: &quot;Date Sync Tester&quot;,
+    &quot;role&quot;: &quot;MEMBER&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null,
+    &quot;preferences&quot;: &quot;{}&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-07T01:07:45.295Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T01:07:45.295Z&quot;
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Single Workspace</span>
+        <span class="badge badge-category">3 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/workspaces/current</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 30ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">WS-01 - 단일 활성 워크스페이스 정보 조회 (/api/workspaces/current)</div>
+          <div class="tc-desc">단일 워크스페이스 체제 확정에 따라 현재 사용자가 접속 중인 기본 워크스페이스의 메타데이터와 소속 멤버를 점검합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns workspace object with id and name</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Workspace has members list</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 2,
+  &quot;slug&quot;: &quot;invitation-test-workspace&quot;,
+  &quot;name&quot;: &quot;AntiGravity Unified HQ&quot;,
+  &quot;description&quot;: null,
+  &quot;icon&quot;: &quot;workspace-symbol-icon&quot;,
+  &quot;owner&quot;: {
+    &quot;id&quot;: 10,
+    &quot;email&quot;: &quot;inv_owner@example.com&quot;,
+    &quot;name&quot;: &quot;Invite Owner&quot;,
+    &quot;avatar&quot;: null
+  },
+  &quot;dbType&quot;: &quot;postgresql&quot;,
+  &quot;status&quot;: &quot;ACTIVE&quot;,
+  &quot;members&quot;: [
+    {
+      &quot;id&quot;: 2,
+      &quot;userId&quot;: 10,
+      &quot;role&quot;: &quot;OWNER&quot;,
+      &quot;status&quot;: &quot;ACTIVE&quot;,
+      &quot;joinedAt&quot;: &quot;2026-09-07T01:07:52.689Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 10,
+        &quot;email&quot;: &quot;inv_owner@example.com&quot;,
+        &quot;name&quot;: &quot;Invite Owner&quot;,
+        &quot;avatar&quot;: null,
+        &quot;role&quot;: &quot;MEMBER&quot;
+      }
+    },
+    {
+      &quot;id&quot;: 31,
+      &quot;userId&quot;: 21,
+      &quot;role&quot;: &quot;MEMBER&quot;,
+      &quot;status&quot;: &quot;ACTIVE&quot;,
+      &quot;joinedAt&quot;: &quot;2026-09-07T05:39:40.971Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 21,
+        &quot;email&quot;: &quot;sec_member@example.com&quot;,
+        &quot;name&quot;: &quot;WS Member&quot;,
+        &quot;avatar&quot;: null,
+        &quot;role&quot;: &quot;MEMBER&quot;
+      }
+    },
+    {
+      &quot;id&quot;: 46,
+      &quot;userId&quot;: 37,
+      &quot;role&quot;: &quot;MEMBER&quot;,
+      &quot;status&quot;: &quot;ACTIVE&quot;,
+      &quot;joinedAt&quot;: &quot;2026-09-07T05:55:37.129Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 37,
+        &quot;email&quot;: &quot;ws_single_user@example.com&quot;,
+        &quot;name&quot;: &quot;Single Workspace User&quot;,
+        &quot;avatar&quot;: null,
+        &quot;role&quot;: &quot;MEMBER&quot;
+      }
+    },
+    {
+      &quot;id&quot;: 50,
+      &quot;userId&quot;: 11,
+      &quot;role&quot;: &quot;ADMIN&quot;,
+      &quot;status&quot;: &quot;ACTIVE&quot;,
+      &quot;joinedAt&quot;: &quot;2026-09-14T04:48:11.111Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 11,
+        &quot;email&quot;: &quot;inv_existing@example.com&quot;,
+        &quot;name&quot;: &quot;Existing User&quot;,
+        &quot;avatar&quot;: null,
+        &quot;role&quot;: &quot;MEMBER&quot;
+      }
+    },
+    {
+      &quot;id&quot;: 51,
+      &quot;userId&quot;: 13,
+      &quot;role&quot;: &quot;MEMBER&quot;,
+      &quot;status&quot;: &quot;ACTIVE&quot;,
+      &quot;joinedAt&quot;: &quot;2026-09-14T04:48:20.925Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 13,
+        &quot;email&quot;: &quot;user_a_isolation@example.com&quot;,
+        &quot;name&quot;: &quot;User Alpha&quot;,
+        &quot;avatar&quot;: null,
+        &quot;role&quot;: &quot;MEMBER&quot;
+      }
+    },
+    {
+      &quot;id&quot;: 52,
+      &quot;userId&quot;: 17,
+      &quot;role&quot;: &quot;MEMBER&quot;,
+      &quot;status&quot;: &quot;ACTIVE&quot;,
+      &quot;joinedAt&quot;: &quot;2026-09-14T04:48:50.421Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 17,
+        &quot;email&quot;: &quot;ws_inviter@example.com&quot;,
+        &quot;name&quot;: &quot;Inviter Owner&quot;,
+        &quot;avatar&quot;: null,
+        &quot;role&quot;: &quot;MEMBER&quot;
+      }
+    }
+  ],
+  &quot;createdAt&quot;: &quot;2026-09-07T01:07:52.689Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T04:54:19.750Z&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-put">PUT</span>
+              <span class="endpoint-path">/api/workspaces/current</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 28ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">WS-02 - 단일 워크스페이스 메타데이터 수정 (설정 탭 연동)</div>
+          <div class="tc-desc">설정 페이지(SettingsWorkspaceTab)에서 워크스페이스 이름 및 심볼/아이콘 변경 요청을 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Workspace name is successfully updated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Workspace icon is saved</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;name&quot;: &quot;AntiGravity Unified HQ&quot;,
+    &quot;icon&quot;: &quot;workspace-symbol-icon&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 2,
+  &quot;slug&quot;: &quot;invitation-test-workspace&quot;,
+  &quot;name&quot;: &quot;AntiGravity Unified HQ&quot;,
+  &quot;description&quot;: null,
+  &quot;icon&quot;: &quot;workspace-symbol-icon&quot;,
+  &quot;ownerId&quot;: 10,
+  &quot;dbType&quot;: &quot;postgresql&quot;,
+  &quot;dbUrl&quot;: &quot;postgresql://juyeong:qkrwndud@localhost:5432/workspace&quot;,
+  &quot;dbKey&quot;: null,
+  &quot;status&quot;: &quot;ACTIVE&quot;,
+  &quot;createdAt&quot;: &quot;2026-09-07T01:07:52.689Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:38.799Z&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/workspaces</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 15ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">WS-03 - 소속 워크스페이스 목록 조회 (/api/workspaces)</div>
+          <div class="tc-desc">WorkspaceDropdown 컴포넌트에서 워크스페이스 인식을 위해 요청하는 목록 API입니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns array of user workspaces</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 2,
+    &quot;slug&quot;: &quot;invitation-test-workspace&quot;,
+    &quot;name&quot;: &quot;AntiGravity Unified HQ&quot;,
+    &quot;description&quot;: null,
+    &quot;icon&quot;: &quot;workspace-symbol-icon&quot;,
+    &quot;ownerId&quot;: 10,
+    &quot;dbType&quot;: &quot;postgresql&quot;,
+    &quot;status&quot;: &quot;ACTIVE&quot;,
+    &quot;myRole&quot;: &quot;MEMBER&quot;,
+    &quot;memberCount&quot;: 6,
+    &quot;joinedAt&quot;: &quot;2026-09-07T01:07:52.689Z&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-07T01:07:52.689Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:38.799Z&quot;
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Projects & Access Control</span>
+        <span class="badge badge-category">5 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/projects</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 115ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">PRJ-01 - 접근 제어 신규 프로젝트 생성 (PROTECTED 권한)</div>
+          <div class="tc-desc">PUBLIC, PROTECTED, PRIVATE 접근 권한 정책에 따라 신규 프로젝트를 생성하고 기본 멤버십을 연결합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 201 Created</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Project ID is defined</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Project key matches payload</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Visibility is set to PROTECTED</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+    &quot;key&quot;: &quot;UFFTAU8&quot;,
+    &quot;description&quot;: &quot;Automated REST API Inspection &amp; Verification Project for UI Implementation&quot;,
+    &quot;visibility&quot;: &quot;PROTECTED&quot;,
+    &quot;color&quot;: &quot;#3B82F6&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 446,
+  &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+  &quot;description&quot;: &quot;Automated REST API Inspection &amp; Verification Project for UI Implementation&quot;,
+  &quot;key&quot;: &quot;UFFTAU8&quot;,
+  &quot;ownerId&quot;: 1,
+  &quot;statusId&quot;: 1,
+  &quot;priorityId&quot;: 1,
+  &quot;plannedStartDate&quot;: null,
+  &quot;dueDate&quot;: null,
+  &quot;actualStartDate&quot;: null,
+  &quot;actualEndDate&quot;: null,
+  &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+  &quot;visibility&quot;: &quot;PROTECTED&quot;,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+  &quot;owner&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;members&quot;: [
+    {
+      &quot;id&quot;: 295,
+      &quot;projectId&quot;: 446,
+      &quot;userId&quot;: 1,
+      &quot;role&quot;: &quot;ADMIN&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.864Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;User 1&quot;,
+        &quot;email&quot;: &quot;user_1@example.com&quot;,
+        &quot;avatar&quot;: null,
+        &quot;avatarColor&quot;: null
+      }
+    }
+  ],
+  &quot;groups&quot;: [],
+  &quot;status&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;PLANNING&quot;,
+    &quot;category&quot;: &quot;TODO&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;priority&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;LOW&quot;,
+    &quot;level&quot;: 1,
+    &quot;color&quot;: &quot;#10b981&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;sprints&quot;: [],
+  &quot;milestones&quot;: [],
+  &quot;customFieldDefs&quot;: [],
+  &quot;tags&quot;: [
+    {
+      &quot;id&quot;: 136,
+      &quot;name&quot;: &quot;Project&quot;,
+      &quot;color&quot;: &quot;#06b6d4&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.460Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.460Z&quot;
+    },
+    {
+      &quot;id&quot;: 144,
+      &quot;name&quot;: &quot;API&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;
+    },
+    {
+      &quot;id&quot;: 149,
+      &quot;name&quot;: &quot;REST&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.599Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.599Z&quot;
+    },
+    {
+      &quot;id&quot;: 157,
+      &quot;name&quot;: &quot;for&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+    },
+    {
+      &quot;id&quot;: 220,
+      &quot;name&quot;: &quot;Audit&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+    },
+    {
+      &quot;id&quot;: 316,
+      &quot;name&quot;: &quot;UI&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+    },
+    {
+      &quot;id&quot;: 317,
+      &quot;name&quot;: &quot;Initiative&quot;,
+      &quot;color&quot;: &quot;#6366f1&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;
+    },
+    {
+      &quot;id&quot;: 319,
+      &quot;name&quot;: &quot;Automated&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.991Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.991Z&quot;
+    },
+    {
+      &quot;id&quot;: 320,
+      &quot;name&quot;: &quot;Inspection&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.997Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.997Z&quot;
+    },
+    {
+      &quot;id&quot;: 321,
+      &quot;name&quot;: &quot;&amp;&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;
+    },
+    {
+      &quot;id&quot;: 322,
+      &quot;name&quot;: &quot;Verification&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;
+    },
+    {
+      &quot;id&quot;: 323,
+      &quot;name&quot;: &quot;Implementation&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;
+    },
+    {
+      &quot;id&quot;: 344,
+      &quot;name&quot;: &quot;(UFFTAU8)&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.892Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:38.892Z&quot;
+    }
+  ],
+  &quot;isFavorite&quot;: false
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/projects</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 79ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">PRJ-02 - 프로젝트 목록 조회 및 가시성 필터링 (/api/projects)</div>
+          <div class="tc-desc">ProjectsPage 및 Header 메인 메뉴에서 렌더링되는 프로젝트 리스트와 가시성 뱃지(PUBLIC/PROTECTED/PRIVATE)를 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns array of projects</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Includes newly created project</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 445,
+    &quot;name&quot;: &quot;UI Audit Initiative (USWEVDV)&quot;,
+    &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+    &quot;key&quot;: &quot;USWEVDV&quot;,
+    &quot;ownerId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;priorityId&quot;: 1,
+    &quot;plannedStartDate&quot;: null,
+    &quot;dueDate&quot;: null,
+    &quot;actualStartDate&quot;: null,
+    &quot;actualEndDate&quot;: null,
+    &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+    &quot;visibility&quot;: &quot;PROTECTED&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:54:19.777Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T04:54:19.901Z&quot;,
+    &quot;owner&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;User 1&quot;,
+      &quot;email&quot;: &quot;user_1@example.com&quot;,
+      &quot;avatar&quot;: null,
+      &quot;avatarColor&quot;: null
+    },
+    &quot;members&quot;: [
+      {
+        &quot;id&quot;: 294,
+        &quot;projectId&quot;: 445,
+        &quot;userId&quot;: 1,
+        &quot;role&quot;: &quot;ADMIN&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:54:19.780Z&quot;,
+        &quot;user&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        }
+      }
+    ],
+    &quot;groups&quot;: [],
+    &quot;status&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;PLANNING&quot;,
+      &quot;category&quot;: &quot;TODO&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;priority&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;LOW&quot;,
+      &quot;level&quot;: 1,
+      &quot;color&quot;: &quot;#10b981&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;tags&quot;: [
+      {
+        &quot;id&quot;: 141,
+        &quot;name&quot;: &quot;Updated&quot;,
+        &quot;color&quot;: &quot;#f59e0b&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;
+      },
+      {
+        &quot;id&quot;: 157,
+        &quot;name&quot;: &quot;for&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+      },
+      {
+        &quot;id&quot;: 220,
+        &quot;name&quot;: &quot;Audit&quot;,
+        &quot;color&quot;: &quot;#f59e0b&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+      },
+      {
+        &quot;id&quot;: 153,
+        &quot;name&quot;: &quot;description&quot;,
+        &quot;color&quot;: &quot;#ec4899&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;
+      },
+      {
+        &quot;id&quot;: 316,
+        &quot;name&quot;: &quot;UI&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+      },
+      {
+        &quot;id&quot;: 317,
+        &quot;name&quot;: &quot;Initiative&quot;,
+        &quot;color&quot;: &quot;#6366f1&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;
+      },
+      {
+        &quot;id&quot;: 322,
+        &quot;name&quot;: &quot;Verification&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;
+      },
+      {
+        &quot;id&quot;: 324,
+        &quot;name&quot;: &quot;Suite&quot;,
+        &quot;color&quot;: &quot;#8b5cf6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;
+      },
+      {
+        &quot;id&quot;: 325,
+        &quot;name&quot;: &quot;execution&quot;,
+        &quot;color&quot;: &quot;#ec4899&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;
+      },
+      {
+        &quot;id&quot;: 343,
+        &quot;name&quot;: &quot;(USWEVDV)&quot;,
+        &quot;color&quot;: &quot;#10b981&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:54:19.800Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:54:19.800Z&quot;
+      }
+    ],
+    &quot;_count&quot;: {
+      &quot;issues&quot;: 1,
+      &quot;sprints&quot;: 0
+    },
+    &quot;isFavorite&quot;: true
+  },
+  {
+    &quot;id&quot;: 444,
+    &quot;name&quot;: &quot;UI Audit Initiative (U9ITACV)&quot;,
+    &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+    &quot;key&quot;: &quot;U9ITACV&quot;,
+    &quot;ownerId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;priorityId&quot;: 1,
+    &quot;plannedStartDate&quot;: null,
+    &quot;dueDate&quot;: null,
+    &quot;actualStartDate&quot;: null,
+    &quot;actualEndDate&quot;: null,
+    &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+    &quot;visibility&quot;: &quot;PROTECTED&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:53:57.060Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T04:53:57.208Z&quot;,
+    &quot;owner&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;User 1&quot;,
+      &quot;email&quot;: &quot;user_1@example.com&quot;,
+      &quot;avatar&quot;: null,
+      &quot;avatarColor&quot;: null
+    },
+    &quot;members&quot;: [
+      {
+        &quot;id&quot;: 293,
+        &quot;projectId&quot;: 444,
+        &quot;userId&quot;: 1,
+        &quot;role&quot;: &quot;ADMIN&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:53:57.064Z&quot;,
+        &quot;user&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        }
+      }
+    ],
+    &quot;groups&quot;: [],
+    &quot;status&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;PLANNING&quot;,
+      &quot;category&quot;: &quot;TODO&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;priority&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;LOW&quot;,
+      &quot;level&quot;: 1,
+      &quot;color&quot;: &quot;#10b981&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;tags&quot;: [
+      {
+        &quot;id&quot;: 141,
+        &quot;name&quot;: &quot;Updated&quot;,
+        &quot;color&quot;: &quot;#f59e0b&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;
+      },
+      {
+        &quot;id&quot;: 157,
+        &quot;name&quot;: &quot;for&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+      },
+      {
+        &quot;id&quot;: 220,
+        &quot;name&quot;: &quot;Audit&quot;,
+        &quot;color&quot;: &quot;#f59e0b&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+      },
+      {
+        &quot;id&quot;: 153,
+        &quot;name&quot;: &quot;description&quot;,
+        &quot;color&quot;: &quot;#ec4899&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;
+      },
+      {
+        &quot;id&quot;: 316,
+        &quot;name&quot;: &quot;UI&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+      },
+      {
+        &quot;id&quot;: 317,
+        &quot;name&quot;: &quot;Initiative&quot;,
+        &quot;color&quot;: &quot;#6366f1&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;
+      },
+      {
+        &quot;id&quot;: 322,
+        &quot;name&quot;: &quot;Verification&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;
+      },
+      {
+        &quot;id&quot;: 324,
+        &quot;name&quot;: &quot;Suite&quot;,
+        &quot;color&quot;: &quot;#8b5cf6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;
+      },
+      {
+        &quot;id&quot;: 325,
+        &quot;name&quot;: &quot;execution&quot;,
+        &quot;color&quot;: &quot;#ec4899&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;
+      },
+      {
+        &quot;id&quot;: 342,
+        &quot;name&quot;: &quot;(U9ITACV)&quot;,
+        &quot;color&quot;: &quot;#8b5cf6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:53:57.087Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:53:57.087Z&quot;
+      }
+    ],
+    &quot;_count&quot;: {
+      &quot;issues&quot;: 1,
+      &quot;sprints&quot;: 0
+    },
+    &quot;isFavorite&quot;: true
+  },
+  {
+    &quot;id&quot;: 443,
+    &quot;name&quot;: &quot;UI Audit Initiative (UEUEVCK)&quot;,
+    &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+    &quot;key&quot;: &quot;UEUEVCK&quot;,
+    &quot;ownerId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;priorityId&quot;: 1,
+    &quot;plannedStartDate&quot;: null,
+    &quot;dueDate&quot;: null,
+    &quot;actualStartDate&quot;: null,
+    &quot;actualEndDate&quot;: null,
+    &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+    &quot;visibility&quot;: &quot;PROTECTED&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:53:42.659Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T04:53:42.803Z&quot;,
+    &quot;owner&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;User 1&quot;,
+      &quot;email&quot;: &quot;user_1@example.com&quot;,
+      &quot;avatar&quot;: null,
+      &quot;avatarColor&quot;: null
+    },
+    &quot;members&quot;: [
+      {
+        &quot;id&quot;: 292,
+        &quot;projectId&quot;: 443,
+        &quot;userId&quot;: 1,
+        &quot;role&quot;: &quot;ADMIN&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:53:42.664Z&quot;,
+        &quot;user&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        }
+      }
+    ],
+    &quot;groups&quot;: [],
+    &quot;status&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;PLANNING&quot;,
+      &quot;category&quot;: &quot;TODO&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;priority&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;LOW&quot;,
+      &quot;level&quot;: 1,
+      &quot;color&quot;: &quot;#10b981&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;tags&quot;: [
+      {
+        &quot;id&quot;: 141,
+        &quot;name&quot;: &quot;Updated&quot;,
+        &quot;color&quot;: &quot;#f59e0b&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;
+      },
+      {
+        &quot;id&quot;: 157,
+        &quot;name&quot;: &quot;for&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+      },
+      {
+        &quot;id&quot;: 220,
+        &quot;name&quot;: &quot;Audit&quot;,
+        &quot;color&quot;: &quot;#f59e0b&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+      },
+      {
+        &quot;id&quot;: 153,
+        &quot;name&quot;: &quot;description&quot;,
+        &quot;color&quot;: &quot;#ec4899&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;
+      },
+      {
+        &quot;id&quot;: 316,
+        &quot;name&quot;: &quot;UI&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+      },
+      {
+        &quot;id&quot;: 317,
+        &quot;name&quot;: &quot;Initiative&quot;,
+        &quot;color&quot;: &quot;#6366f1&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;
+      },
+      {
+        &quot;id&quot;: 322,
+        &quot;name&quot;: &quot;Verification&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;
+      },
+      {
+        &quot;id&quot;: 324,
+        &quot;name&quot;: &quot;Suite&quot;,
+        &quot;color&quot;: &quot;#8b5cf6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;
+      },
+      {
+        &quot;id&quot;: 325,
+        &quot;name&quot;: &quot;execution&quot;,
+        &quot;color&quot;: &quot;#ec4899&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;
+      },
+      {
+        &quot;id&quot;: 341,
+        &quot;name&quot;: &quot;(UEUEVCK)&quot;,
+        &quot;color&quot;: &quot;#10b981&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:53:42.685Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:53:42.685Z&quot;
+      }
+    ],
+    &quot;_count&quot;: {
+      &quot;issues&quot;: 1,
+      &quot;sprints&quot;: 0
+    },
+    &quot;isFavorite&quot;: true
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/projects/446</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 30ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">PRJ-03 - 단일 프로젝트 상세 정보 조회 (/api/projects/:id)</div>
+          <div class="tc-desc">ProjectDetailPage 및 ProjectSidebar에서 요구하는 프로젝트 상세 필드와 통계 메타데이터를 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Project id matches target</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Contains visibility property</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 446,
+  &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+  &quot;description&quot;: &quot;Automated REST API Inspection &amp; Verification Project for UI Implementation&quot;,
+  &quot;key&quot;: &quot;UFFTAU8&quot;,
+  &quot;ownerId&quot;: 1,
+  &quot;statusId&quot;: 1,
+  &quot;priorityId&quot;: 1,
+  &quot;plannedStartDate&quot;: null,
+  &quot;dueDate&quot;: null,
+  &quot;actualStartDate&quot;: null,
+  &quot;actualEndDate&quot;: null,
+  &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+  &quot;visibility&quot;: &quot;PROTECTED&quot;,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+  &quot;owner&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;members&quot;: [
+    {
+      &quot;id&quot;: 295,
+      &quot;projectId&quot;: 446,
+      &quot;userId&quot;: 1,
+      &quot;role&quot;: &quot;ADMIN&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.864Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;User 1&quot;,
+        &quot;email&quot;: &quot;user_1@example.com&quot;,
+        &quot;avatar&quot;: null,
+        &quot;avatarColor&quot;: null
+      }
+    }
+  ],
+  &quot;groups&quot;: [],
+  &quot;status&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;PLANNING&quot;,
+    &quot;category&quot;: &quot;TODO&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;priority&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;LOW&quot;,
+    &quot;level&quot;: 1,
+    &quot;color&quot;: &quot;#10b981&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;sprints&quot;: [],
+  &quot;milestones&quot;: [],
+  &quot;customFieldDefs&quot;: [],
+  &quot;tags&quot;: [
+    {
+      &quot;id&quot;: 136,
+      &quot;name&quot;: &quot;Project&quot;,
+      &quot;color&quot;: &quot;#06b6d4&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.460Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.460Z&quot;
+    },
+    {
+      &quot;id&quot;: 144,
+      &quot;name&quot;: &quot;API&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;
+    },
+    {
+      &quot;id&quot;: 149,
+      &quot;name&quot;: &quot;REST&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.599Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.599Z&quot;
+    },
+    {
+      &quot;id&quot;: 157,
+      &quot;name&quot;: &quot;for&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+    },
+    {
+      &quot;id&quot;: 220,
+      &quot;name&quot;: &quot;Audit&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+    },
+    {
+      &quot;id&quot;: 316,
+      &quot;name&quot;: &quot;UI&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+    },
+    {
+      &quot;id&quot;: 317,
+      &quot;name&quot;: &quot;Initiative&quot;,
+      &quot;color&quot;: &quot;#6366f1&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;
+    },
+    {
+      &quot;id&quot;: 319,
+      &quot;name&quot;: &quot;Automated&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.991Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.991Z&quot;
+    },
+    {
+      &quot;id&quot;: 320,
+      &quot;name&quot;: &quot;Inspection&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.997Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.997Z&quot;
+    },
+    {
+      &quot;id&quot;: 321,
+      &quot;name&quot;: &quot;&amp;&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;
+    },
+    {
+      &quot;id&quot;: 322,
+      &quot;name&quot;: &quot;Verification&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;
+    },
+    {
+      &quot;id&quot;: 323,
+      &quot;name&quot;: &quot;Implementation&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;
+    },
+    {
+      &quot;id&quot;: 344,
+      &quot;name&quot;: &quot;(UFFTAU8)&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.892Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:38.892Z&quot;
+    }
+  ],
+  &quot;isFavorite&quot;: false
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-put">PUT</span>
+              <span class="endpoint-path">/api/projects/446</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 58ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">PRJ-04 - 프로젝트 정보 수정 (ProjectModal 연동)</div>
+          <div class="tc-desc">ProjectModal 및 설정에서 프로젝트 설명과 테마 색상 수정이 DB에 정확히 반영되는지 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Description is updated</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+    &quot;color&quot;: &quot;#10B981&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 446,
+  &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+  &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+  &quot;key&quot;: &quot;UFFTAU8&quot;,
+  &quot;ownerId&quot;: 1,
+  &quot;statusId&quot;: 1,
+  &quot;priorityId&quot;: 1,
+  &quot;plannedStartDate&quot;: null,
+  &quot;dueDate&quot;: null,
+  &quot;actualStartDate&quot;: null,
+  &quot;actualEndDate&quot;: null,
+  &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+  &quot;visibility&quot;: &quot;PROTECTED&quot;,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.066Z&quot;,
+  &quot;owner&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;members&quot;: [
+    {
+      &quot;id&quot;: 295,
+      &quot;projectId&quot;: 446,
+      &quot;userId&quot;: 1,
+      &quot;role&quot;: &quot;ADMIN&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.864Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 1,
+        &quot;name&quot;: &quot;User 1&quot;,
+        &quot;email&quot;: &quot;user_1@example.com&quot;,
+        &quot;avatar&quot;: null,
+        &quot;avatarColor&quot;: null
+      }
+    }
+  ],
+  &quot;groups&quot;: [],
+  &quot;status&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;PLANNING&quot;,
+    &quot;category&quot;: &quot;TODO&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;priority&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;LOW&quot;,
+    &quot;level&quot;: 1,
+    &quot;color&quot;: &quot;#10b981&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;sprints&quot;: [],
+  &quot;milestones&quot;: [],
+  &quot;customFieldDefs&quot;: [],
+  &quot;tags&quot;: [
+    {
+      &quot;id&quot;: 141,
+      &quot;name&quot;: &quot;Updated&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.516Z&quot;
+    },
+    {
+      &quot;id&quot;: 157,
+      &quot;name&quot;: &quot;for&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+    },
+    {
+      &quot;id&quot;: 220,
+      &quot;name&quot;: &quot;Audit&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+    },
+    {
+      &quot;id&quot;: 153,
+      &quot;name&quot;: &quot;description&quot;,
+      &quot;color&quot;: &quot;#ec4899&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.798Z&quot;
+    },
+    {
+      &quot;id&quot;: 316,
+      &quot;name&quot;: &quot;UI&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+    },
+    {
+      &quot;id&quot;: 317,
+      &quot;name&quot;: &quot;Initiative&quot;,
+      &quot;color&quot;: &quot;#6366f1&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.988Z&quot;
+    },
+    {
+      &quot;id&quot;: 322,
+      &quot;name&quot;: &quot;Verification&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.001Z&quot;
+    },
+    {
+      &quot;id&quot;: 324,
+      &quot;name&quot;: &quot;Suite&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.169Z&quot;
+    },
+    {
+      &quot;id&quot;: 325,
+      &quot;name&quot;: &quot;execution&quot;,
+      &quot;color&quot;: &quot;#ec4899&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;
+    },
+    {
+      &quot;id&quot;: 344,
+      &quot;name&quot;: &quot;(UFFTAU8)&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.892Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:38.892Z&quot;
+    }
+  ],
+  &quot;isFavorite&quot;: false
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/favorites/toggle</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 41ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">PRJ-05 - 프로젝트 즐겨찾기(Favorite) 토글 API (/api/favorites/toggle)</div>
+          <div class="tc-desc">ProjectCard의 별표 아이콘 클릭 시 즉시 즐겨찾기 상태를 토글하는 낙관적 업데이트 연동 API입니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Contains isFavorite boolean flag</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Target ID matches created project</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 446
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;isFavorite&quot;: true,
+  &quot;targetType&quot;: &quot;PROJECT&quot;,
+  &quot;targetId&quot;: 446
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Chat & Channels</span>
+        <span class="badge badge-category">4 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/chat/channels</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 634ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CHAT-01 - 워크스페이스 채널 목록 조회 (/api/chat/channels)</div>
+          <div class="tc-desc">현재 워크스페이스에 바인딩된 공개 채널, 프로젝트 채널 및 참여 중인 DM 목록을 조회합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns array of channels</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 17,
+    &quot;name&quot;: &quot;전체-공지사항&quot;,
+    &quot;type&quot;: &quot;GENERAL&quot;,
+    &quot;topic&quot;: &quot;전체 공지 및 중요 안내&quot;,
+    &quot;icon&quot;: &quot;📢&quot;,
+    &quot;isPrivate&quot;: false,
+    &quot;workspaceId&quot;: 2,
+    &quot;projectId&quot;: null,
+    &quot;groupId&quot;: null,
+    &quot;unreadCount&quot;: 0,
+    &quot;notificationLevel&quot;: &quot;ALL&quot;,
+    &quot;lastMessage&quot;: null,
+    &quot;members&quot;: [
+      {
+        &quot;userId&quot;: 1,
+        &quot;role&quot;: &quot;MEMBER&quot;,
+        &quot;name&quot;: &quot;시스템 최고 관리자&quot;,
+        &quot;email&quot;: &quot;worean@naver.com&quot;,
+        &quot;avatar&quot;: null,
+        &quot;avatarColor&quot;: null
+      }
+    ],
+    &quot;createdAt&quot;: &quot;2026-09-07T02:16:15.429Z&quot;
+  },
+  {
+    &quot;id&quot;: 18,
+    &quot;name&quot;: &quot;자유-수다방&quot;,
+    &quot;type&quot;: &quot;GENERAL&quot;,
+    &quot;topic&quot;: &quot;자유로운 대화 공간&quot;,
+    &quot;icon&quot;: &quot;💬&quot;,
+    &quot;isPrivate&quot;: false,
+    &quot;workspaceId&quot;: 2,
+    &quot;projectId&quot;: null,
+    &quot;groupId&quot;: null,
+    &quot;unreadCount&quot;: 0,
+    &quot;notificationLevel&quot;: &quot;ALL&quot;,
+    &quot;lastMessage&quot;: null,
+    &quot;members&quot;: [],
+    &quot;createdAt&quot;: &quot;2026-09-07T02:16:15.434Z&quot;
+  },
+  {
+    &quot;id&quot;: 147,
+    &quot;name&quot;: &quot;새 대화방&quot;,
+    &quot;type&quot;: &quot;GENERAL&quot;,
+    &quot;topic&quot;: null,
+    &quot;icon&quot;: &quot;💬&quot;,
+    &quot;isPrivate&quot;: false,
+    &quot;workspaceId&quot;: 2,
+    &quot;projectId&quot;: null,
+    &quot;groupId&quot;: null,
+    &quot;unreadCount&quot;: 0,
+    &quot;notificationLevel&quot;: &quot;ALL&quot;,
+    &quot;lastMessage&quot;: null,
+    &quot;members&quot;: [
+      {
+        &quot;userId&quot;: 614,
+        &quot;role&quot;: &quot;OWNER&quot;,
+        &quot;name&quot;: &quot;Channel Creator&quot;,
+        &quot;email&quot;: &quot;chan_u1_hoxadqo1788759593919@test.com&quot;,
+        &quot;avatar&quot;: null,
+        &quot;avatarColor&quot;: null
+      }
+    ],
+    &quot;createdAt&quot;: &quot;2026-09-07T05:39:54.083Z&quot;
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/chat/channels</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 36ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CHAT-02 - 단일 워크스페이스 자동 바인딩 채널 생성 (ChatCreateModal 연동)</div>
+          <div class="tc-desc">채널 생성 시 단일 워크스페이스 ID가 백엔드 미들웨어에서 자동 바인딩되어 400 에러를 원천 차단하는 핵심 사양입니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 or 201</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Channel ID is generated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Channel name matches payload</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">WorkspaceId is automatically bound</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;name&quot;: &quot;ui-audit-channel-mu0sa2x8&quot;,
+    &quot;description&quot;: &quot;Automated channel for UI API inspection reports&quot;,
+    &quot;type&quot;: &quot;GENERAL&quot;,
+    &quot;isPrivate&quot;: false
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 196,
+  &quot;name&quot;: &quot;ui-audit-channel-mu0sa2x8&quot;,
+  &quot;type&quot;: &quot;GENERAL&quot;,
+  &quot;topic&quot;: null,
+  &quot;icon&quot;: &quot;💬&quot;,
+  &quot;isPrivate&quot;: false,
+  &quot;workspaceId&quot;: 2,
+  &quot;projectId&quot;: null,
+  &quot;groupId&quot;: null,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.808Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.808Z&quot;,
+  &quot;members&quot;: [
+    {
+      &quot;id&quot;: 300,
+      &quot;channelId&quot;: 196,
+      &quot;userId&quot;: 1,
+      &quot;role&quot;: &quot;OWNER&quot;,
+      &quot;notificationLevel&quot;: &quot;ALL&quot;,
+      &quot;mutedUntil&quot;: null,
+      &quot;lastReadAt&quot;: &quot;2026-09-14T05:09:39.808Z&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.808Z&quot;,
+      &quot;user&quot;: {
+        &quot;id&quot;: 1,
+        &quot;email&quot;: &quot;worean@naver.com&quot;,
+        &quot;name&quot;: &quot;시스템 최고 관리자&quot;,
+        &quot;password&quot;: null,
+        &quot;role&quot;: &quot;ADMIN&quot;,
+        &quot;avatar&quot;: null,
+        &quot;avatarColor&quot;: null,
+        &quot;pushToken&quot;: null,
+        &quot;preferences&quot;: &quot;{}&quot;,
+        &quot;isEmailVerified&quot;: false,
+        &quot;verificationToken&quot;: null,
+        &quot;verificationCode&quot;: null,
+        &quot;verificationExpiresAt&quot;: null,
+        &quot;createdAt&quot;: &quot;2026-09-07T01:07:12.680Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T01:07:12.680Z&quot;
+      }
+    }
+  ]
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/chat/channels/196/messages</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 28ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CHAT-03 - 채널 실시간 메시지 발송 API</div>
+          <div class="tc-desc">채널 내에서 텍스트 메시지를 전송하고 Socket.io 브로드캐스트 페이로드 스키마를 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 or 201</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Message ID is generated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Content matches payload</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;content&quot;: &quot;🚀 Hello, this is an automated verification message for UI API Audit Report!&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 43,
+  &quot;channelId&quot;: 196,
+  &quot;senderId&quot;: 1,
+  &quot;content&quot;: &quot;🚀 Hello, this is an automated verification message for UI API Audit Report!&quot;,
+  &quot;attachments&quot;: null,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.837Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.837Z&quot;,
+  &quot;sender&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;시스템 최고 관리자&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;reactions&quot;: [],
+  &quot;hasMention&quot;: false,
+  &quot;mentionedNames&quot;: [],
+  &quot;mentions&quot;: []
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/chat/channels/196/messages</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 16ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CHAT-04 - 채널 메시지 히스토리 조회 API</div>
+          <div class="tc-desc">채널 진입 시 렌더링할 대화 메시지 히스토리 및 발신자 프로필 정보를 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns messages array</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Contains newly sent message</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 43,
+    &quot;channelId&quot;: 196,
+    &quot;senderId&quot;: 1,
+    &quot;content&quot;: &quot;🚀 Hello, this is an automated verification message for UI API Audit Report!&quot;,
+    &quot;attachments&quot;: null,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.837Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.837Z&quot;,
+    &quot;sender&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;시스템 최고 관리자&quot;,
+      &quot;email&quot;: &quot;worean@naver.com&quot;,
+      &quot;avatar&quot;: null,
+      &quot;avatarColor&quot;: null
+    },
+    &quot;reactions&quot;: []
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 WBS & Issues</span>
+        <span class="badge badge-category">3 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/issues</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 120ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">ISSUE-01 - 신규 태스크/이슈 생성 (WBS 및 칸반보드 연동)</div>
+          <div class="tc-desc">WBS 테이블 및 간트차트, 칸반보드에서 생성되는 작업 일정, 우선순위, 진척도 데이터를 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 201 Created</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Issue ID is generated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Issue title matches payload</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Progress is initialized (0%)</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;title&quot;: &quot;UI API Audit &amp; PDF Report Generation Implementation&quot;,
+    &quot;description&quot;: &quot;Implement automated PDF and HTML reporting for API inspection&quot;,
+    &quot;projectId&quot;: 446,
+    &quot;priorityId&quot;: 1,
+    &quot;typeId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;startDate&quot;: &quot;2026-09-14&quot;,
+    &quot;dueDate&quot;: &quot;2026-09-21&quot;,
+    &quot;progress&quot;: 50
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 306,
+  &quot;issueNumber&quot;: 1,
+  &quot;title&quot;: &quot;UI API Audit &amp; PDF Report Generation Implementation&quot;,
+  &quot;description&quot;: &quot;Implement automated PDF and HTML reporting for API inspection&quot;,
+  &quot;typeId&quot;: 1,
+  &quot;priorityId&quot;: 1,
+  &quot;statusId&quot;: 1,
+  &quot;progress&quot;: 0,
+  &quot;estimatedHours&quot;: null,
+  &quot;loggedHours&quot;: 0,
+  &quot;plannedStartDate&quot;: null,
+  &quot;dueDate&quot;: &quot;2026-09-21T00:00:00.000Z&quot;,
+  &quot;actualStartDate&quot;: null,
+  &quot;actualEndDate&quot;: null,
+  &quot;customFields&quot;: null,
+  &quot;parentId&quot;: null,
+  &quot;projectId&quot;: 446,
+  &quot;sprintId&quot;: null,
+  &quot;milestoneId&quot;: null,
+  &quot;authorId&quot;: 1,
+  &quot;assigneeId&quot;: null,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.903Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.903Z&quot;,
+  &quot;type&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;Task&quot;,
+    &quot;description&quot;: &quot;일반 작업&quot;,
+    &quot;icon&quot;: &quot;CheckSquare&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;priority&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;LOW&quot;,
+    &quot;level&quot;: 1,
+    &quot;color&quot;: &quot;#10b981&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;status&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;TODO&quot;,
+    &quot;category&quot;: &quot;TODO&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;assignee&quot;: null,
+  &quot;author&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;project&quot;: {
+    &quot;id&quot;: 446,
+    &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+    &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+    &quot;key&quot;: &quot;UFFTAU8&quot;,
+    &quot;ownerId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;priorityId&quot;: 1,
+    &quot;plannedStartDate&quot;: null,
+    &quot;dueDate&quot;: null,
+    &quot;actualStartDate&quot;: null,
+    &quot;actualEndDate&quot;: null,
+    &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+    &quot;visibility&quot;: &quot;PROTECTED&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.066Z&quot;
+  },
+  &quot;sprint&quot;: null,
+  &quot;milestone&quot;: null,
+  &quot;children&quot;: [],
+  &quot;parent&quot;: null,
+  &quot;attachments&quot;: [],
+  &quot;tags&quot;: [
+    {
+      &quot;id&quot;: 144,
+      &quot;name&quot;: &quot;API&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;
+    },
+    {
+      &quot;id&quot;: 157,
+      &quot;name&quot;: &quot;for&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+    },
+    {
+      &quot;id&quot;: 220,
+      &quot;name&quot;: &quot;Audit&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+    },
+    {
+      &quot;id&quot;: 316,
+      &quot;name&quot;: &quot;UI&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+    },
+    {
+      &quot;id&quot;: 321,
+      &quot;name&quot;: &quot;&amp;&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;
+    },
+    {
+      &quot;id&quot;: 323,
+      &quot;name&quot;: &quot;Implementation&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;
+    },
+    {
+      &quot;id&quot;: 326,
+      &quot;name&quot;: &quot;PDF&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.736Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.736Z&quot;
+    },
+    {
+      &quot;id&quot;: 327,
+      &quot;name&quot;: &quot;Report&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.737Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.737Z&quot;
+    },
+    {
+      &quot;id&quot;: 328,
+      &quot;name&quot;: &quot;Generation&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.738Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.738Z&quot;
+    },
+    {
+      &quot;id&quot;: 329,
+      &quot;name&quot;: &quot;Implement&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.740Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.740Z&quot;
+    },
+    {
+      &quot;id&quot;: 330,
+      &quot;name&quot;: &quot;automated&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.742Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.742Z&quot;
+    },
+    {
+      &quot;id&quot;: 331,
+      &quot;name&quot;: &quot;and&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.745Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.745Z&quot;
+    },
+    {
+      &quot;id&quot;: 332,
+      &quot;name&quot;: &quot;HTML&quot;,
+      &quot;color&quot;: &quot;#84cc16&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.748Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.748Z&quot;
+    },
+    {
+      &quot;id&quot;: 333,
+      &quot;name&quot;: &quot;reporting&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.750Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.750Z&quot;
+    },
+    {
+      &quot;id&quot;: 334,
+      &quot;name&quot;: &quot;inspection&quot;,
+      &quot;color&quot;: &quot;#6366f1&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.752Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.752Z&quot;
+    }
+  ],
+  &quot;watchers&quot;: [],
+  &quot;likes&quot;: [],
+  &quot;worklogs&quot;: [],
+  &quot;revisions&quot;: [],
+  &quot;histories&quot;: [],
+  &quot;_count&quot;: {
+    &quot;comments&quot;: 0,
+    &quot;attachments&quot;: 0,
+    &quot;children&quot;: 0,
+    &quot;likes&quot;: 0
+  },
+  &quot;isLiked&quot;: false,
+  &quot;likesCount&quot;: 0,
+  &quot;commentsCount&quot;: 0,
+  &quot;attachmentsCount&quot;: 0,
+  &quot;childrenCount&quot;: 0
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/issues?projectId=446</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 114ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">ISSUE-02 - 프로젝트 이슈 목록 조회 (WBS 그리드 연동)</div>
+          <div class="tc-desc">WBSPage 그리드에서 로드하는 계층형 이슈 목록과 담당자, 상태, 일정 데이터 일치성을 점검합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns issues array</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Contains newly created issue</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 306,
+    &quot;issueNumber&quot;: 1,
+    &quot;title&quot;: &quot;UI API Audit &amp; PDF Report Generation Implementation&quot;,
+    &quot;description&quot;: &quot;Implement automated PDF and HTML reporting for API inspection&quot;,
+    &quot;typeId&quot;: 1,
+    &quot;priorityId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;progress&quot;: 0,
+    &quot;estimatedHours&quot;: null,
+    &quot;loggedHours&quot;: 0,
+    &quot;plannedStartDate&quot;: null,
+    &quot;dueDate&quot;: &quot;2026-09-21T00:00:00.000Z&quot;,
+    &quot;actualStartDate&quot;: null,
+    &quot;actualEndDate&quot;: null,
+    &quot;customFields&quot;: null,
+    &quot;parentId&quot;: null,
+    &quot;projectId&quot;: 446,
+    &quot;sprintId&quot;: null,
+    &quot;milestoneId&quot;: null,
+    &quot;authorId&quot;: 1,
+    &quot;assigneeId&quot;: null,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.903Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.903Z&quot;,
+    &quot;type&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;Task&quot;,
+      &quot;description&quot;: &quot;일반 작업&quot;,
+      &quot;icon&quot;: &quot;CheckSquare&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;priority&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;LOW&quot;,
+      &quot;level&quot;: 1,
+      &quot;color&quot;: &quot;#10b981&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;status&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;TODO&quot;,
+      &quot;category&quot;: &quot;TODO&quot;,
+      &quot;isSystem&quot;: true
+    },
+    &quot;tags&quot;: [
+      {
+        &quot;id&quot;: 144,
+        &quot;name&quot;: &quot;API&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;
+      },
+      {
+        &quot;id&quot;: 157,
+        &quot;name&quot;: &quot;for&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+      },
+      {
+        &quot;id&quot;: 220,
+        &quot;name&quot;: &quot;Audit&quot;,
+        &quot;color&quot;: &quot;#f59e0b&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+      },
+      {
+        &quot;id&quot;: 316,
+        &quot;name&quot;: &quot;UI&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+      },
+      {
+        &quot;id&quot;: 321,
+        &quot;name&quot;: &quot;&amp;&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;
+      },
+      {
+        &quot;id&quot;: 323,
+        &quot;name&quot;: &quot;Implementation&quot;,
+        &quot;color&quot;: &quot;#8b5cf6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;
+      },
+      {
+        &quot;id&quot;: 326,
+        &quot;name&quot;: &quot;PDF&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.736Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.736Z&quot;
+      },
+      {
+        &quot;id&quot;: 327,
+        &quot;name&quot;: &quot;Report&quot;,
+        &quot;color&quot;: &quot;#3b82f6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.737Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.737Z&quot;
+      },
+      {
+        &quot;id&quot;: 328,
+        &quot;name&quot;: &quot;Generation&quot;,
+        &quot;color&quot;: &quot;#3b82f6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.738Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.738Z&quot;
+      },
+      {
+        &quot;id&quot;: 329,
+        &quot;name&quot;: &quot;Implement&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.740Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.740Z&quot;
+      },
+      {
+        &quot;id&quot;: 330,
+        &quot;name&quot;: &quot;automated&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.742Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.742Z&quot;
+      },
+      {
+        &quot;id&quot;: 331,
+        &quot;name&quot;: &quot;and&quot;,
+        &quot;color&quot;: &quot;#14b8a6&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.745Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.745Z&quot;
+      },
+      {
+        &quot;id&quot;: 332,
+        &quot;name&quot;: &quot;HTML&quot;,
+        &quot;color&quot;: &quot;#84cc16&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.748Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.748Z&quot;
+      },
+      {
+        &quot;id&quot;: 333,
+        &quot;name&quot;: &quot;reporting&quot;,
+        &quot;color&quot;: &quot;#f97316&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.750Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.750Z&quot;
+      },
+      {
+        &quot;id&quot;: 334,
+        &quot;name&quot;: &quot;inspection&quot;,
+        &quot;color&quot;: &quot;#6366f1&quot;,
+        &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.752Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.752Z&quot;
+      }
+    ],
+    &quot;assignee&quot;: null,
+    &quot;author&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;User 1&quot;,
+      &quot;email&quot;: &quot;user_1@example.com&quot;,
+      &quot;avatar&quot;: null,
+      &quot;avatarColor&quot;: null
+    },
+    &quot;sprint&quot;: null,
+    &quot;project&quot;: {
+      &quot;id&quot;: 446,
+      &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+      &quot;key&quot;: &quot;UFFTAU8&quot;
+    },
+    &quot;likes&quot;: [],
+    &quot;_count&quot;: {
+      &quot;comments&quot;: 0,
+      &quot;attachments&quot;: 0,
+      &quot;children&quot;: 0,
+      &quot;likes&quot;: 0
+    },
+    &quot;isLiked&quot;: false,
+    &quot;isFavorite&quot;: false,
+    &quot;likesCount&quot;: 0,
+    &quot;commentsCount&quot;: 0,
+    &quot;attachmentsCount&quot;: 0,
+    &quot;childrenCount&quot;: 0
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-put">PUT</span>
+              <span class="endpoint-path">/api/issues/306</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 96ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">ISSUE-03 - 이슈 진척도 및 상태 변경 (In-place 캐시 갱신 연동)</div>
+          <div class="tc-desc">간트 드래그 및 드로어에서 진척도 슬라이더 변경 시 즉시 반영되는 Optimistic Update API입니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Progress is updated to 90%</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;progress&quot;: 90,
+    &quot;description&quot;: &quot;Progress updated to 90% after automated verification execution&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 306,
+  &quot;issueNumber&quot;: 1,
+  &quot;title&quot;: &quot;UI API Audit &amp; PDF Report Generation Implementation&quot;,
+  &quot;description&quot;: &quot;Progress updated to 90% after automated verification execution&quot;,
+  &quot;typeId&quot;: 1,
+  &quot;priorityId&quot;: 1,
+  &quot;statusId&quot;: 1,
+  &quot;progress&quot;: 90,
+  &quot;estimatedHours&quot;: null,
+  &quot;loggedHours&quot;: 0,
+  &quot;plannedStartDate&quot;: null,
+  &quot;dueDate&quot;: &quot;2026-09-21T00:00:00.000Z&quot;,
+  &quot;actualStartDate&quot;: null,
+  &quot;actualEndDate&quot;: null,
+  &quot;customFields&quot;: null,
+  &quot;parentId&quot;: null,
+  &quot;projectId&quot;: 446,
+  &quot;sprintId&quot;: null,
+  &quot;milestoneId&quot;: null,
+  &quot;authorId&quot;: 1,
+  &quot;assigneeId&quot;: null,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.903Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.136Z&quot;,
+  &quot;type&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;Task&quot;,
+    &quot;description&quot;: &quot;일반 작업&quot;,
+    &quot;icon&quot;: &quot;CheckSquare&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;priority&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;LOW&quot;,
+    &quot;level&quot;: 1,
+    &quot;color&quot;: &quot;#10b981&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;status&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;TODO&quot;,
+    &quot;category&quot;: &quot;TODO&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;assignee&quot;: null,
+  &quot;author&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;project&quot;: {
+    &quot;id&quot;: 446,
+    &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+    &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+    &quot;key&quot;: &quot;UFFTAU8&quot;,
+    &quot;ownerId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;priorityId&quot;: 1,
+    &quot;plannedStartDate&quot;: null,
+    &quot;dueDate&quot;: null,
+    &quot;actualStartDate&quot;: null,
+    &quot;actualEndDate&quot;: null,
+    &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+    &quot;visibility&quot;: &quot;PROTECTED&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.066Z&quot;
+  },
+  &quot;sprint&quot;: null,
+  &quot;milestone&quot;: null,
+  &quot;children&quot;: [],
+  &quot;parent&quot;: null,
+  &quot;attachments&quot;: [],
+  &quot;tags&quot;: [
+    {
+      &quot;id&quot;: 144,
+      &quot;name&quot;: &quot;API&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.586Z&quot;
+    },
+    {
+      &quot;id&quot;: 220,
+      &quot;name&quot;: &quot;Audit&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:55.058Z&quot;
+    },
+    {
+      &quot;id&quot;: 316,
+      &quot;name&quot;: &quot;UI&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.975Z&quot;
+    },
+    {
+      &quot;id&quot;: 321,
+      &quot;name&quot;: &quot;&amp;&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:03.999Z&quot;
+    },
+    {
+      &quot;id&quot;: 323,
+      &quot;name&quot;: &quot;Implementation&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.004Z&quot;
+    },
+    {
+      &quot;id&quot;: 325,
+      &quot;name&quot;: &quot;execution&quot;,
+      &quot;color&quot;: &quot;#ec4899&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.170Z&quot;
+    },
+    {
+      &quot;id&quot;: 326,
+      &quot;name&quot;: &quot;PDF&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.736Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.736Z&quot;
+    },
+    {
+      &quot;id&quot;: 327,
+      &quot;name&quot;: &quot;Report&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.737Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.737Z&quot;
+    },
+    {
+      &quot;id&quot;: 328,
+      &quot;name&quot;: &quot;Generation&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.738Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.738Z&quot;
+    },
+    {
+      &quot;id&quot;: 330,
+      &quot;name&quot;: &quot;automated&quot;,
+      &quot;color&quot;: &quot;#f97316&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.742Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.742Z&quot;
+    },
+    {
+      &quot;id&quot;: 335,
+      &quot;name&quot;: &quot;Progress&quot;,
+      &quot;color&quot;: &quot;#84cc16&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.932Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.932Z&quot;
+    },
+    {
+      &quot;id&quot;: 336,
+      &quot;name&quot;: &quot;updated&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.934Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.934Z&quot;
+    },
+    {
+      &quot;id&quot;: 337,
+      &quot;name&quot;: &quot;to&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.935Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.935Z&quot;
+    },
+    {
+      &quot;id&quot;: 338,
+      &quot;name&quot;: &quot;90%&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.937Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.937Z&quot;
+    },
+    {
+      &quot;id&quot;: 339,
+      &quot;name&quot;: &quot;after&quot;,
+      &quot;color&quot;: &quot;#3b82f6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.939Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.939Z&quot;
+    },
+    {
+      &quot;id&quot;: 340,
+      &quot;name&quot;: &quot;verification&quot;,
+      &quot;color&quot;: &quot;#06b6d4&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.941Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.941Z&quot;
+    }
+  ],
+  &quot;watchers&quot;: [],
+  &quot;likes&quot;: [],
+  &quot;worklogs&quot;: [],
+  &quot;revisions&quot;: [
+    {
+      &quot;id&quot;: 8,
+      &quot;issueId&quot;: 306,
+      &quot;authorId&quot;: 1,
+      &quot;title&quot;: &quot;UI API Audit &amp; PDF Report Generation Implementation&quot;,
+      &quot;description&quot;: &quot;Implement automated PDF and HTML reporting for API inspection&quot;,
+      &quot;reason&quot;: &quot;Body description updated&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.132Z&quot;
+    }
+  ],
+  &quot;histories&quot;: [],
+  &quot;_count&quot;: {
+    &quot;comments&quot;: 0,
+    &quot;attachments&quot;: 0,
+    &quot;children&quot;: 0,
+    &quot;likes&quot;: 0
+  },
+  &quot;isLiked&quot;: false,
+  &quot;likesCount&quot;: 0,
+  &quot;commentsCount&quot;: 0,
+  &quot;attachmentsCount&quot;: 0,
+  &quot;childrenCount&quot;: 0
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Sprints & Metadata</span>
+        <span class="badge badge-category">3 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/sprints?projectId=446</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 10ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">SPRINT-01 - 프로젝트 스프린트 목록 조회 (/api/sprints)</div>
+          <div class="tc-desc">애자일 스크럼 보드 및 스프린트 계획 뷰에서 사용하는 스프린트 목록 API입니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns array of sprints</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/tags</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 32ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">TAG-01 - 태그 목록 조회 (/api/tags)</div>
+          <div class="tc-desc">이슈 필터링 및 레이블 칩 UI에서 활용되는 전체 태그 목록입니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns array of tags</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 136,
+    &quot;name&quot;: &quot;Project&quot;,
+    &quot;color&quot;: &quot;#06b6d4&quot;,
+    &quot;issuesCount&quot;: 0,
+    &quot;projectsCount&quot;: 88,
+    &quot;totalCount&quot;: 88,
+    &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.460Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.460Z&quot;
+  },
+  {
+    &quot;id&quot;: 135,
+    &quot;name&quot;: &quot;Test&quot;,
+    &quot;color&quot;: &quot;#6366f1&quot;,
+    &quot;issuesCount&quot;: 6,
+    &quot;projectsCount&quot;: 79,
+    &quot;totalCount&quot;: 85,
+    &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.459Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.459Z&quot;
+  },
+  {
+    &quot;id&quot;: 162,
+    &quot;name&quot;: &quot;이슈&quot;,
+    &quot;color&quot;: &quot;#3b82f6&quot;,
+    &quot;issuesCount&quot;: 72,
+    &quot;projectsCount&quot;: 0,
+    &quot;totalCount&quot;: 72,
+    &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.333Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.333Z&quot;
+  },
+  {
+    &quot;id&quot;: 157,
+    &quot;name&quot;: &quot;for&quot;,
+    &quot;color&quot;: &quot;#14b8a6&quot;,
+    &quot;issuesCount&quot;: 0,
+    &quot;projectsCount&quot;: 44,
+    &quot;totalCount&quot;: 44,
+    &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+  },
+  {
+    &quot;id&quot;: 139,
+    &quot;name&quot;: &quot;project&quot;,
+    &quot;color&quot;: &quot;#06b6d4&quot;,
+    &quot;issuesCount&quot;: 0,
+    &quot;projectsCount&quot;: 39,
+    &quot;totalCount&quot;: 39,
+    &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.463Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.463Z&quot;
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/favorites</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 13ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">FAV-01 - 사용자 즐겨찾기 목록 조회 (/api/favorites)</div>
+          <div class="tc-desc">사이드바(Sidebar) 및 대시보드 상단에 고정 표시할 즐겨찾기 항목들을 조회합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns favorites list</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 32,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 446,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.122Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 446,
+      &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;UFFTAU8&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.066Z&quot;
+    }
+  },
+  {
+    &quot;id&quot;: 31,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 445,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:54:19.941Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 445,
+      &quot;name&quot;: &quot;UI Audit Initiative (USWEVDV)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;USWEVDV&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:54:19.777Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:54:19.901Z&quot;
+    }
+  },
+  {
+    &quot;id&quot;: 30,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 444,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:53:57.249Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 444,
+      &quot;name&quot;: &quot;UI Audit Initiative (U9ITACV)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;U9ITACV&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:53:57.060Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:53:57.208Z&quot;
+    }
+  },
+  {
+    &quot;id&quot;: 29,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 443,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:53:42.839Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 443,
+      &quot;name&quot;: &quot;UI Audit Initiative (UEUEVCK)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;UEUEVCK&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:53:42.659Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:53:42.803Z&quot;
+    }
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Issue Cascade & Integrity</span>
+        <span class="badge badge-category">8 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/issues</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 81ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-01 - Cascade 검증 전용 대상 이슈 생성</div>
+          <div class="tc-desc">이슈 삭제 시 연관된 좋아요(Like), 즐겨찾기(Favorite), 코멘트(Comment)의 연쇄 삭제 여부를 검증하기 위한 전용 이슈를 생성합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 201 Created</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Target issue ID is generated</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;title&quot;: &quot;Cascade Target Issue for Integrity Test&quot;,
+    &quot;description&quot;: &quot;Temporary issue to verify cascade deletion of Likes, Favorites, and Comments&quot;,
+    &quot;projectId&quot;: 446,
+    &quot;priorityId&quot;: 1,
+    &quot;typeId&quot;: 1,
+    &quot;statusId&quot;: 1
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 307,
+  &quot;issueNumber&quot;: 2,
+  &quot;title&quot;: &quot;Cascade Target Issue for Integrity Test&quot;,
+  &quot;description&quot;: &quot;Temporary issue to verify cascade deletion of Likes, Favorites, and Comments&quot;,
+  &quot;typeId&quot;: 1,
+  &quot;priorityId&quot;: 1,
+  &quot;statusId&quot;: 1,
+  &quot;progress&quot;: 0,
+  &quot;estimatedHours&quot;: null,
+  &quot;loggedHours&quot;: 0,
+  &quot;plannedStartDate&quot;: null,
+  &quot;dueDate&quot;: null,
+  &quot;actualStartDate&quot;: null,
+  &quot;actualEndDate&quot;: null,
+  &quot;customFields&quot;: null,
+  &quot;parentId&quot;: null,
+  &quot;projectId&quot;: 446,
+  &quot;sprintId&quot;: null,
+  &quot;milestoneId&quot;: null,
+  &quot;authorId&quot;: 1,
+  &quot;assigneeId&quot;: null,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.286Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.286Z&quot;,
+  &quot;type&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;Task&quot;,
+    &quot;description&quot;: &quot;일반 작업&quot;,
+    &quot;icon&quot;: &quot;CheckSquare&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;priority&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;LOW&quot;,
+    &quot;level&quot;: 1,
+    &quot;color&quot;: &quot;#10b981&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;status&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;TODO&quot;,
+    &quot;category&quot;: &quot;TODO&quot;,
+    &quot;isSystem&quot;: true
+  },
+  &quot;assignee&quot;: null,
+  &quot;author&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;project&quot;: {
+    &quot;id&quot;: 446,
+    &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+    &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+    &quot;key&quot;: &quot;UFFTAU8&quot;,
+    &quot;ownerId&quot;: 1,
+    &quot;statusId&quot;: 1,
+    &quot;priorityId&quot;: 1,
+    &quot;plannedStartDate&quot;: null,
+    &quot;dueDate&quot;: null,
+    &quot;actualStartDate&quot;: null,
+    &quot;actualEndDate&quot;: null,
+    &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+    &quot;visibility&quot;: &quot;PROTECTED&quot;,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.066Z&quot;
+  },
+  &quot;sprint&quot;: null,
+  &quot;milestone&quot;: null,
+  &quot;children&quot;: [],
+  &quot;parent&quot;: null,
+  &quot;attachments&quot;: [],
+  &quot;tags&quot;: [
+    {
+      &quot;id&quot;: 135,
+      &quot;name&quot;: &quot;Test&quot;,
+      &quot;color&quot;: &quot;#6366f1&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.459Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.459Z&quot;
+    },
+    {
+      &quot;id&quot;: 147,
+      &quot;name&quot;: &quot;Issue&quot;,
+      &quot;color&quot;: &quot;#10b981&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.595Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.595Z&quot;
+    },
+    {
+      &quot;id&quot;: 157,
+      &quot;name&quot;: &quot;for&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:43.304Z&quot;
+    },
+    {
+      &quot;id&quot;: 152,
+      &quot;name&quot;: &quot;issue&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:42.797Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:42.797Z&quot;
+    },
+    {
+      &quot;id&quot;: 201,
+      &quot;name&quot;: &quot;Target&quot;,
+      &quot;color&quot;: &quot;#10b981&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-07T02:21:48.523Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-07T02:21:48.523Z&quot;
+    },
+    {
+      &quot;id&quot;: 331,
+      &quot;name&quot;: &quot;and&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.745Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.745Z&quot;
+    },
+    {
+      &quot;id&quot;: 337,
+      &quot;name&quot;: &quot;to&quot;,
+      &quot;color&quot;: &quot;#14b8a6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:51:04.935Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:51:04.935Z&quot;
+    },
+    {
+      &quot;id&quot;: 345,
+      &quot;name&quot;: &quot;Cascade&quot;,
+      &quot;color&quot;: &quot;#ec4899&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.290Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.290Z&quot;
+    },
+    {
+      &quot;id&quot;: 346,
+      &quot;name&quot;: &quot;Integrity&quot;,
+      &quot;color&quot;: &quot;#84cc16&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.303Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.303Z&quot;
+    },
+    {
+      &quot;id&quot;: 347,
+      &quot;name&quot;: &quot;Temporary&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.309Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.309Z&quot;
+    },
+    {
+      &quot;id&quot;: 348,
+      &quot;name&quot;: &quot;verify&quot;,
+      &quot;color&quot;: &quot;#06b6d4&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.318Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.318Z&quot;
+    },
+    {
+      &quot;id&quot;: 349,
+      &quot;name&quot;: &quot;cascade&quot;,
+      &quot;color&quot;: &quot;#8b5cf6&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.321Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.321Z&quot;
+    },
+    {
+      &quot;id&quot;: 350,
+      &quot;name&quot;: &quot;deletion&quot;,
+      &quot;color&quot;: &quot;#6366f1&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.324Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.324Z&quot;
+    },
+    {
+      &quot;id&quot;: 351,
+      &quot;name&quot;: &quot;of&quot;,
+      &quot;color&quot;: &quot;#f59e0b&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.327Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.327Z&quot;
+    },
+    {
+      &quot;id&quot;: 352,
+      &quot;name&quot;: &quot;Likes&quot;,
+      &quot;color&quot;: &quot;#ec4899&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.330Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.330Z&quot;
+    },
+    {
+      &quot;id&quot;: 353,
+      &quot;name&quot;: &quot;Favorites&quot;,
+      &quot;color&quot;: &quot;#06b6d4&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.332Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.332Z&quot;
+    },
+    {
+      &quot;id&quot;: 354,
+      &quot;name&quot;: &quot;Comments&quot;,
+      &quot;color&quot;: &quot;#6366f1&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.335Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.335Z&quot;
+    }
+  ],
+  &quot;watchers&quot;: [],
+  &quot;likes&quot;: [],
+  &quot;worklogs&quot;: [],
+  &quot;revisions&quot;: [],
+  &quot;histories&quot;: [],
+  &quot;_count&quot;: {
+    &quot;comments&quot;: 0,
+    &quot;attachments&quot;: 0,
+    &quot;children&quot;: 0,
+    &quot;likes&quot;: 0
+  },
+  &quot;isLiked&quot;: false,
+  &quot;likesCount&quot;: 0,
+  &quot;commentsCount&quot;: 0,
+  &quot;attachmentsCount&quot;: 0,
+  &quot;childrenCount&quot;: 0
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/issues/toggle-like</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 14ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-02 - 대상 이슈에 좋아요(Like) 등록 (/api/issues/toggle-like)</div>
+          <div class="tc-desc">이슈 삭제 전 좋아요 관계 데이터를 생성하고 카운트 증가를 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Issue like state is true</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Likes count is at least 1</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;issueId&quot;: 307
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;message&quot;: &quot;Issue liked&quot;,
+  &quot;isLiked&quot;: true,
+  &quot;likesCount&quot;: 1
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/favorites/toggle</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 9ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-03 - 대상 이슈에 즐겨찾기(Favorite) 등록 (/api/favorites/toggle)</div>
+          <div class="tc-desc">이슈 삭제 전 폴리모픽 즐겨찾기 테이블에 등록하고 활성화 상태를 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Issue is marked as favorite</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">TargetId matches issue ID</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;targetType&quot;: &quot;ISSUE&quot;,
+    &quot;targetId&quot;: 307
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;isFavorite&quot;: true,
+  &quot;targetType&quot;: &quot;ISSUE&quot;,
+  &quot;targetId&quot;: 307
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/comments</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 18ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-04 - 대상 이슈에 연계 코멘트(Comment) 작성 (/api/comments)</div>
+          <div class="tc-desc">이슈 삭제 전 외래키 연계 댓글 데이터를 작성하고 정상 바인딩을 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 201 Created</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Comment ID is generated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">IssueId matches target</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;issueId&quot;: 307,
+    &quot;content&quot;: &quot;Cascade deletion test comment for issue cleanup verification&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 68,
+  &quot;content&quot;: &quot;Cascade deletion test comment for issue cleanup verification&quot;,
+  &quot;isInternal&quot;: false,
+  &quot;authorId&quot;: 1,
+  &quot;issueId&quot;: 307,
+  &quot;parentId&quot;: null,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.383Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.383Z&quot;,
+  &quot;author&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;mentions&quot;: [],
+  &quot;reactions&quot;: [],
+  &quot;attachments&quot;: [],
+  &quot;children&quot;: []
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-delete">DELETE</span>
+              <span class="endpoint-path">/api/issues/307</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 32ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-05 - 대상 이슈 완전 삭제 실행 (/api/issues/:id)</div>
+          <div class="tc-desc">연결된 Like, Favorite, Comment가 존재하는 이슈를 삭제하여 백엔드 Cascade 트리거를 작동시킵니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Deletion success message returned</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;message&quot;: &quot;Issue/Task deleted successfully&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/issues/307</span>
+              <span class="badge badge-status-404">404</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 11ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-06 - 삭제 후 이슈 및 좋아요 조회 불가 검증 (GET /api/issues/:id ➔ 404)</div>
+          <div class="tc-desc">삭제된 이슈에 대해 GET 조회를 시도하여 404 에러가 반환되고, 연결된 좋아요/카운트 데이터가 완전히 소멸되었는지 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 404 Not Found (Issue & Likes unreachable)</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Error indicates issue not found</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 404)</div>
+              <pre class="code-block">{
+  &quot;error&quot;: &quot;Issue/Task not found&quot;,
+  &quot;errorCode&quot;: &quot;ERR_NOT_FOUND&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/comments?issueId=307</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 11ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-07 - 삭제 후 연결 코멘트 연쇄 삭제 검증 (GET /api/comments ➔ 빈 목록 [])</div>
+          <div class="tc-desc">삭제된 이슈의 댓글 목록을 조회했을 때 이전에 작성했던 코멘트가 DB 외래키에 의해 완벽하게 연쇄 삭제되어 빈 배열이 반환되는지 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Comments list is completely empty [] (Cascade Cleaned)</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/favorites</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 8ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">CAS-08 - 삭제 후 즐겨찾기 목록 연쇄 정리 검증 (GET /api/favorites ➔ 항목 제거)</div>
+          <div class="tc-desc">사용자 즐겨찾기 목록을 조회했을 때 삭제된 이슈의 즐겨찾기 항목이 고아 데이터로 남지 않고 깨끗하게 연쇄 정리되었는지 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Deleted issue does NOT exist in favorites list (Cascade Cleaned)</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 32,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 446,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:39.122Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 446,
+      &quot;name&quot;: &quot;UI Audit Initiative (UFFTAU8)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;UFFTAU8&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T05:09:38.852Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T05:09:39.066Z&quot;
+    }
+  },
+  {
+    &quot;id&quot;: 31,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 445,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:54:19.941Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 445,
+      &quot;name&quot;: &quot;UI Audit Initiative (USWEVDV)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;USWEVDV&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:54:19.777Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:54:19.901Z&quot;
+    }
+  },
+  {
+    &quot;id&quot;: 30,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 444,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:53:57.249Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 444,
+      &quot;name&quot;: &quot;UI Audit Initiative (U9ITACV)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;U9ITACV&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:53:57.060Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:53:57.208Z&quot;
+    }
+  },
+  {
+    &quot;id&quot;: 29,
+    &quot;targetType&quot;: &quot;PROJECT&quot;,
+    &quot;targetId&quot;: 443,
+    &quot;createdAt&quot;: &quot;2026-09-14T04:53:42.839Z&quot;,
+    &quot;detail&quot;: {
+      &quot;id&quot;: 443,
+      &quot;name&quot;: &quot;UI Audit Initiative (UEUEVCK)&quot;,
+      &quot;description&quot;: &quot;Updated description for UI Verification Suite execution&quot;,
+      &quot;key&quot;: &quot;UEUEVCK&quot;,
+      &quot;ownerId&quot;: 1,
+      &quot;statusId&quot;: 1,
+      &quot;priorityId&quot;: 1,
+      &quot;plannedStartDate&quot;: null,
+      &quot;dueDate&quot;: null,
+      &quot;actualStartDate&quot;: null,
+      &quot;actualEndDate&quot;: null,
+      &quot;syncStatus&quot;: &quot;SYNCED&quot;,
+      &quot;visibility&quot;: &quot;PROTECTED&quot;,
+      &quot;createdAt&quot;: &quot;2026-09-14T04:53:42.659Z&quot;,
+      &quot;updatedAt&quot;: &quot;2026-09-14T04:53:42.803Z&quot;
+    }
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Comment Hierarchy & Preservation</span>
+        <span class="badge badge-category">10 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/comments</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 14ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-01 - 상위 원본 댓글(Parent Comment) 생성</div>
+          <div class="tc-desc">계층형 댓글 구조의 루트가 되는 상위 댓글을 작성합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 201 Created</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Parent comment ID is generated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">ParentId is null or undefined</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;issueId&quot;: 306,
+    &quot;content&quot;: &quot;원문 상위 댓글 (Parent Root Comment)&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 69,
+  &quot;content&quot;: &quot;원문 상위 댓글 (Parent Root Comment)&quot;,
+  &quot;isInternal&quot;: false,
+  &quot;authorId&quot;: 1,
+  &quot;issueId&quot;: 306,
+  &quot;parentId&quot;: null,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.464Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.464Z&quot;,
+  &quot;author&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;mentions&quot;: [],
+  &quot;reactions&quot;: [],
+  &quot;attachments&quot;: [],
+  &quot;children&quot;: []
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/comments</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 68ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-02 - 상위 댓글에 첫 번째 대댓글(Child Reply 1) 작성</div>
+          <div class="tc-desc">parentId를 지정하여 상위 댓글 하위에 종속되는 첫 번째 대댓글을 등록합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 201 Created</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Child 1 ID is generated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">ParentId matches parent comment ID</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;issueId&quot;: 306,
+    &quot;parentId&quot;: 69,
+    &quot;content&quot;: &quot;첫 번째 자식 대댓글 (Child Reply 1)&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 70,
+  &quot;content&quot;: &quot;첫 번째 자식 대댓글 (Child Reply 1)&quot;,
+  &quot;isInternal&quot;: false,
+  &quot;authorId&quot;: 1,
+  &quot;issueId&quot;: 306,
+  &quot;parentId&quot;: 69,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+  &quot;author&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;mentions&quot;: [],
+  &quot;reactions&quot;: [],
+  &quot;attachments&quot;: [],
+  &quot;children&quot;: []
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/comments</span>
+              <span class="badge badge-status-201">201</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 40ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-03 - 상위 댓글에 두 번째 대댓글(Child Reply 2) 작성</div>
+          <div class="tc-desc">동일한 parentId를 가진 두 번째 대댓글을 추가 등록하여 1:N 대댓글 트리 구조를 구성합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 201 Created</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Child 2 ID is generated</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">ParentId matches parent comment ID</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {
+    &quot;issueId&quot;: 306,
+    &quot;parentId&quot;: 69,
+    &quot;content&quot;: &quot;두 번째 자식 대댓글 (Child Reply 2)&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 201)</div>
+              <pre class="code-block">{
+  &quot;id&quot;: 71,
+  &quot;content&quot;: &quot;두 번째 자식 대댓글 (Child Reply 2)&quot;,
+  &quot;isInternal&quot;: false,
+  &quot;authorId&quot;: 1,
+  &quot;issueId&quot;: 306,
+  &quot;parentId&quot;: 69,
+  &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+  &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+  &quot;author&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;User 1&quot;,
+    &quot;email&quot;: &quot;user_1@example.com&quot;,
+    &quot;avatar&quot;: null,
+    &quot;avatarColor&quot;: null
+  },
+  &quot;mentions&quot;: [],
+  &quot;reactions&quot;: [],
+  &quot;attachments&quot;: [],
+  &quot;children&quot;: []
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/comments?issueId=306</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 14ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-04 - 삭제 전 부모-자식 트리 계층 구조 조회 확인</div>
+          <div class="tc-desc">상위 댓글 삭제 전, 부모 코멘트 아래 children 배열에 2개의 대댓글이 온전하게 매핑되어 있는지 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Parent comment found in list</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Parent contains exactly 2 child replies in children array</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 69,
+    &quot;content&quot;: &quot;원문 상위 댓글 (Parent Root Comment)&quot;,
+    &quot;isInternal&quot;: false,
+    &quot;authorId&quot;: 1,
+    &quot;issueId&quot;: 306,
+    &quot;parentId&quot;: null,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.464Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.464Z&quot;,
+    &quot;author&quot;: {
+      &quot;id&quot;: 1,
+      &quot;name&quot;: &quot;User 1&quot;,
+      &quot;email&quot;: &quot;user_1@example.com&quot;,
+      &quot;avatar&quot;: null,
+      &quot;avatarColor&quot;: null
+    },
+    &quot;mentions&quot;: [],
+    &quot;reactions&quot;: [],
+    &quot;attachments&quot;: [],
+    &quot;children&quot;: [
+      {
+        &quot;id&quot;: 70,
+        &quot;content&quot;: &quot;첫 번째 자식 대댓글 (Child Reply 1)&quot;,
+        &quot;isInternal&quot;: false,
+        &quot;authorId&quot;: 1,
+        &quot;issueId&quot;: 306,
+        &quot;parentId&quot;: 69,
+        &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+        &quot;author&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        },
+        &quot;mentions&quot;: [],
+        &quot;reactions&quot;: [],
+        &quot;attachments&quot;: [],
+        &quot;children&quot;: []
+      },
+      {
+        &quot;id&quot;: 71,
+        &quot;content&quot;: &quot;두 번째 자식 대댓글 (Child Reply 2)&quot;,
+        &quot;isInternal&quot;: false,
+        &quot;authorId&quot;: 1,
+        &quot;issueId&quot;: 306,
+        &quot;parentId&quot;: 69,
+        &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+        &quot;author&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        },
+        &quot;mentions&quot;: [],
+        &quot;reactions&quot;: [],
+        &quot;attachments&quot;: [],
+        &quot;children&quot;: []
+      }
+    ]
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-delete">DELETE</span>
+              <span class="endpoint-path">/api/comments/69</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 8ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-05 - 상위(부모) 댓글 단독 삭제 실행 (/api/comments/:id)</div>
+          <div class="tc-desc">하위 대댓글이 존재하는 상태에서 상위 부모 댓글만 단독으로 삭제합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Deletion message returned</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;message&quot;: &quot;Comment deleted&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/comments?issueId=306</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 10ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-06 - 부모 삭제 후 대댓글 보존 및 가상 부모 래핑 검증</div>
+          <div class="tc-desc">부모 댓글이 삭제되어도 대댓글들이 고아로 사라지지 않고 가상 부모(isDeletedParent: true, "삭제된 댓글입니다.") 아래에 트리 구조를 유지하는지 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Virtual parent ("삭제된 댓글입니다.") exists in list</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Child 1 reply is preserved under virtual parent</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Child 2 reply is preserved under virtual parent</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 69,
+    &quot;issueId&quot;: 306,
+    &quot;content&quot;: &quot;삭제된 댓글입니다.&quot;,
+    &quot;isDeletedParent&quot;: true,
+    &quot;isInternal&quot;: false,
+    &quot;authorId&quot;: 0,
+    &quot;author&quot;: null,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+    &quot;parentId&quot;: null,
+    &quot;children&quot;: [
+      {
+        &quot;id&quot;: 70,
+        &quot;content&quot;: &quot;첫 번째 자식 대댓글 (Child Reply 1)&quot;,
+        &quot;isInternal&quot;: false,
+        &quot;authorId&quot;: 1,
+        &quot;issueId&quot;: 306,
+        &quot;parentId&quot;: 69,
+        &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.479Z&quot;,
+        &quot;author&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        },
+        &quot;mentions&quot;: [],
+        &quot;reactions&quot;: [],
+        &quot;attachments&quot;: [],
+        &quot;children&quot;: []
+      },
+      {
+        &quot;id&quot;: 71,
+        &quot;content&quot;: &quot;두 번째 자식 대댓글 (Child Reply 2)&quot;,
+        &quot;isInternal&quot;: false,
+        &quot;authorId&quot;: 1,
+        &quot;issueId&quot;: 306,
+        &quot;parentId&quot;: 69,
+        &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+        &quot;author&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        },
+        &quot;mentions&quot;: [],
+        &quot;reactions&quot;: [],
+        &quot;attachments&quot;: [],
+        &quot;children&quot;: []
+      }
+    ],
+    &quot;mentions&quot;: [],
+    &quot;reactions&quot;: [],
+    &quot;attachments&quot;: []
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-delete">DELETE</span>
+              <span class="endpoint-path">/api/comments/70</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 8ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-07 - 가상 부모 하위의 자식 대댓글 1 삭제</div>
+          <div class="tc-desc">가상 부모 하위에 묶인 두 개의 대댓글 중 하나를 삭제합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;message&quot;: &quot;Comment deleted&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/comments?issueId=306</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 9ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-08 - 대댓글 1개 삭제 후 남은 대댓글(Child 2) 유지 검증</div>
+          <div class="tc-desc">대댓글 일부가 삭제되어도 남은 대댓글이 계속해서 가상 부모 아래에 안정적으로 유지되는지 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Virtual parent continues to exist</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Exactly 1 remaining child comment under virtual parent</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Remaining child is Child 2</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[
+  {
+    &quot;id&quot;: 69,
+    &quot;issueId&quot;: 306,
+    &quot;content&quot;: &quot;삭제된 댓글입니다.&quot;,
+    &quot;isDeletedParent&quot;: true,
+    &quot;isInternal&quot;: false,
+    &quot;authorId&quot;: 0,
+    &quot;author&quot;: null,
+    &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+    &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+    &quot;parentId&quot;: null,
+    &quot;children&quot;: [
+      {
+        &quot;id&quot;: 71,
+        &quot;content&quot;: &quot;두 번째 자식 대댓글 (Child Reply 2)&quot;,
+        &quot;isInternal&quot;: false,
+        &quot;authorId&quot;: 1,
+        &quot;issueId&quot;: 306,
+        &quot;parentId&quot;: 69,
+        &quot;createdAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+        &quot;updatedAt&quot;: &quot;2026-09-14T05:09:40.552Z&quot;,
+        &quot;author&quot;: {
+          &quot;id&quot;: 1,
+          &quot;name&quot;: &quot;User 1&quot;,
+          &quot;email&quot;: &quot;user_1@example.com&quot;,
+          &quot;avatar&quot;: null,
+          &quot;avatarColor&quot;: null
+        },
+        &quot;mentions&quot;: [],
+        &quot;reactions&quot;: [],
+        &quot;attachments&quot;: [],
+        &quot;children&quot;: []
+      }
+    ],
+    &quot;mentions&quot;: [],
+    &quot;reactions&quot;: [],
+    &quot;attachments&quot;: []
+  }
+]</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-delete">DELETE</span>
+              <span class="endpoint-path">/api/comments/71</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 6ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-09 - 마지막 남은 자식 대댓글 2 삭제</div>
+          <div class="tc-desc">가상 부모 아래 마지막으로 남아있던 대댓글을 삭제합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">{
+  &quot;message&quot;: &quot;Comment deleted&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/comments?issueId=306</span>
+              <span class="badge badge-status-200">200</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 11ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">HIER-10 - 모든 대댓글 삭제 후 가상 부모 완전 정리 검증</div>
+          <div class="tc-desc">마지막 대댓글까지 삭제되었을 때 더 이상 보존할 하위 댓글이 없으므로 가상 부모 댓글 또한 목록에서 깨끗이 소멸되는지 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 200 OK</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Virtual parent completely cleaned up (No orphan virtual parents)</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 200)</div>
+              <pre class="code-block">[]</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+    <div class="category-section">
+      <div class="category-title">
+        <span>📂 Negative & Security</span>
+        <span class="badge badge-category">3 tests</span>
+      </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/auth/me</span>
+              <span class="badge badge-status-401">401</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 3ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">SEC-01 - 인증 헤더 누락 시 401 Unauthorized 차단 검증</div>
+          <div class="tc-desc">토큰이 없거나 만료된 비인가 요청이 올바르게 차단되고 로그인 화면으로 유도되는지 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 401 Unauthorized</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Error message indicates unauthorized access</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {}
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 401)</div>
+              <pre class="code-block">{
+  &quot;error&quot;: &quot;Unauthorized: Authentication token is required&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-post">POST</span>
+              <span class="endpoint-path">/api/projects</span>
+              <span class="badge badge-status-400">400</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 5ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">SEC-02 - 필수 필드 누락 시 400 Bad Request 유효성 검사 차단</div>
+          <div class="tc-desc">프로젝트 생성 시 필수 항목(name, key)이 누락되었을 때 DB 에러를 방지하고 명확한 에러를 반환하는지 검증합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 400 Bad Request</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns validation error response</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;,
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;body&quot;: {}
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 400)</div>
+              <pre class="code-block">{
+  &quot;error&quot;: &quot;name, key, and valid ownerId are required&quot;,
+  &quot;errorCode&quot;: &quot;ERR_INVALID_INPUT&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+        <div class="tc-card">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="badge badge-get">GET</span>
+              <span class="endpoint-path">/api/projects/9999999</span>
+              <span class="badge badge-status-404">404</span>
+              <span style="font-size: 11px; color: #64748b; font-weight: 600;">⏱️ 9ms</span>
+            </div>
+            <div>
+              <span class="badge badge-pass">PASS</span>
+            </div>
+          </div>
+          
+          <div class="tc-title">SEC-03 - 미존재 리소스 조회 시 404 Not Found 에러 반환</div>
+          <div class="tc-desc">존재하지 않는 프로젝트 ID에 접근 시 클라이언트에 정상적인 404 피드백을 주는지 확인합니다.</div>
+
+          <!-- Assertions -->
+          <div class="assertion-list">
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Status code is 404 Not Found</span>
+              </div>
+            
+              <div class="assertion-item">
+                <span class="check-icon">✓</span>
+                <span style="color:inherit">Returns not found error</span>
+              </div>
+            
+          </div>
+
+          <!-- Request & Response JSON -->
+          <div class="req-res-grid">
+            <div>
+              <div class="sub-box-title">Request Payload & Headers</div>
+              <pre class="code-block">{
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer eyJhbGciOiJIUzI...[MASKED]&quot;
+  }
+}</pre>
+            </div>
+            <div>
+              <div class="sub-box-title">Response Payload (HTTP 404)</div>
+              <pre class="code-block">{
+  &quot;error&quot;: &quot;Project not found&quot;,
+  &quot;errorCode&quot;: &quot;ERR_NOT_FOUND&quot;
+}</pre>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+    
+
+  <!-- Footer -->
+  <div class="footer">
+    <div>AntiGravity Issue & Task Management System | Dual PostgreSQL Architecture</div>
+    <div>Report generated automatically via Playwright & Supertest Test Runner</div>
+  </div>
+
+</body>
+</html>

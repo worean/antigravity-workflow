@@ -1,4 +1,4 @@
-﻿# 🏛️ AntiGravity Workflow System - Frontend Architecture
+# 🏛️ AntiGravity Workflow System - Frontend Architecture
 
 ## 1. System Overview & Technology Stack
 
@@ -6,8 +6,11 @@
 
 - **Core**: React 18 + TypeScript + Vite
 - **Server State & Caching**: TanStack Query (React Query v5)
+- **Global Client State**: Zustand 5.x (선택적 구독 및 persist 영속화)
+- **Popup & Overlay**: React Portal 기반 Stacking Context 격리 (`Portal`, `ModalWrapper`)
 - **HTTP Client**: Axios (`apiClient`)
 - **Styling**: CSS Variables + Dark Modern Tech (VS Code / Linear) Glassmorphism System
+- **Persistence**: `safeStorage` 유틸리티 & Zustand `persist` (네임스페이스 `ag_*`)
 - **Realtime**: Socket.IO Client
 - **Quality & Review**: `react-component-reviewer` 스킬을 통한 모듈화/안전성 자동 검증
 
@@ -16,14 +19,16 @@
  └── 🌐 Client Layer (workflow_react/):
       ├── 🚀 Entry & Routing: main.tsx, App.tsx, react-router-dom
       ├── 🛡️ Contexts: AuthContext (세션), WorkspaceContext (테넌트)
+      ├── 🧠 Stores: Zustand 5.x (useUIStore, useDraftStore, usePrefStore)
+      ├── 🚪 Portal Root: #ag-portal-root (모달, 드로어, 팝업 DOM 격리)
       ├── 📡 API & Query Hooks: TanStack Query v5 기반 도메인별 훅 계층
       ├── 🧩 Modular Sub-Components: 
-      │    ├── common/ (Button, TagBadge, TagInput, ModalWrapper)
+      │    ├── common/ (Button, TagBadge, Portal, ModalWrapper)
       │    ├── kanban/ (Board, Column, Card, FilterBar)
       │    ├── issueDetail/ (Drawer, EditForm, Comments, Worklogs)
       │    ├── settings/ (ProfileTab, OrgTab, SystemTab, WorkspaceTab)
       │    └── chat/ (Channels, Messages, Reactions)
-      ├── 💾 Persistence: localStorage 기반 draftStorage (600ms 디바운스)
+      ├── 💾 Persistence: safeStorage & persist middleware (ag_ 접두사, 예외 안전)
       └── 🎨 Design Tokens: CSS Variables 색상 시스템 & 다크 테마
 ```
 
@@ -35,7 +40,7 @@
 workflow_react/src/
 ├── api/                    # TanStack Query 훅 및 REST API 통신 모듈
 ├── components/             # 프레젠테이션 & 컨테이너 UI 컴포넌트
-│   ├── common/             # Button, Badge, TagBadge, TagInput, ModalWrapper 등
+│   ├── common/             # Button, Badge, TagBadge, Portal, ModalWrapper 등
 │   ├── kanban/             # KanbanBoard, KanbanColumn, KanbanCard, KanbanFilterBar
 │   ├── issueDetail/        # IssueDetailDrawer, IssueDetailEditForm, IssueDetailView
 │   ├── settings/           # SettingsProfileTab, SettingsOrgTab, SettingsSystemTab 등
@@ -43,11 +48,12 @@ workflow_react/src/
 │   ├── dashboard/          # 통계 위젯, 최근 이슈 요약, 진척률 차트
 │   └── layout/             # Header, Sidebar, Navigation
 ├── context/                # 전역 React Context (AuthContext, WorkspaceContext)
+├── stores/                 # Zustand 5.x 클라이언트 전역 상태 (useUIStore, useDraftStore)
 ├── hooks/                  # 공통 커스텀 훅 (useActionFeedback, useOverlayClickClose)
 ├── lib/                    # apiClient(Axios 인터셉터), queryClient(TanStack)
 ├── pages/                  # 순수 오케스트레이터 페이지 (DashboardPage, IssuesPage 등)
 ├── types/                  # 전역 TypeScript 모델 & DTO 인터페이스 정의
-└── utils/                  # draftStorage(임시저장), 날짜 포맷, 태그 색상 헬퍼
+└── utils/                  # safeStorage, draftStorage, 날짜 포맷, 태그 색상 헬퍼
 ```
 
 ---

@@ -19,10 +19,10 @@ import { WorklogsPage } from '@/pages/WorklogsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { StateDemoPage } from '@/pages/StateDemoPage';
-import { AuthModal } from '@/components/AuthModal';
+import { GlobalModalManager } from '@/components/GlobalModalManager';
+import { useUIStore } from '@/stores/useUIStore';
 
 import { ProjectModal } from '@/components/ProjectModal';
-import { IssueModal } from '@/components/IssueModal';
 import { SprintModal } from '@/components/SprintModal';
 import { IssueDetailDrawer } from '@/components/issueDetail';
 import { getProjects } from '@/services/api';
@@ -67,10 +67,10 @@ const AppContent: React.FC = () => {
   const [selectedChannelId, setSelectedChannelIdState] = useState<number | null>(initialRoute.channelId);
   const [issueDetailMode, setIssueDetailModeState] = useState<IssueDetailMode>(initialRoute.mode);
 
-  // Modals
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  // Global Modals (Zustand useUIStore 기반 제어)
+  const openAuthModal = useUIStore((s) => s.openAuthModal);
+  const openIssueModal = useUIStore((s) => s.openIssueModal);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState<boolean>(false);
-  const [isIssueModalOpen, setIsIssueModalOpen] = useState<boolean>(false);
   const [isSprintModalOpen, setIsSprintModalOpen] = useState<boolean>(false);
   const [selectedSprintForEdit, setSelectedSprintForEdit] = useState<Sprint | null>(null);
 
@@ -242,9 +242,9 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  const handleOpenCreateIssue = () => {
-    setIsIssueModalOpen(true);
-  };
+  const handleOpenCreateIssue = useCallback(() => {
+    openIssueModal(selectedProjectId || undefined);
+  }, [openIssueModal, selectedProjectId]);
 
   // 이슈 클릭 시: URL 변경 없이 순수 컴포넌트 State로 우측 슬라이드 드로어 오픈!
   const handleSelectIssue = (issue: Issue) => {
@@ -379,7 +379,7 @@ const AppContent: React.FC = () => {
           setActiveTab={setActiveTab}
           selectedProjectId={selectedProjectId}
           selectedChannelId={selectedChannelId}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenAuth={openAuthModal}
           onOpenSettings={() => navigate('settings')}
           onSelectProjectDetail={(pId) => navigate('project-detail', pId, null, 'view', false)}
           onSelectChatChannel={(cId: number) => navigate('chat', null, null, 'view', false, { channelId: cId })}
@@ -393,7 +393,7 @@ const AppContent: React.FC = () => {
               onOpenCreateIssue={handleOpenCreateIssue}
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
               onSelectIssue={handleSelectIssue}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
               refreshKey={issueRefreshKey}
             />
           )}
@@ -404,7 +404,7 @@ const AppContent: React.FC = () => {
               projects={projects}
               onSelectProject={handleSelectProject}
               onOpenCreateProject={() => setIsProjectModalOpen(true)}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -420,7 +420,7 @@ const AppContent: React.FC = () => {
                 setProjects((prev) => prev.filter((p) => p.id !== delId));
                 navigate('projects');
               }}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -433,7 +433,7 @@ const AppContent: React.FC = () => {
               selectedAssigneeId={selectedAssigneeId}
               searchTermProp={searchTerm}
               onFilterChange={handleFilterChange}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
               refreshKey={issueRefreshKey}
             />
           )}
@@ -448,7 +448,7 @@ const AppContent: React.FC = () => {
               onBack={() => navigate('issues', selectedProjectId)}
               onGoToList={() => navigate('issues', selectedProjectId)}
               onIssueUpdated={handleIssueRefreshed}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -457,7 +457,7 @@ const AppContent: React.FC = () => {
               key={`tab-chat-${isAuthenticated ? user?.id : 'guest'}`}
               selectedChannelId={selectedChannelId}
               onSelectChannel={(cId) => navigate('chat', null, null, 'view', true, { channelId: cId })}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -470,7 +470,7 @@ const AppContent: React.FC = () => {
               onOpenCreateSprint={handleOpenCreateSprint}
               onOpenEditSprint={handleOpenEditSprint}
               onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -482,7 +482,7 @@ const AppContent: React.FC = () => {
               onBack={() => navigate('sprints', selectedProjectId, null, 'view', false)}
               onOpenEditSprint={handleOpenEditSprint}
               onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -492,21 +492,21 @@ const AppContent: React.FC = () => {
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('wbs', pId, selectedIssueId, 'view', true)}
               onSelectIssue={handleSelectIssue}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'worklogs' && (
             <WorklogsPage
               key={`tab-worklogs-${isAuthenticated ? user?.id : 'guest'}`}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'settings' && (
             <SettingsPage
               key={`tab-settings-${isAuthenticated ? user?.id : 'guest'}`}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -525,26 +525,17 @@ const AppContent: React.FC = () => {
         onModeChange={handleIssueModeChange}
         onClose={handleCloseIssueDrawer}
         onIssueUpdated={handleIssueRefreshed}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenAuth={openAuthModal}
       />
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {/* 🌐 Global Modals (AuthModal, IssueModal 등 Zustand 기반 전역 관리) */}
+      <GlobalModalManager />
 
       {/* Project Create Modal */}
       <ProjectModal
         isOpen={isProjectModalOpen}
         onClose={() => setIsProjectModalOpen(false)}
         onSuccess={handleProjectCreated}
-      />
-
-      {/* Issue Create / Quick Modal */}
-      <IssueModal
-        isOpen={isIssueModalOpen}
-        onClose={() => setIsIssueModalOpen(false)}
-        projects={projects}
-        initialProjectId={selectedProjectId || undefined}
-        onIssueCreated={handleIssueRefreshed}
       />
 
       {/* Sprint Create / Edit Modal (App 루트 전역 모달) */}

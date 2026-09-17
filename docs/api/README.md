@@ -1,4 +1,4 @@
-﻿# 🌐 AntiGravity Backend REST API Overview
+# 🌐 AntiGravity Backend REST API Overview
 
 ## 1. 개요
 AntiGravity 백엔드 서버는 **Node.js + Express + TypeScript + Prisma ORM** 기반의 3-Tier 모듈형 REST API 서버입니다.
@@ -49,3 +49,4 @@ AntiGravity 백엔드 서버는 **Node.js + Express + TypeScript + Prisma ORM** 
 | **Link Previews**| `/api/link-previews`| [`link-previews.md`](./link-previews.md) | URL OpenGraph 메타데이터 파싱 |
 | **Activity Logs**| `/api/activity-logs`| [`activity-logs.md`](./activity-logs.md) | 활동 감사 로그 조회 |
 | **Favorites** | `/api/favorites` | [`favorites.md`](./favorites.md) | 일감/프로젝트/채널 즐겨찾기 |
+| **AI Chatbot** | `/api/ai` | [`ai/chat.md`](./ai/chat.md) | LLM 모델 연동 및 Function Calling 시스템 제어 |

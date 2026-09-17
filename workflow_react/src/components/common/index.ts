@@ -1,4 +1,4 @@
-﻿export { Button, type ButtonProps } from './Button';
+export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export {
   Spinner,
@@ -16,6 +16,7 @@ export { IssueTypeBadge, IssueTypeSelect, type IssueTypeBadgeProps, type IssueTy
 export { UserBadge } from './UserBadge';
 export { ProjectBadge } from './ProjectBadge';
 export { ModalWrapper, type ModalWrapperProps } from './ModalWrapper';
+export { Portal, type PortalProps } from './Portal';
 export { MarkdownViewer } from './MarkdownViewer';
 export { MarkdownEditor } from './MarkdownEditor';
 export { Avatar, getRandomAvatarColor, getHashColor, AVATAR_PALETTE, type AvatarProps } from './Avatar';

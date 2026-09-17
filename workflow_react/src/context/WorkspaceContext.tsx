@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 import {
@@ -11,37 +11,9 @@ import type { Workspace, WorkspaceMember } from '@/types';
 import { prefRepository } from '@/lib/prefRepository';
 import { draftStorage, type IssueDraft } from '@/utils/draftStorage';
 import { useUIStore } from '@/stores/useUIStore';
+import { safeStorage } from '@/utils/safeStorage';
 
 export { type IssueDraft } from '@/utils/draftStorage';
-
-function readWsStorage<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (raw === null || raw === undefined) return fallback;
-    try {
-      return JSON.parse(raw) as T;
-    } catch {
-      return raw as unknown as T;
-    }
-  } catch {
-    return fallback;
-  }
-}
-
-function writeWsStorage<T>(key: string, value: T): void {
-  if (typeof window === 'undefined') return;
-  try {
-    if (value === null || value === undefined) {
-      window.localStorage.removeItem(key);
-    } else {
-      const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-      window.localStorage.setItem(key, serialized);
-    }
-  } catch (e) {
-    console.warn(`[WorkspaceContext] Failed to write key "${key}":`, e);
-  }
-}
 
 interface WorkspaceContextType {
   // 🏢 단일 워크스페이스 관리
@@ -131,26 +103,28 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const prevRoute = useUIStore((s) => s.prevRoute);
   const setPrevRoute = useUIStore((s) => s.setPrevRoute);
   const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(() => {
-    const raw = readWsStorage<any>('selectedProjectId', null);
-    if (!raw) return null;
-    const num = Number(raw);
-    return isNaN(num) ? null : num;
+    return safeStorage.getItem<number | null>('selectedProjectId', null);
   });
   const [selectedChannelId, setSelectedChannelIdState] = useState<number | null>(() => {
-    const raw = readWsStorage<any>('selectedChannelId', null);
-    if (!raw) return null;
-    const num = Number(raw);
-    return isNaN(num) ? null : num;
+    return safeStorage.getItem<number | null>('selectedChannelId', null);
   });
 
   const setSelectedProjectId = useCallback((projectId: number | null) => {
     setSelectedProjectIdState(projectId);
-    writeWsStorage('selectedProjectId', projectId);
+    if (projectId === null) {
+      safeStorage.removeItem('selectedProjectId');
+    } else {
+      safeStorage.setItem('selectedProjectId', projectId);
+    }
   }, []);
 
   const setSelectedChannelId = useCallback((channelId: number | null) => {
     setSelectedChannelIdState(channelId);
-    writeWsStorage('selectedChannelId', channelId);
+    if (channelId === null) {
+      safeStorage.removeItem('selectedChannelId');
+    } else {
+      safeStorage.setItem('selectedChannelId', channelId);
+    }
   }, []);
 
   // 5. 단일 워크스페이스 전환 (no-op 유지)

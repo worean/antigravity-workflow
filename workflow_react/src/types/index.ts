@@ -403,5 +403,6 @@ export interface WorkspaceDetail extends Workspace {
 }
 
 export * from './wbs';
+export * from './chatbot';
 
 

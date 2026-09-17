@@ -1,4 +1,4 @@
-﻿import { prisma } from '#lib/prisma.js';
+import { prisma } from '#lib/prisma.js';
 
 export const deleteIssueService = async (id: number, userId?: number) => {
   if (!id) throw new Error('Issue ID is required');
@@ -20,8 +20,13 @@ export const deleteIssueService = async (id: number, userId?: number) => {
     data: { parentId: parentIdOfTarget }
   });
 
-  // 2. 이슈 삭제
+  // 2. 이슈 삭제 (DB 외래키 cascade로 Comment, IssueLike, Attachment 등 연계 삭제)
   await prisma.issue.delete({ where: { id } });
+
+  // 2.1 연결된 폴리모픽 즐겨찾기(Favorite) 연쇄 삭제 (Cascade Cleanup)
+  await prisma.favorite.deleteMany({
+    where: { targetType: 'ISSUE', targetId: id }
+  });
 
   // 3. 상위 부모 이슈가 있는 경우, 승계된 하위 이슈들의 날짜를 기반으로 부모 이슈 날짜 롤업 동기화
   if (parentIdOfTarget) {
