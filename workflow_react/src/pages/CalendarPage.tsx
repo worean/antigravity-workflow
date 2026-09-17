@@ -2,6 +2,7 @@
 import { useCalendarEvents, useGoogleCalendarStatus } from '@/api/calendar';
 import { useProjects } from '@/api/projects';
 import { useUIStore } from '@/stores/useUIStore';
+import { Spinner } from '@/components/common';
 import {
   CalendarHeader,
   CalendarGoogleSyncBanner,
@@ -106,7 +107,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
   };
 
   return (
-    <div className="flex flex-col flex-1 h-full p-4 md:p-6 overflow-y-auto space-y-4 bg-gray-950 text-gray-100">
+    <div className="calendar-view-container animate-fade-in">
       {/* 1. 구글 캘린더 연동 배너 (구글 유저 활성화 vs 일반 유저 잠금/안내 분기) */}
       <CalendarGoogleSyncBanner
         status={googleStatus}
@@ -135,11 +136,8 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
 
       {/* 3. 캘린더 뷰 그리드 (월간 / 주간) */}
       {eventsLoading ? (
-        <div className="flex-1 flex items-center justify-center min-h-[400px]">
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <span>일정을 불러오는 중입니다...</span>
-          </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+          <Spinner centered label="일정을 불러오는 중입니다..." />
         </div>
       ) : viewMode === 'month' ? (
         <CalendarMonthGrid

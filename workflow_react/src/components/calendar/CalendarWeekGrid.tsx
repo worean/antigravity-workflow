@@ -46,20 +46,32 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
     });
   };
 
-  const getStatusBadge = (status?: string) => {
+  const getStatusBadgeStyle = (status?: string): React.CSSProperties => {
     switch (status?.toUpperCase()) {
       case 'DONE':
       case 'COMPLETED':
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+        return {
+          background: 'rgba(46, 160, 67, 0.15)',
+          color: '#4ec9b0',
+          border: '1px solid rgba(46, 160, 67, 0.3)',
+        };
       case 'IN_PROGRESS':
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+        return {
+          background: 'rgba(0, 122, 204, 0.15)',
+          color: '#9cdcfe',
+          border: '1px solid rgba(0, 122, 204, 0.3)',
+        };
       default:
-        return 'bg-gray-800 text-gray-300 border-gray-700';
+        return {
+          background: 'rgba(255, 255, 255, 0.05)',
+          color: 'var(--text-sub)',
+          border: '1px solid var(--border-light)',
+        };
     }
   };
 
   return (
-    <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-3 min-h-[500px]">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', flex: 1, minHeight: '520px' }}>
       {weekDays.map((day, idx) => {
         const dayEvents = getEventsForDate(day.dateStr);
 
@@ -67,38 +79,74 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
           <div
             key={day.dateStr}
             onClick={() => onDateClick(day.dateStr)}
-            className={`flex flex-col rounded-xl border p-2.5 transition-colors cursor-pointer bg-gray-900/40 hover:bg-gray-900/60 ${
-              day.isToday
-                ? 'border-blue-500/50 shadow-md shadow-blue-950/20'
-                : 'border-gray-800'
-            }`}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--bg-card)',
+              border: day.isToday ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px',
+              cursor: 'pointer',
+              transition: 'background-color 0.12s ease',
+              overflow: 'hidden',
+              boxShadow: day.isToday ? '0 0 8px rgba(0, 122, 204, 0.25)' : 'none',
+            }}
           >
             {/* 요일 및 날짜 헤더 */}
-            <div className="flex items-center justify-between pb-2 border-b border-gray-800/80 mb-2">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: '6px',
+                borderBottom: '1px solid var(--border-light)',
+                marginBottom: '8px',
+              }}
+            >
               <span
-                className={`text-xs font-semibold ${
-                  idx === 0
-                    ? 'text-red-400'
-                    : idx === 6
-                    ? 'text-blue-400'
-                    : 'text-gray-300'
-                }`}
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color:
+                    idx === 0
+                      ? '#f14c4c'
+                      : idx === 6
+                      ? '#9cdcfe'
+                      : 'var(--text-sub)',
+                }}
               >
                 {day.name}
               </span>
               <span
-                className={`inline-flex items-center justify-center text-xs font-bold w-5 h-5 rounded-full ${
-                  day.isToday ? 'bg-blue-600 text-white' : 'text-gray-400'
-                }`}
+                style={
+                  day.isToday
+                    ? {
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: 'var(--primary)',
+                        color: '#ffffff',
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                      }
+                    : {
+                        fontSize: '0.78rem',
+                        color: 'var(--text-bright)',
+                        fontWeight: 500,
+                      }
+                }
               >
                 {day.date}
               </span>
             </div>
 
             {/* 일정 리스트 */}
-            <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, overflowY: 'auto' }}>
               {dayEvents.length === 0 ? (
-                <div className="flex items-center justify-center flex-1 text-[11px] text-gray-400 py-6">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, fontSize: '0.75rem', color: 'var(--text-muted)', padding: '20px 0' }}>
                   일정 없음
                 </div>
               ) : (
@@ -114,41 +162,74 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                         e.stopPropagation();
                         onSelectEvent(evt);
                       }}
-                      className="p-2 rounded-lg bg-gray-950/70 border border-gray-800 hover:border-gray-700 transition-all text-xs flex flex-col gap-1.5 shadow-sm group"
+                      style={{
+                        padding: '6px 8px',
+                        borderRadius: 'var(--radius-xs)',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border-light)',
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.12s ease',
+                      }}
                     >
-                      <div className="flex items-center justify-between gap-1">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
                         {evt.project && (
-                          <span className="text-[10px] font-medium text-gray-400 truncate">
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {evt.project.key || evt.project.name}
                           </span>
                         )}
                         <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold ${getStatusBadge(
-                            evt.status
-                          )}`}
+                          style={{
+                            fontSize: '0.65rem',
+                            padding: '1px 5px',
+                            borderRadius: 'var(--radius-xs)',
+                            fontWeight: 600,
+                            ...getStatusBadgeStyle(evt.status),
+                          }}
                         >
                           {evt.status || 'TODO'}
                         </span>
                       </div>
 
                       <p
-                        className={`font-medium text-gray-200 line-clamp-2 ${
-                          isDone ? 'line-through opacity-60' : ''
-                        }`}
+                        style={{
+                          margin: 0,
+                          fontWeight: 500,
+                          color: 'var(--text-bright)',
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          textDecoration: isDone ? 'line-through' : 'none',
+                          opacity: isDone ? 0.6 : 1,
+                        }}
                       >
                         {evt.title}
                       </p>
 
-                      <div className="flex items-center justify-between pt-1 border-t border-gray-900 text-[10px] text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-gray-400" />
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          paddingTop: '4px',
+                          borderTop: '1px solid var(--border-subtle)',
+                          fontSize: '0.7rem',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Clock size={11} />
                           <span>{evt.endDate.split('T')[0].slice(5)}</span>
                         </span>
 
                         {evt.assignee && (
-                          <span className="flex items-center gap-1 font-medium text-gray-400">
-                            <User className="w-3 h-3" />
-                            <span className="truncate max-w-[60px]">
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <User size={11} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60px' }}>
                               {evt.assignee.name}
                             </span>
                           </span>

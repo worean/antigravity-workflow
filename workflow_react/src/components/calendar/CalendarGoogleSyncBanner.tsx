@@ -38,21 +38,48 @@ export const CalendarGoogleSyncBanner: React.FC<CalendarGoogleSyncBannerProps> =
   // 1. Google 계정 연동 유저 UI
   if (isGoogleLinked) {
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-            <CheckCircle2 className="w-4 h-4" />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '10px 14px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'rgba(46, 160, 67, 0.12)',
+          border: '1px solid rgba(46, 160, 67, 0.35)',
+          fontSize: '0.78rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(46, 160, 67, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#4ec9b0',
+              flexShrink: 0,
+            }}
+          >
+            <CheckCircle2 size={16} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-emerald-300">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 600, color: '#4ec9b0' }}>
                 Google Calendar 연동 활성화
               </span>
               {status?.googleEmail && (
-                <span className="text-gray-400">({status.googleEmail})</span>
+                <span style={{ color: 'var(--text-sub)', fontSize: '0.75rem' }}>
+                  ({status.googleEmail})
+                </span>
               )}
             </div>
-            <p className="text-gray-400 mt-0.5">
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem', margin: '2px 0 0 0' }}>
               {status?.lastSyncedAt
                 ? `마지막 동기화: ${new Date(status.lastSyncedAt).toLocaleString()}`
                 : '워크스페이스 일정이 Google Calendar와 실시간 연동됩니다.'}
@@ -64,11 +91,13 @@ export const CalendarGoogleSyncBanner: React.FC<CalendarGoogleSyncBannerProps> =
           type="button"
           onClick={handleSync}
           disabled={syncMutation.isPending || isLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium text-emerald-100 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 shadow-sm"
+          className="btn btn-emerald btn-sm"
           title="워크스페이스 일정을 Google Calendar에 지금 동기화합니다"
+          style={{ height: '26px' }}
         >
           <RefreshCw
-            className={`w-3.5 h-3.5 ${syncMutation.isPending ? 'animate-spin' : ''}`}
+            size={13}
+            className={syncMutation.isPending ? 'animate-spin' : ''}
           />
           <span>{syncMutation.isPending ? '동기화 중...' : '구글 캘린더 동기화'}</span>
         </button>
@@ -78,19 +107,55 @@ export const CalendarGoogleSyncBanner: React.FC<CalendarGoogleSyncBannerProps> =
 
   // 2. 비Google 로그인 유저 안내 배너 (잠금 상태)
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs">
-      <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-          <Lock className="w-4 h-4" />
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        padding: '10px 14px',
+        borderRadius: 'var(--radius-sm)',
+        background: 'rgba(220, 160, 60, 0.1)',
+        border: '1px solid rgba(220, 160, 60, 0.3)',
+        fontSize: '0.78rem',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: 'rgba(220, 160, 60, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#dcdcaa',
+            flexShrink: 0,
+          }}
+        >
+          <Lock size={15} />
         </div>
         <div>
-          <div className="flex items-center gap-1.5 font-semibold text-amber-300">
-            <span>Google Calendar 연동 비활성화</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontWeight: 600, color: '#dcdcaa' }}>
+              Google Calendar 연동 비활성화
+            </span>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                padding: '1px 5px',
+                borderRadius: 'var(--radius-xs)',
+                background: 'rgba(220, 160, 60, 0.2)',
+                color: '#dcdcaa',
+                border: '1px solid rgba(220, 160, 60, 0.3)',
+              }}
+            >
               구글 로그인 전용
             </span>
           </div>
-          <p className="text-gray-400 mt-0.5">
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem', margin: '2px 0 0 0' }}>
             Google Calendar 자동 동기화는 Google 계정으로 로그인한 사용자에게만 지원됩니다.
           </p>
         </div>
@@ -99,10 +164,11 @@ export const CalendarGoogleSyncBanner: React.FC<CalendarGoogleSyncBannerProps> =
       <button
         type="button"
         disabled
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium text-gray-400 bg-gray-800 border border-gray-700 cursor-not-allowed opacity-60 shrink-0"
+        className="btn btn-secondary btn-sm"
+        style={{ opacity: 0.6, cursor: 'not-allowed', height: '26px' }}
         title="Google 로그인 계정만 구글 캘린더 연동을 이용할 수 있습니다"
       >
-        <Lock className="w-3.5 h-3.5" />
+        <Lock size={13} />
         <span>동기화 지원 불가</span>
       </button>
     </div>
