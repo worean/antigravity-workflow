@@ -1,4 +1,3 @@
-﻿// -*- coding: utf-8 -*-
 export type RootTabType =
   | 'dashboard'
   | 'projects'
@@ -7,7 +6,8 @@ export type RootTabType =
   | 'wbs'
   | 'worklogs'
   | 'chat'
-  | 'settings';
+  | 'settings'
+  | 'demo-state';
 
 export type ActiveTabType =
   | RootTabType
@@ -182,7 +182,7 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
             rootTab: 'wbs',
             tab: 'wbs',
             projectId: pId,
-            issueId: null,
+            issueId: queryIssueId,
             sprintId: null,
             channelId: null,
             mode,
@@ -283,8 +283,8 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
       };
     }
 
-    // #/wbs, #/worklogs, #/dashboard, #/settings
-    const validRoots: RootTabType[] = ['dashboard', 'projects', 'issues', 'sprints', 'wbs', 'worklogs', 'chat', 'settings'];
+    // #/wbs, #/worklogs, #/dashboard, #/settings, #/demo-state
+    const validRoots: RootTabType[] = ['dashboard', 'projects', 'issues', 'sprints', 'wbs', 'worklogs', 'chat', 'settings', 'demo-state'];
     const matchedRoot = validRoots.includes(root) ? root : 'dashboard';
 
     return {

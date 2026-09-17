@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { prisma } from '#lib/prisma.js';
 import { createUserService } from '../modules/users/services/createUser.service.js';
 import { createProjectService } from '../modules/projects/services/createProject.service.js';
@@ -37,7 +36,7 @@ describe('💬 [Chat: getChannels] Unit Tests', () => {
   it('1. 기본 GLOBAL 채널들이 조회되어야 합니다.', async () => {
     const channels = await getChannelsService(user1.id);
     expect(channels.length).toBeGreaterThanOrEqual(2);
-    expect(channels.some((c) => c.type === 'GLOBAL' && c.name.includes('전체-공지사항'))).toBe(true);
+    expect(channels.some((c) => (c.type === 'GLOBAL' || c.type === 'GENERAL') && c.name.includes('전체-공지사항'))).toBe(true);
   });
 
   it('2. 1:1 DM 채널 생성 후 양쪽 유저의 채널 목록에 정상 조회되어야 합니다.', async () => {

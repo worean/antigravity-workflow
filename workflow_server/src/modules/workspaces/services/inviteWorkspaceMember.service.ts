@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { globalPrisma } from '#lib/globalPrisma.js';
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 
 export interface InviteWorkspaceMemberParams {

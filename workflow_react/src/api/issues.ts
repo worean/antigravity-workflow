@@ -11,6 +11,8 @@ export interface IssueQueryParams {
   statusId?: number;
   priorityId?: number;
   parentId?: number | null;
+  tag?: string;
+  tagId?: number;
   search?: string;
   limit?: number | 'all';
   take?: number;
@@ -32,6 +34,8 @@ export const getIssues = async (filters?: IssueQueryParams): Promise<Issue[]> =>
     if (filters.sprintId !== undefined) params.sprintId = filters.sprintId;
     if (filters.assigneeId !== undefined) params.assigneeId = filters.assigneeId;
     if (filters.authorId !== undefined) params.authorId = filters.authorId;
+    if (filters.tag !== undefined) params.tag = filters.tag;
+    if (filters.tagId !== undefined) params.tagId = filters.tagId;
     if (filters.search) params.search = filters.search;
     if (filters.statusId !== undefined) params.statusId = filters.statusId;
     if (filters.typeId !== undefined) params.typeId = filters.typeId;
@@ -68,13 +72,16 @@ export const createIssue = async (data: {
   typeId?: number;
   plannedStartDate?: string | null;
   dueDate?: string | null;
+  actualStartDate?: string | null;
+  actualEndDate?: string | null;
+  tags?: string[] | any;
   customFields?: any;
 }): Promise<Issue> => {
   const res = await apiClient.post('/issues', data);
   return res.data;
 };
 
-export const updateIssue = async (id: number, data: Partial<Issue>): Promise<Issue> => {
+export const updateIssue = async (id: number, data: Partial<Issue> | any): Promise<Issue> => {
   const res = await apiClient.put(`/issues/${id}`, data);
   return res.data;
 };
@@ -156,7 +163,11 @@ export const useCreateIssue = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createIssue,
-    onSuccess: () => {
+    onSuccess: (newIssue) => {
+      queryClient.setQueriesData<Issue[]>({ queryKey: issueKeys.lists() }, (oldData) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return [newIssue, ...oldData];
+      });
       queryClient.invalidateQueries({ queryKey: issueKeys.all });
     },
   });
@@ -166,9 +177,16 @@ export const useUpdateIssue = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Issue> }) => updateIssue(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      queryClient.invalidateQueries({ queryKey: issueKeys.detail(variables.id) });
+    onSuccess: (updatedIssue, variables) => {
+      // 1. 이슈 목록 캐시에서 해당 이슈 즉시 in-place 업데이트
+      queryClient.setQueriesData<Issue[]>({ queryKey: issueKeys.lists() }, (oldData) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((item) => (item.id === updatedIssue.id ? { ...item, ...updatedIssue } : item));
+      });
+      // 2. 단일 이슈 상세 캐시 즉시 업데이트
+      queryClient.setQueryData(issueKeys.detail(variables.id), updatedIssue);
+      // 3. 백그라운드 동기화 (화면 깜빡임 없이 부드럽게)
+      queryClient.invalidateQueries({ queryKey: issueKeys.all, refetchType: 'none' });
     },
   });
 };
@@ -177,8 +195,12 @@ export const useDeleteIssue = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteIssue,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueriesData<Issue[]>({ queryKey: issueKeys.lists() }, (oldData) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.filter((item) => item.id !== deletedId);
+      });
+      queryClient.invalidateQueries({ queryKey: issueKeys.all, refetchType: 'none' });
     },
   });
 };
@@ -187,9 +209,16 @@ export const useToggleLikeIssue = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: toggleLikeIssue,
-    onSuccess: (_, issueId) => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      queryClient.invalidateQueries({ queryKey: issueKeys.detail(issueId) });
+    onSuccess: (result, issueId) => {
+      queryClient.setQueriesData<Issue[]>({ queryKey: issueKeys.lists() }, (oldData) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((item) =>
+          item.id === issueId
+            ? { ...item, isLiked: result.isLiked, likesCount: result.likesCount }
+            : item
+        );
+      });
+      queryClient.invalidateQueries({ queryKey: issueKeys.detail(issueId), refetchType: 'none' });
     },
   });
 };

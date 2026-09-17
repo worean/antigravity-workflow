@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as issuesController from './issues.controller.js';
 import { requireAuth, requireProjectMember, requireProjectPM } from '../../common/middlewares/authMiddleware.js';
 

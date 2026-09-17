@@ -1,25 +1,49 @@
 ﻿import { prisma } from '#lib/prisma.js';
 
-export const getProjectsService = async (query: any = {}, currentUserId?: number) => {
+export const getProjectsService = async (
+  query: any = {},
+  currentUserId?: number,
+  currentUserRole?: string,
+  currentUserEmail?: string
+) => {
   const {
     search,
+    tag,
+    tagId,
     statusId,
     priorityId,
     ownerId,
     memberId,
+    visibility,
     limit,
     take: takeQuery,
     skip: skipQuery,
     offset,
     sortBy,
     order,
-    sortOrder
+    sortOrder,
   } = query;
 
   const where: any = {};
 
   if (statusId) where.statusId = Number(statusId);
   if (priorityId) where.priorityId = Number(priorityId);
+
+  // 🔒 Visibility 필터링
+  if (visibility && typeof visibility === 'string') {
+    const norm = visibility.toUpperCase();
+    if (['PUBLIC', 'PROTECTED', 'PRIVATE'].includes(norm)) {
+      where.visibility = norm;
+    }
+  }
+
+  // 🏷️ 태그 필터링
+  if (tagId) {
+    where.tags = { some: { id: Number(tagId) } };
+  } else if (tag && String(tag).trim()) {
+    const cleanTag = String(tag).trim().replace(/^#/, '');
+    where.tags = { some: { name: cleanTag } };
+  }
 
   // Owner 필터링
   if (ownerId !== undefined && ownerId !== '') {
@@ -36,7 +60,7 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
       if (currentUserId) {
         where.OR = [
           { ownerId: currentUserId },
-          { members: { some: { userId: currentUserId } } }
+          { members: { some: { userId: currentUserId } } },
         ];
       }
     } else if (!isNaN(Number(memberId))) {
@@ -44,11 +68,14 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
     }
   }
 
-  if (search) {
+  if (search && String(search).trim()) {
+    const trimmedSearch = String(search).trim();
+    const cleanTag = trimmedSearch.replace(/^#/, '');
     const searchFilter = [
-      { name: { contains: String(search) } },
-      { key: { contains: String(search) } },
-      { description: { contains: String(search) } }
+      { name: { contains: cleanTag } },
+      { key: { contains: cleanTag } },
+      { description: { contains: cleanTag } },
+      { tags: { some: { name: cleanTag } } },
     ];
     if (where.OR) {
       where.AND = [{ OR: where.OR }, { OR: searchFilter }];
@@ -56,6 +83,49 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
     } else {
       where.OR = searchFilter;
     }
+  }
+
+  // 🛡️ 접근 제어 (Access Control based on Visibility)
+  // 관리자(ADMIN)는 모든 프로젝트 열람 가능
+  const isAdmin = currentUserRole === 'ADMIN' || currentUserEmail === 'worean@naver.com';
+
+  if (!isAdmin && currentUserId) {
+    // 사용자가 소속된 그룹 조회
+    const userGroups = await prisma.groupMember.findMany({
+      where: { userId: currentUserId },
+      select: { groupId: true },
+    });
+    const groupIds = userGroups.map((g) => g.groupId);
+
+    const accessCondition: any = {
+      OR: [
+        { visibility: 'PUBLIC' },
+        {
+          visibility: 'PROTECTED',
+          OR: [
+            { ownerId: currentUserId },
+            { members: { some: { userId: currentUserId } } },
+            ...(groupIds.length > 0 ? [{ groups: { some: { groupId: { in: groupIds } } } }] : []),
+          ],
+        },
+        {
+          visibility: 'PRIVATE',
+          OR: [
+            { ownerId: currentUserId },
+            { members: { some: { userId: currentUserId } } },
+          ],
+        },
+      ],
+    };
+
+    if (where.AND) {
+      where.AND.push(accessCondition);
+    } else {
+      where.AND = [accessCondition];
+    }
+  } else if (!isAdmin && !currentUserId) {
+    // 비로그인 사용자는 PUBLIC 프로젝트만 열람
+    where.visibility = 'PUBLIC';
   }
 
   // 정렬 (Sorting) 처리
@@ -68,7 +138,8 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
     'dueDate',
     'plannedStartDate',
     'priorityId',
-    'statusId'
+    'statusId',
+    'visibility',
   ];
   const sortField = validSortFields.includes(sortBy) ? sortBy : 'id';
   const sortDir = (order || sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
@@ -90,11 +161,12 @@ export const getProjectsService = async (query: any = {}, currentUserId?: number
       groups: { include: { group: { select: { id: true, name: true, code: true } } } },
       status: true,
       priority: true,
-      _count: { select: { issues: true, sprints: true } }
+      tags: true,
+      _count: { select: { issues: true, sprints: true } },
     },
     orderBy,
     take,
-    skip
+    skip,
   });
 
   if (!currentUserId) {

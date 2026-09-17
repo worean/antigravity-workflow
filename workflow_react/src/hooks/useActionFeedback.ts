@@ -1,4 +1,5 @@
 ﻿import { useState, useCallback } from 'react';
+import { useDelayedLoading } from './useDelayedLoading';
 
 export interface ErrorModalState {
   isOpen: boolean;
@@ -7,9 +8,12 @@ export interface ErrorModalState {
   statusCode?: number;
 }
 
-export const useActionFeedback = () => {
+export const useActionFeedback = (delayMs: number = 1000) => {
   const [isPending, setIsPending] = useState<boolean>(false);
   const [errorState, setErrorState] = useState<ErrorModalState>({ isOpen: false });
+
+  // ⏳ 1초(1000ms) 이내에 완료되는 빠른 응답 시 스피너/상태 변경 깜빡임 방지용 지연 상태
+  const isPendingDelayed = useDelayedLoading(isPending, { delayMs, minDisplayMs: 400 });
 
   const closeErrorModal = useCallback(() => {
     setErrorState({ isOpen: false });
@@ -20,18 +24,17 @@ export const useActionFeedback = () => {
       asyncFn: () => Promise<T>,
       options?: {
         onSuccess?: (data: T) => void;
+        onError?: (err: any) => void;
       }
     ): Promise<T | null> => {
       setIsPending(true);
       setErrorState({ isOpen: false });
 
       try {
-        // API 수신받기 전까지 Spinner 표시 대기
         const result = await asyncFn();
 
         setIsPending(false);
 
-        // API 응답 수신 즉시 수신된 최신 데이터(data)를 UI state에 반영
         if (options?.onSuccess) {
           options.onSuccess(result);
         }
@@ -57,6 +60,10 @@ export const useActionFeedback = () => {
           statusCode,
         });
 
+        if (options?.onError) {
+          options.onError(err);
+        }
+
         return null;
       }
     },
@@ -65,6 +72,7 @@ export const useActionFeedback = () => {
 
   return {
     isPending,
+    isPendingDelayed,
     errorState,
     closeErrorModal,
     executeAction,

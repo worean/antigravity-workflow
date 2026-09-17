@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export interface GetGroupsOptions {
   asTree?: boolean;

@@ -101,6 +101,13 @@ export const createIssueService = async (
     }
   });
 
+  // 🏷️ 태그 동기화 (명시적 tags 필드 또는 본문/제목 내 #해시태그 파싱)
+  if (data.tags !== undefined || description || title) {
+    const { syncIssueTagsService } = await import('../../tags/services/syncIssueTags.service.js');
+    const tagSource = data.tags !== undefined ? data.tags : `${title} ${description || ''}`;
+    await syncIssueTagsService(issue.id, tagSource, tx);
+  }
+
   // 상위 이슈가 지정된 경우, 상위 이슈의 시작계획일/기한을 자동 롤업 동기화
   if (issue.parentId) {
     const { syncParentDatesService } = await import('./syncParentDates.service.js');

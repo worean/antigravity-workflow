@@ -137,6 +137,16 @@ export const updateIssueService = async (
     }
   });
 
+  // 🏷️ 태그 동기화 (명시적 tags 필드 제공 시 또는 description/title 변경 시)
+  if (data.tags !== undefined) {
+    const { syncIssueTagsService } = await import('../../tags/services/syncIssueTags.service.js');
+    await syncIssueTagsService(issueId, data.tags, tx);
+  } else if (description !== undefined || title !== undefined) {
+    const { syncIssueTagsService } = await import('../../tags/services/syncIssueTags.service.js');
+    const tagSource = `${title ?? currentIssue.title} ${description ?? currentIssue.description ?? ''}`;
+    await syncIssueTagsService(issueId, tagSource, tx);
+  }
+
   // 상위 이슈 일정 동기화 (Rollup)
   const { syncParentDatesService } = await import('./syncParentDates.service.js');
   // 1) 자기 자신에게 하위 이슈가 있다면 자기 자신의 시작계획일/기한을 하위 이슈 기준으로 강제 보정

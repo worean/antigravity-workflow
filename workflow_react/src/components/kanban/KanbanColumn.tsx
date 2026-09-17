@@ -19,6 +19,7 @@ interface KanbanColumnProps {
   handleOpenDeleteConfirm: (e: React.MouseEvent, issue: Issue) => void;
   handleToggleLike: (e: React.MouseEvent, issue: Issue) => Promise<void>;
   onSelectIssue: (issue: Issue) => void;
+  onTagClick?: (tagName: string) => void;
   onOpenAuth?: () => void;
 }
 
@@ -38,6 +39,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   handleOpenDeleteConfirm,
   handleToggleLike,
   onSelectIssue,
+  onTagClick,
   onOpenAuth,
 }) => {
   const isColumnHovered = dragOverColumn === col.key;
@@ -146,6 +148,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               handleOpenDeleteConfirm={handleOpenDeleteConfirm}
               handleToggleLike={handleToggleLike}
               onSelectIssue={onSelectIssue}
+              onTagClick={onTagClick}
               onOpenAuth={onOpenAuth}
             />
           ))

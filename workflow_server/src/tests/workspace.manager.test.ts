@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { globalPrisma } from '#lib/globalPrisma.js';

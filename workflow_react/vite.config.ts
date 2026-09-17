@@ -19,6 +19,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false, // 개발용 자승 인증서(SSL) 허용
       },
+      '/socket.io': {
+        target: 'https://localhost:4000',
+        changeOrigin: true,
+        ws: true, // WebSocket 프로토콜 업그레이드 지원
+        secure: false,
+      },
     },
   },
   build: {

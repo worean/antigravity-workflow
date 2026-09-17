@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { memo } from 'react';
 import { Crown } from 'lucide-react';
 import type { ChatChannel, User } from '@/types';
 import { Avatar } from '@/components/common';
@@ -9,7 +9,7 @@ interface ChatMemberSidebarProps {
   allWorkspaceUsers: User[];
 }
 
-export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = ({
+export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = memo(({
   showMemberSidebar,
   currentChannel,
   allWorkspaceUsers: _allWorkspaceUsers,
@@ -79,4 +79,6 @@ export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = ({
       )}
     </div>
   );
-};
+});
+
+ChatMemberSidebar.displayName = 'ChatMemberSidebar';

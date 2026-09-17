@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as groupsController from './groups.controller.js';
 import { requireAuth, requireAdmin } from '../../common/middlewares/authMiddleware.js';
 

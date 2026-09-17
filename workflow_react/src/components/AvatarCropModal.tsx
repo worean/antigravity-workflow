@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from './common';
 import { Crop, ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 

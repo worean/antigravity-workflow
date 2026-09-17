@@ -17,6 +17,8 @@ import { groupRouter } from './modules/groups/groups.routes.js';
 import { chatRouter } from './modules/chat/chat.routes.js';
 import { favoriteRouter } from './modules/favorites/favorites.routes.js';
 import { workspaceRouter } from './modules/workspaces/workspaces.routes.js';
+import tagRouter from './modules/tags/tags.routes.js';
+import { aiRouter } from './modules/ai/ai.routes.js';
 
 dotenv.config();
 
@@ -33,9 +35,31 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   next(err);
 });
 
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+import { globalPrisma } from '#lib/globalPrisma.js';
+import { prisma } from '#lib/prisma.js';
+
+// Health Check with Database Connectivity Verification
+app.get('/api/health', async (req, res) => {
+  try {
+    const userCount = await globalPrisma.user.count();
+    const projectCount = await prisma.project.count();
+    const workspaceCount = await globalPrisma.workspace.count();
+    res.json({
+      status: 'OK',
+      database: {
+        mode: process.env.TASK_STORAGE_MODE || 'postgresql',
+        globalDb: { status: 'CONNECTED', users: userCount, workspaces: workspaceCount },
+        workspaceDb: { status: 'CONNECTED', projects: projectCount },
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      status: 'DATABASE_ERROR',
+      error: err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Auth & Modular REST API Routers
@@ -54,6 +78,8 @@ app.use('/api/activity-logs', activityLogRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/favorites', favoriteRouter);
 app.use('/api/workspaces', workspaceRouter);
+app.use('/api/tags', tagRouter);
+app.use('/api/ai', aiRouter);
 
 
 

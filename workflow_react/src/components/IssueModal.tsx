@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Project, User, Issue, CustomFieldDefinition, Comment } from '@/types';
 import {
   createIssue,
@@ -15,8 +16,12 @@ import {
   getWorklogs,
   createWorklog,
 } from '@/services/api';
+import { issueKeys } from '@/api/issues';
 import type { Worklog } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { prefRepository } from '@/lib/prefRepository';
+import { useUIStore } from '@/stores/useUIStore';
 import {
   X,
   PlusCircle,
@@ -32,6 +37,7 @@ import {
   Clock,
   Plus,
   GitBranch,
+  Hash,
 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
@@ -51,10 +57,11 @@ import {
   StatusSelect,
   PrioritySelect,
   IssueTypeSelect,
+  TagBadge,
+  TagInput,
 } from './common';
 
 import { hoursToMinutes, formatWorklogTime } from '@/utils/worklogUtils';
-import { sendDesktopNotification } from '@/utils/notificationUtils';
 
 interface IssueModalProps {
   isOpen: boolean;
@@ -68,15 +75,7 @@ interface IssueModalProps {
 }
 
 const getDefaultPriority = (): number => {
-  try {
-    const saved = localStorage.getItem('pref_default_priority');
-    if (saved && !isNaN(Number(saved)) && Number(saved) > 0) {
-      return Number(saved);
-    }
-  } catch {
-    // ignore
-  }
-  return 2; // Default to Medium (2)
+  return prefRepository.defaultPriority || 2;
 };
 
 export const IssueModal: React.FC<IssueModalProps> = ({
@@ -90,12 +89,18 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   onIssueCreated,
 }) => {
   const { user, isAuthenticated } = useAuth();
+  const { getIssueDraft, saveIssueDraft, clearIssueDraft } = useWorkspace();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
+  const queryClient = useQueryClient();
   const overlayProps = useOverlayClickClose(onClose);
+
+  const draftKey = selectedIssue ? `edit_${selectedIssue.id}` : 'new';
+  const [draftBanner, setDraftBanner] = useState<any | null>(null);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
   const [projectId, setProjectId] = useState<number>(initialProjectId || projects[0]?.id || 1);
   const [parentId, setParentId] = useState<number | null>(initialParentId ?? selectedIssue?.parentId ?? null);
   const [candidateParentIssues, setCandidateParentIssues] = useState<Issue[]>([]);
@@ -167,88 +172,143 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     }
   }, [isOpen]);
 
+  // 🔒 이전 열림 상태 및 이슈 ID 추적용 Ref (타이핑 중 원복 방어)
+  const prevIsOpenRef = useRef<boolean>(false);
+  const prevIssueIdRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (selectedIssue && isOpen) {
-      setIsEditing(false);
-      setTitle(selectedIssue.title || '');
-      setDescription(selectedIssue.description || '');
-      setProjectId(selectedIssue.projectId || projects[0]?.id || 1);
-      setAssigneeId(selectedIssue.assigneeId || selectedIssue.assignee?.id || undefined);
-      setPriorityId(selectedIssue.priorityId || selectedIssue.priority?.id || 1);
-      setStatusId(selectedIssue.statusId || selectedIssue.status?.id || 1);
-      setTypeId(selectedIssue.typeId || selectedIssue.type?.id || 1);
-      setProgress(selectedIssue.progress || 0);
-      setCustomFieldsData(
-        typeof selectedIssue.customFields === 'string'
-          ? JSON.parse(selectedIssue.customFields)
-          : selectedIssue.customFields || {}
-      );
-      setPlannedStartDate(formatDateOnly(selectedIssue.plannedStartDate));
-      setDueDate(formatDateOnly(selectedIssue.dueDate));
-      setActualStartDate(formatDateOnly(selectedIssue.actualStartDate));
-      setActualEndDate(formatDateOnly(selectedIssue.actualEndDate));
+    // 모달이 새로 열리거나, 선택된 대상 이슈의 ID가 달라진 경우에만 초기화 실행
+    const isNewlyOpened = isOpen && !prevIsOpenRef.current;
+    const isIssueChanged = selectedIssue ? selectedIssue.id !== prevIssueIdRef.current : prevIssueIdRef.current !== null;
 
-      setIsLiked(!!selectedIssue.isLiked);
-      setLikesCount(selectedIssue.likesCount || 0);
+    prevIsOpenRef.current = isOpen;
+    prevIssueIdRef.current = selectedIssue ? selectedIssue.id : null;
 
-      // 작업로그 폼 초기화
-      setWorklogHoursInput('');
-      setWorklogDescInput('');
-      setShowWorklogForm(false);
+    if (!isOpen) return;
 
-      const fetchExtraData = async () => {
-        try {
-          const [cList, wList] = await Promise.all([
-            getComments(selectedIssue.id),
-            getWorklogs(selectedIssue.id),
-          ]);
-          setComments(organizeComments(cList));
-          setWorklogs(wList);
-        } catch (err) {
-          console.error(err);
+    if (isNewlyOpened || isIssueChanged) {
+      if (selectedIssue) {
+        setIsEditing(false);
+        setTitle(selectedIssue.title || '');
+        setDescription(selectedIssue.description || '');
+        setTags(
+          Array.isArray(selectedIssue.tags)
+            ? selectedIssue.tags.map((t: any) => t.name || t)
+            : []
+        );
+        setProjectId(selectedIssue.projectId || projects[0]?.id || 1);
+        setAssigneeId(selectedIssue.assigneeId || selectedIssue.assignee?.id || undefined);
+        setPriorityId(selectedIssue.priorityId || selectedIssue.priority?.id || 1);
+        setStatusId(selectedIssue.statusId || selectedIssue.status?.id || 1);
+        setTypeId(selectedIssue.typeId || selectedIssue.type?.id || 1);
+        setProgress(selectedIssue.progress || 0);
+        setCustomFieldsData(
+          typeof selectedIssue.customFields === 'string'
+            ? JSON.parse(selectedIssue.customFields)
+            : selectedIssue.customFields || {}
+        );
+        setPlannedStartDate(formatDateOnly(selectedIssue.plannedStartDate));
+        setDueDate(formatDateOnly(selectedIssue.dueDate));
+        setActualStartDate(formatDateOnly(selectedIssue.actualStartDate));
+        setActualEndDate(formatDateOnly(selectedIssue.actualEndDate));
+
+        setIsLiked(!!selectedIssue.isLiked);
+        setLikesCount(selectedIssue.likesCount || 0);
+
+        // 작업로그 폼 초기화
+        setWorklogHoursInput('');
+        setWorklogDescInput('');
+        setShowWorklogForm(false);
+
+        const fetchExtraData = async () => {
+          try {
+            const [cList, wList] = await Promise.all([
+              getComments(selectedIssue.id),
+              getWorklogs(selectedIssue.id),
+            ]);
+            setComments(organizeComments(cList));
+            setWorklogs(wList);
+          } catch (err) {
+            console.error(err);
+          }
+        };
+        fetchExtraData();
+      } else {
+        // 새 이슈 생성 모드
+        setIsEditing(true);
+        setTitle('');
+        setDescription('');
+        setTags([]);
+        setProjectId(projects[0]?.id || 1);
+        setAssigneeId(undefined);
+        setPriorityId(getDefaultPriority());
+        setStatusId(1);
+        setTypeId(1);
+        setProgress(0);
+        setCustomFieldsData({});
+        setPlannedStartDate('');
+        setDueDate('');
+        setActualStartDate('');
+        setActualEndDate('');
+        setWorklogs([]);
+        setWorklogHoursInput('');
+        setWorklogDescInput('');
+        setComments([]);
+        setParentId(initialParentId ?? null);
+
+        // 하위 이슈로 새로 생성 시 상위 이슈의 시작계획일/기한 정보를 그대로 복사 (UI에서만)
+        if (initialParentId) {
+          getIssue(initialParentId)
+            .then((pIssue) => {
+              if (pIssue) {
+                if (pIssue.plannedStartDate) setPlannedStartDate(formatDateOnly(pIssue.plannedStartDate) || '');
+                if (pIssue.dueDate) setDueDate(formatDateOnly(pIssue.dueDate) || '');
+              }
+            })
+            .catch((err) => console.error('Parent issue fetch failed:', err));
         }
-      };
-      fetchExtraData();
-    } else if (isOpen) {
-      setIsEditing(true);
-      setTitle('');
-      setDescription('');
-      setProjectId(projects[0]?.id || 1);
-      setAssigneeId(undefined);
-      setPriorityId(getDefaultPriority());
-      setStatusId(1);
-      setTypeId(1);
-      setProgress(0);
-      setCustomFieldsData({});
-      setPlannedStartDate('');
-      setDueDate('');
-      setActualStartDate('');
-      setActualEndDate('');
-      setWorklogs([]);
-      setWorklogHoursInput('');
-      setWorklogDescInput('');
-      setComments([]);
-      setParentId(initialParentId ?? null);
+      }
 
-      // 하위 이슈로 새로 생성 시 상위 이슈의 시작계획일/기한 정보를 그대로 복사 (UI에서만)
-      if (initialParentId) {
-        getIssue(initialParentId)
-          .then((parentIssue) => {
-            if (parentIssue) {
-              if (parentIssue.plannedStartDate) {
-                setPlannedStartDate(formatDateOnly(parentIssue.plannedStartDate));
-              }
-              if (parentIssue.dueDate) {
-                setDueDate(formatDateOnly(parentIssue.dueDate));
-              }
-            }
-          })
-          .catch((err) => {
-            console.error('Failed to copy initial parent issue dates:', err);
-          });
+      // 초안 확인 (임시 저장된 내용이 있으면 복원 배너 노출 - 생성/편집 모두 지원)
+      const existingDraft = getIssueDraft(draftKey);
+      if (existingDraft && (existingDraft.title?.trim() || existingDraft.description?.trim())) {
+        setDraftBanner(existingDraft);
+      } else {
+        setDraftBanner(null);
       }
     }
-  }, [selectedIssue, isOpen, projects, initialParentId]);
+  }, [selectedIssue, isOpen, initialParentId, projects, draftKey, getIssueDraft]);
+
+  // 사용자가 폼을 편집할 때 실시간 드래프트 자동 보존 (쿠키/스토리지)
+  useEffect(() => {
+    if (isOpen && isEditing) {
+      if (title.trim() || description.trim()) {
+        saveIssueDraft(draftKey, {
+          title,
+          description,
+          projectId,
+          priorityId,
+          statusId,
+          assigneeId,
+          dueDate,
+          plannedStartDate,
+        });
+      }
+    }
+  }, [
+    isOpen,
+    isEditing,
+    title,
+    description,
+    projectId,
+    priorityId,
+    statusId,
+    assigneeId,
+    dueDate,
+    plannedStartDate,
+    draftKey,
+    saveIssueDraft,
+  ]);
 
   // Load candidate parent issues in the current project
   useEffect(() => {
@@ -271,15 +331,23 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   const isViewMode = !!selectedIssue && !isEditing;
 
   const handleToggleLike = async () => {
-    if (!selectedIssue || !isAuthenticated) return alert('로그인이 필요합니다.');
+    if (!selectedIssue || !isAuthenticated) {
+      useUIStore.getState().showToast('로그인이 필요합니다.', 'error');
+      return;
+    }
     try {
       const res = await toggleLikeIssue(selectedIssue.id);
       setIsLiked(res.isLiked);
       setLikesCount(res.likesCount);
+      useUIStore.getState().showToast(
+        res.isLiked ? '이슈를 추천했습니다.' : '이슈 추천을 취소했습니다.',
+        'success'
+      );
       if (onSuccess) onSuccess();
       if (onIssueCreated) onIssueCreated();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      useUIStore.getState().showToast(err.response?.data?.error || '추천 처리에 실패했습니다.', 'error');
     }
   };
 
@@ -293,9 +361,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       {
         onSuccess: () => {
           setShowDeleteConfirm(false);
+          useUIStore.getState().showToast(`이슈 #${selectedIssue.issueNumber || selectedIssue.id}가 삭제되었습니다.`, 'success');
           if (onSuccess) onSuccess();
           if (onIssueCreated) onIssueCreated();
           onClose();
+        },
+        onError: (err) => {
+          useUIStore.getState().showToast(err.response?.data?.error || '이슈 삭제에 실패했습니다.', 'error');
         },
       }
     );
@@ -318,6 +390,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           return await updateIssue(selectedIssue.id, {
             title,
             description,
+            tags,
             projectId: Number(projectId),
             parentId: parentId ? Number(parentId) : null,
             assigneeId: assigneeId ? Number(assigneeId) : undefined,
@@ -332,6 +405,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
           return await createIssue({
             title,
             description,
+            tags,
             projectId: Number(projectId),
             parentId: parentId ? Number(parentId) : null,
             assigneeId: assigneeId ? Number(assigneeId) : undefined,
@@ -346,16 +420,21 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       {
         onSuccess: (res) => {
           setIsEditing(false);
-          if (!selectedIssue && res) {
-            sendDesktopNotification({
-              title: '신규 이슈 등록',
-              body: `#${res.id} ${res.title}`,
-              priority: res.priorityId || res.priority,
-            });
-          }
+          clearIssueDraft(draftKey);
+          setDraftBanner(null);
+          queryClient.invalidateQueries({ queryKey: issueKeys.all });
+          useUIStore.getState().showToast(
+            selectedIssue
+              ? `이슈 #${selectedIssue.issueNumber || selectedIssue.id}가 수정되었습니다.`
+              : '새 이슈가 생성되었습니다.',
+            'success'
+          );
           if (onSuccess) onSuccess(res);
           if (onIssueCreated) onIssueCreated();
           if (!selectedIssue) onClose();
+        },
+        onError: (err) => {
+          useUIStore.getState().showToast(err.response?.data?.error || '이슈 저장에 실패했습니다.', 'error');
         },
       }
 
@@ -367,7 +446,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
     if (!selectedIssue) return;
     const hoursNum = parseFloat(worklogHoursInput);
     if (isNaN(hoursNum) || hoursNum <= 0) {
-      alert('유효한 작업 시간(시간 단위, 예: 1.4 또는 5.5)을 입력해 주세요.');
+      useUIStore.getState().showToast('유효한 작업 시간(시간 단위, 예: 1.4 또는 5.5)을 입력해 주세요.', 'error');
       return;
     }
 
@@ -385,12 +464,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
       setWorklogHoursInput('');
       setWorklogDescInput('');
       setShowWorklogForm(false);
+      useUIStore.getState().showToast('작업 시간이 성공적으로 기록되었습니다.', 'success');
       if (onSuccess) onSuccess();
       if (onIssueCreated) onIssueCreated();
     } catch (err: any) {
 
       console.error(err);
-      alert(err.response?.data?.error || '작업 시간 기록에 실패했습니다.');
+      useUIStore.getState().showToast(err.response?.data?.error || '작업 시간 기록에 실패했습니다.', 'error');
     } finally {
       setIsLoggingWork(false);
     }
@@ -447,8 +527,39 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
   return (
     <>
-      <div className="modal-overlay" {...overlayProps}>
-        <div className="modal-content" style={{ maxWidth: '640px', padding: '14px 18px', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-overlay"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(2px)',
+        }}
+        {...overlayProps}
+      >
+        <div
+          className="modal-content"
+          style={{
+            maxWidth: '640px',
+            width: '92%',
+            padding: '14px 18px',
+            maxHeight: 'calc(100vh - 40px)',
+            overflowY: 'auto',
+            margin: 'auto',
+            borderRadius: '6px',
+            background: '#252526',
+            border: '1px solid #454545',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>
             <div style={{ fontSize: '0.95rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-bright)' }}>
@@ -500,6 +611,14 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                 <PriorityBadge priority={selectedIssue.priorityId || selectedIssue.priority} size="sm" />
               </div>
 
+              {/* 🏷️ Tags List */}
+              {Array.isArray(selectedIssue.tags) && selectedIssue.tags.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '10px' }}>
+                  {selectedIssue.tags.map((t) => (
+                    <TagBadge key={t.id || t.name} tag={t} size="sm" />
+                  ))}
+                </div>
+              )}
 
               <MarkdownViewer content={selectedIssue.description} placeholder="작성된 상세 설명이 없습니다." style={{ marginBottom: '10px' }} />
 
@@ -1028,8 +1147,69 @@ export const IssueModal: React.FC<IssueModalProps> = ({
 
           ) : (
             <form onSubmit={handleSaveIssue}>
+              {/* 💾 Draft Restore Banner */}
+              {draftBanner && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    marginBottom: '12px',
+                    background: 'rgba(0, 122, 204, 0.12)',
+                    border: '1px solid var(--border-focus)',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-bright)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1rem' }}>💾</span>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                        작성 중이던 임시 저장본이 있습니다
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-sub)' }}>
+                        {new Date(draftBanner.updatedAt).toLocaleTimeString('ko-KR')}에 저장된 내용입니다.
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTitle(draftBanner.title || '');
+                        setDescription(draftBanner.description || '');
+                        if (draftBanner.projectId) setProjectId(draftBanner.projectId);
+                        if (draftBanner.priorityId) setPriorityId(draftBanner.priorityId);
+                        if (draftBanner.statusId) setStatusId(draftBanner.statusId);
+                        if (draftBanner.assigneeId !== undefined) setAssigneeId(draftBanner.assigneeId);
+                        if (draftBanner.dueDate) setDueDate(draftBanner.dueDate);
+                        if (draftBanner.plannedStartDate) setPlannedStartDate(draftBanner.plannedStartDate);
+                        setDraftBanner(null);
+                      }}
+                      className="btn btn-primary"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                    >
+                      초안 불러오기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearIssueDraft(draftKey);
+                        setDraftBanner(null);
+                      }}
+                      className="btn btn-secondary"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                    >
+                      초안 삭제
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="form-group">
-                <label className="form-label">이슈 제목 (Title)</label>
+                <label className="form-label">이슈 제목 (Title) *</label>
                 <input
                   type="text"
                   className="input-field"
@@ -1037,6 +1217,19 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
+                />
+              </div>
+
+              {/* 🏷️ 태그 입력 영역 */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Hash size={13} color="var(--primary)" />
+                  <span>태그 (해시태그)</span>
+                </label>
+                <TagInput
+                  tags={tags}
+                  onChange={setTags}
+                  placeholder="#태그 #태그1 입력 (스페이스/엔터로 등록)"
                 />
               </div>
 

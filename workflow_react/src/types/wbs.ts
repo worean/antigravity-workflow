@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import type { Sprint, Issue } from './index';
+﻿import type { Sprint, Issue } from './index';
 
 export interface WBSColorTheme {
   name: string;

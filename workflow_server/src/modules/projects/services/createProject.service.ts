@@ -1,24 +1,30 @@
 ﻿import { prisma } from '#lib/prisma.js';
 
 export const createProjectService = async (data: any, ownerId?: number) => {
-  const { name, description, key, statusId, priorityId } = data;
+  const { name, description, key, statusId, priorityId, visibility = 'PUBLIC' } = data;
   const targetOwnerId = Number(ownerId || data.ownerId);
 
   if (!name || !key || isNaN(targetOwnerId) || targetOwnerId <= 0) {
     throw new Error('name, key, and valid ownerId are required');
   }
 
-  // 1. Owner User 존재 여부 확인
-  const owner = await prisma.user.findUnique({ where: { id: targetOwnerId } });
+  // 1. Owner User 존재 여부 확인 및 워크스페이스 DB 자동 동기화
+  let owner = await prisma.user.findUnique({ where: { id: targetOwnerId } });
   if (!owner) {
-    throw new Error(`Owner user with ID ${targetOwnerId} does not exist in DB.`);
+    owner = await prisma.user.create({
+      data: {
+        id: targetOwnerId,
+        email: data.userEmail || `user_${targetOwnerId}@example.com`,
+        name: data.userName || `User ${targetOwnerId}`,
+      },
+    });
   }
 
   // 2. ProjectStatus (id: 1) 존재 확인 및 자동 생성
   let status = await prisma.projectStatus.findFirst();
   if (!status) {
     status = await prisma.projectStatus.create({
-      data: { name: 'Active', category: 'IN_PROGRESS', isSystem: true }
+      data: { name: 'Active', category: 'IN_PROGRESS', isSystem: true },
     });
   }
 
@@ -26,12 +32,15 @@ export const createProjectService = async (data: any, ownerId?: number) => {
   let priority = await prisma.projectPriority.findFirst();
   if (!priority) {
     priority = await prisma.projectPriority.create({
-      data: { name: 'Medium', level: 2, isSystem: true }
+      data: { name: 'Medium', level: 2, isSystem: true },
     });
   }
 
   const finalStatusId = statusId ? Number(statusId) : status.id;
   const finalPriorityId = priorityId ? Number(priorityId) : priority.id;
+  const normalizedVisibility = ['PUBLIC', 'PROTECTED', 'PRIVATE'].includes(String(visibility).toUpperCase())
+    ? String(visibility).toUpperCase()
+    : 'PUBLIC';
 
   // 4. Project 생성
   const project = await prisma.project.create({
@@ -41,8 +50,9 @@ export const createProjectService = async (data: any, ownerId?: number) => {
       key: key.toUpperCase(),
       ownerId: targetOwnerId,
       statusId: finalStatusId,
-      priorityId: finalPriorityId
-    }
+      priorityId: finalPriorityId,
+      visibility: normalizedVisibility,
+    },
   });
 
   // 5. 프로젝트 생성자를 ADMIN 멤버로 등록
@@ -50,18 +60,25 @@ export const createProjectService = async (data: any, ownerId?: number) => {
     where: {
       projectId_userId: {
         projectId: project.id,
-        userId: targetOwnerId
-      }
+        userId: targetOwnerId,
+      },
     },
     update: { role: 'ADMIN' },
     create: {
       projectId: project.id,
       userId: targetOwnerId,
-      role: 'ADMIN'
-    }
+      role: 'ADMIN',
+    },
   });
 
-  // 6. 비관계형 활동 로그 기록
+  // 6. 🏷️ 태그 동기화
+  if (data.tags !== undefined || description || name) {
+    const { syncProjectTagsService } = await import('../../tags/services/syncProjectTags.service.js');
+    const tagSource = data.tags !== undefined ? data.tags : `${name} ${description || ''}`;
+    await syncProjectTagsService(project.id, tagSource);
+  }
+
+  // 7. 비관계형 활동 로그 기록
   try {
     const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
     await createActivityLogService({
@@ -71,13 +88,11 @@ export const createProjectService = async (data: any, ownerId?: number) => {
       userId: targetOwnerId,
       userName: owner.name || undefined,
       userEmail: owner.email,
-      summary: `프로젝트 '${project.name}' (${project.key}) 생성`,
-      details: { name: project.name, key: project.key, description: project.description }
+      summary: `프로젝트 '${project.name}' (${project.key}) 생성 [${normalizedVisibility}]`,
+      details: { name: project.name, key: project.key, description: project.description, visibility: normalizedVisibility },
     });
-  } catch {
-    // 로깅 오류가 핵심 비즈니스 로직을 방해하지 않음
-  }
+  } catch {}
 
-  return project;
+  const { getProjectService } = await import('./getProject.service.js');
+  return await getProjectService(project.id, targetOwnerId, true);
 };
-

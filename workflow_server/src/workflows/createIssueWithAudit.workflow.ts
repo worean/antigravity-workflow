@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { runTransaction } from '#lib/prisma.js';
+﻿import { runTransaction } from '#lib/prisma.js';
 import { createIssueService } from '#modules/issues/services/createIssue.service.js';
 import { createActivityLogService } from '#modules/activityLogs/services/createActivityLog.service.js';
 

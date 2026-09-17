@@ -1,4 +1,4 @@
-﻿export interface UserPreferences {
+export interface UserPreferences {
   isSundayStart?: boolean;
   defaultPriority?: number;
   compactCards?: boolean;
@@ -71,11 +71,25 @@ export interface Favorite {
   detail?: any;
 }
 
+export interface Tag {
+  id: number;
+  name: string;
+  color?: string;
+  issuesCount?: number;
+  projectsCount?: number;
+  totalCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type ProjectVisibility = 'PUBLIC' | 'PROTECTED' | 'PRIVATE';
+
 export interface Project {
   id: number;
   name: string;
   key: string;
   description?: string | null;
+  visibility?: ProjectVisibility;
   ownerId?: number;
   owner?: User;
   statusId?: number;
@@ -87,9 +101,12 @@ export interface Project {
   actualStartDate?: string | null;
   actualEndDate?: string | null;
   isFavorite?: boolean;
+  workspaceId?: number | null;
+  hasMention?: boolean;
   members?: ProjectMember[];
   groups?: ProjectGroup[];
   sprints?: Sprint[];
+  tags?: Tag[];
   createdAt?: string;
   updatedAt?: string;
   _count?: {
@@ -158,8 +175,11 @@ export interface Issue {
   loggedHours?: number;
   customFields?: any;
   progress?: number;
+  tags?: Tag[];
   isLiked?: boolean;
   isFavorite?: boolean;
+  workspaceId?: number | null;
+  hasMention?: boolean;
   likesCount?: number;
   commentsCount?: number;
   attachmentsCount?: number;
@@ -209,6 +229,8 @@ export interface Sprint {
   projectId: number;
   project?: Project;
   isFavorite?: boolean;
+  workspaceId?: number | null;
+  hasMention?: boolean;
   issues?: Issue[];
   _count?: {
     issues?: number;
@@ -258,7 +280,7 @@ export interface HealthStatus {
 // ----------------------------------------------------
 // 💬 Discord-style Chat System Types
 // ----------------------------------------------------
-export type ChannelType = 'GLOBAL' | 'PROJECT' | 'GROUP' | 'DM';
+export type ChannelType = 'GLOBAL' | 'GENERAL' | 'PROJECT' | 'GROUP' | 'DM';
 export type NotificationLevel = 'ALL' | 'MENTIONS_ONLY' | 'MUTED';
 
 export interface ChatMember {
@@ -279,6 +301,8 @@ export interface ChatChannel {
   icon?: string | null;
   isPrivate?: boolean;
   isFavorite?: boolean;
+  workspaceId?: number | null;
+  hasMention?: boolean;
   projectId?: number | null;
   project?: { id: number; name: string; key: string } | null;
   groupId?: number | null;
@@ -379,5 +403,6 @@ export interface WorkspaceDetail extends Workspace {
 }
 
 export * from './wbs';
+export * from './chatbot';
 
 

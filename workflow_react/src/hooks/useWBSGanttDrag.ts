@@ -3,6 +3,7 @@ import type { Issue } from '@/types';
 import type { DragState } from '@/types/wbs';
 import { updateIssue, batchUpdateIssueSchedules } from '@/services/api';
 import { formatDateOnly, parseLocalDate, addDays, diffDays } from '@/utils/dateUtils';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface UseWBSGanttDragProps {
   issues: Issue[];
@@ -384,10 +385,13 @@ export const useWBSGanttDrag = ({
           });
         }
         await loadProjectData();
+        useUIStore.getState().showToast('일정이 성공적으로 저장되었습니다.', 'success');
       } catch (err: any) {
         console.error('Failed to update issue schedule:', err);
         setIssues(previousIssues);
-        setErrorMessage(err.response?.data?.error || '일정 수정에 실패하여 원위치로 롤백합니다.');
+        const errMsg = err.response?.data?.error || '일정 수정에 실패하여 원위치로 되돌렸습니다.';
+        setErrorMessage(errMsg);
+        useUIStore.getState().showToast(errMsg, 'error');
         await loadProjectData();
       } finally {
         setUpdatingIssueId(null);

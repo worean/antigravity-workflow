@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 const { app, BrowserWindow, ipcMain, Notification, Menu, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');

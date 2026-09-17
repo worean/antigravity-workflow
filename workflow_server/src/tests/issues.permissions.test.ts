@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import { createUserService } from '../modules/users/services/createUser.service.js';
 import { createProjectService } from '../modules/projects/services/createProject.service.js';
 import { addMemberService } from '../modules/projects/services/addMember.service.js';

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Issue, User, Project, CustomFieldDefinition } from '@/types';
 import { IssueDetailView } from './IssueDetailView';
 import { IssueDetailEditForm } from './IssueDetailEditForm';
@@ -21,6 +20,8 @@ interface IssueDetailMainCardProps {
   setTitle: (val: string) => void;
   description: string;
   setDescription: (val: string) => void;
+  tags?: string[];
+  setTags?: (tags: string[]) => void;
   projectId: number;
   setProjectId: (val: number) => void;
   parentId: number | null;
@@ -66,6 +67,8 @@ export const IssueDetailMainCard: React.FC<IssueDetailMainCardProps> = ({
   setTitle,
   description,
   setDescription,
+  tags = [],
+  setTags,
   projectId,
   setProjectId,
   parentId,
@@ -115,6 +118,8 @@ export const IssueDetailMainCard: React.FC<IssueDetailMainCardProps> = ({
           setTitle={setTitle}
           description={description}
           setDescription={setDescription}
+          tags={tags}
+          setTags={setTags}
           projectId={projectId}
           setProjectId={setProjectId}
           parentId={parentId}

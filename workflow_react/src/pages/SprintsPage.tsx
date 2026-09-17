@@ -1,12 +1,10 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Sprint, Project, Issue } from '@/types';
 import {
   getSprints,
   getSprint,
   getProjects,
   getIssues,
-  createSprint,
   updateSprint,
   deleteSprint,
   assignIssuesToSprint,
@@ -17,16 +15,19 @@ import {
   SprintToolbar,
   SprintStarredHud,
   SprintGrid,
-  SprintFormModal,
   SprintManageIssuesModal,
   SprintDetailModal,
   type SprintStatusFilter,
 } from '@/components/sprints';
+import { SprintModal } from '@/components/SprintModal';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface SprintsPageProps {
   selectedProjectId?: number | 'ALL' | null;
   onFilterChange?: (projectId: number | 'ALL') => void;
   onSelectSprint?: (sprintId: number) => void;
+  onOpenCreateSprint?: () => void;
+  onOpenEditSprint?: (sprint: Sprint) => void;
   onOpenIssueDetail?: (issueId: number) => void;
   onOpenAuth?: () => void;
 }
@@ -35,34 +36,23 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   selectedProjectId: initialProjectId = 'ALL',
   onFilterChange,
   onSelectSprint,
+  onOpenCreateSprint,
+  onOpenEditSprint,
   onOpenIssueDetail,
   onOpenAuth,
 }) => {
   const { user, isAuthenticated } = useAuth();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // Filters
+  // Filters (Single Source of Truth from Props)
   const [statusFilter, setStatusFilter] = useState<SprintStatusFilter>('ALL');
-  const [selectedProjectId, setSelectedProjectId] = useState<number | 'ALL'>(initialProjectId || 'ALL');
+  const selectedProjectId = initialProjectId || 'ALL';
 
-  useEffect(() => {
-    if (initialProjectId !== undefined && initialProjectId !== null) {
-      setSelectedProjectId(initialProjectId);
-    }
-  }, [initialProjectId]);
-
-  // Create / Edit Modal State
+  // Create / Edit Modal State (로컬 폴백용)
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
-  const [formName, setFormName] = useState<string>('');
-  const [formGoal, setFormGoal] = useState<string>('');
-  const [formProjectId, setFormProjectId] = useState<number>(1);
-  const [formStartDate, setFormStartDate] = useState<string>('');
-  const [formEndDate, setFormEndDate] = useState<string>('');
-  const [formStatus, setFormStatus] = useState<string>('PLANNED');
-  const [formSubmitting, setFormSubmitting] = useState<boolean>(false);
 
   // Collaboration Hub / Detail Modal State
   const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
@@ -78,7 +68,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   const [autoCalculating, setAutoCalculating] = useState<boolean>(false);
 
   const fetchData = async (showLoading: boolean = false) => {
-    if (showLoading) setLoading(true);
+    if (showLoading && sprints.length === 0) setLoading(true);
     try {
       const [sData, pData] = await Promise.all([
         getSprints(selectedProjectId === 'ALL' ? undefined : selectedProjectId),
@@ -86,41 +76,35 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       ]);
       setSprints(sData);
       setProjects(pData);
-      if (pData.length > 0 && !formProjectId) setFormProjectId(pData[0].id);
     } catch (err) {
       console.error('Failed to fetch sprint data:', err);
     } finally {
-      if (showLoading) setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData(true);
+    fetchData(false);
   }, [selectedProjectId]);
 
-  // Open Create Modal
+  // Open Create Modal (전역 모달 우선 호출)
   const handleOpenCreateModal = () => {
-    setEditingSprint(null);
-    setFormName('');
-    setFormGoal('');
-    setFormProjectId(projects[0]?.id || 1);
-    setFormStartDate(new Date().toISOString().slice(0, 10));
-    const next2Weeks = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    setFormEndDate(next2Weeks);
-    setFormStatus('PLANNED');
-    setShowFormModal(true);
+    if (onOpenCreateSprint) {
+      onOpenCreateSprint();
+    } else {
+      setEditingSprint(null);
+      setShowFormModal(true);
+    }
   };
 
-  // Open Edit Modal
+  // Open Edit Modal (전역 모달 우선 호출)
   const handleOpenEditModal = (sprint: Sprint) => {
-    setEditingSprint(sprint);
-    setFormName(sprint.name);
-    setFormGoal(sprint.goal || '');
-    setFormProjectId(sprint.projectId);
-    setFormStartDate(formatDateOnly(sprint.startDate) || '');
-    setFormEndDate(formatDateOnly(sprint.endDate) || '');
-    setFormStatus(sprint.status || 'PLANNED');
-    setShowFormModal(true);
+    if (onOpenEditSprint) {
+      onOpenEditSprint(sprint);
+    } else {
+      setEditingSprint(sprint);
+      setShowFormModal(true);
+    }
   };
 
   // Open Collaboration Hub / Detail Page
@@ -133,88 +117,15 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     }
   };
 
-  // Quick Preset Date Helpers (1주, 2주, 4주)
-  const applyDatePreset = (weeks: number) => {
-    const start = formStartDate ? new Date(formStartDate) : new Date();
-    const end = new Date(start.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
-    setFormEndDate(end.toISOString().slice(0, 10));
-  };
-
-  // Auto calculate dates from project issues for creation form
-  const handleAutoFillDatesFromProject = async () => {
-    try {
-      const projIssues = await getIssues({ projectId: formProjectId });
-      if (!projIssues || projIssues.length === 0) {
-        alert('해당 프로젝트에 등록된 이슈가 없습니다.');
-        return;
-      }
-      let minStart: string | null = null;
-      let maxDue: string | null = null;
-
-      for (const iss of projIssues) {
-        if (iss.plannedStartDate) {
-          const s = iss.plannedStartDate.slice(0, 10);
-          if (!minStart || s < minStart) minStart = s;
-        }
-        if (iss.dueDate) {
-          const d = iss.dueDate.slice(0, 10);
-          if (!maxDue || d > maxDue) maxDue = d;
-        }
-      }
-
-      if (minStart) setFormStartDate(minStart);
-      if (maxDue) setFormEndDate(maxDue);
-      if (!minStart && !maxDue) {
-        alert('프로젝트 이슈들에 설정된 시작일/기한이 없습니다.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('일정 자동 계산 중 오류가 발생했습니다.');
-    }
-  };
-
-  // Submit Sprint Form (Create or Update)
-  const handleSubmitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formName.trim()) return alert('스프린트 이름을 입력하세요.');
-
-    setFormSubmitting(true);
-    try {
-      if (editingSprint) {
-        await updateSprint(editingSprint.id, {
-          name: formName.trim(),
-          goal: formGoal.trim() || undefined,
-          startDate: formStartDate ? new Date(formStartDate).toISOString() : undefined,
-          endDate: formEndDate ? new Date(formEndDate).toISOString() : undefined,
-          status: formStatus,
-        });
-      } else {
-        await createSprint({
-          name: formName.trim(),
-          goal: formGoal.trim() || undefined,
-          projectId: formProjectId,
-          startDate: formStartDate ? new Date(formStartDate).toISOString() : undefined,
-          endDate: formEndDate ? new Date(formEndDate).toISOString() : undefined,
-          status: formStatus,
-        });
-      }
-      setShowFormModal(false);
-      await fetchData();
-    } catch (err: any) {
-      alert(err.response?.data?.error || '스프린트 저장 실패');
-    } finally {
-      setFormSubmitting(false);
-    }
-  };
-
   // Delete Sprint
   const handleDeleteSprint = async (sprintId: number) => {
     if (!confirm('정말로 이 스프린트를 삭제하시겠습니까? 소속된 이슈들은 백로그로 되돌아갑니다.')) return;
     try {
       await deleteSprint(sprintId);
       await fetchData();
+      useUIStore.getState().showToast('스프린트가 성공적으로 삭제되었습니다.', 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '스프린트 삭제 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '스프린트 삭제에 실패했습니다.', 'error');
     }
   };
 
@@ -223,8 +134,11 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     try {
       await updateSprint(sprintId, { status: newStatus });
       await fetchData();
+      const statusLabel =
+        newStatus === 'ACTIVE' ? '진행 중' : newStatus === 'COMPLETED' ? '완료' : '계획됨';
+      useUIStore.getState().showToast(`스프린트 상태가 '${statusLabel}'(으)로 변경되었습니다.`, 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '상태 변경 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '상태 변경에 실패했습니다.', 'error');
     }
   };
 
@@ -246,7 +160,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       setBacklogIssues(unassigned);
     } catch (err) {
       console.error(err);
-      alert('이슈 목록 조회 실패');
+      useUIStore.getState().showToast('이슈 목록 조회에 실패했습니다.', 'error');
     } finally {
       setManageLoading(false);
     }
@@ -263,8 +177,9 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         setSprintIssues((prev) => [...prev, { ...targetIssue, sprintId: managingSprint.id }]);
       }
       await fetchData();
+      useUIStore.getState().showToast('스프린트에 이슈가 할당되었습니다.', 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '이슈 할당 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '이슈 할당에 실패했습니다.', 'error');
     }
   };
 
@@ -279,8 +194,9 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         setBacklogIssues((prev) => [...prev, { ...targetIssue, sprintId: null }]);
       }
       await fetchData();
+      useUIStore.getState().showToast('스프린트에서 이슈가 제외되어 백로그로 이동했습니다.', 'success');
     } catch (err: any) {
-      alert(err.response?.data?.error || '이슈 제외 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '이슈 제외에 실패했습니다.', 'error');
     }
   };
 
@@ -288,7 +204,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   const handleSyncSprintDates = async () => {
     if (!managingSprint) return;
     if (sprintIssues.length === 0) {
-      alert('스프린트에 할당된 이슈가 없습니다.');
+      useUIStore.getState().showToast('스프린트에 할당된 이슈가 없습니다.', 'error');
       return;
     }
 
@@ -307,7 +223,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     }
 
     if (!minStart && !maxDue) {
-      alert('할당된 이슈들에 설정된 시작일이나 기한이 없습니다.');
+      useUIStore.getState().showToast('할당된 이슈들에 설정된 시작일이나 기한이 없습니다.', 'error');
       return;
     }
 
@@ -319,9 +235,12 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       });
       setManagingSprint(updated);
       await fetchData();
-      alert(`스프린트 일정이 할당된 이슈에 맞춰 자동 갱신되었습니다!\n시작일: ${formatDateOnly(updated.startDate) || '미설정'}\n종료일: ${formatDateOnly(updated.endDate) || '미설정'}`);
+      useUIStore.getState().showToast(
+        `스프린트 일정이 자동 갱신되었습니다. (${formatDateOnly(updated.startDate) || '미설정'} ~ ${formatDateOnly(updated.endDate) || '미설정'})`,
+        'success'
+      );
     } catch (err: any) {
-      alert(err.response?.data?.error || '일정 동기화 실패');
+      useUIStore.getState().showToast(err.response?.data?.error || '일정 동기화에 실패했습니다.', 'error');
     } finally {
       setAutoCalculating(false);
     }
@@ -391,7 +310,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         selectedProjectId={selectedProjectId}
-        setSelectedProjectId={setSelectedProjectId}
+        setSelectedProjectId={(pId) => onFilterChange && onFilterChange(pId)}
         filteredSprintsCount={filteredSprints.length}
         projects={projects}
         isAuthenticated={isAuthenticated}
@@ -427,28 +346,14 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         onOpenAuth={onOpenAuth}
       />
 
-      {/* 4. Form Modal: Create / Edit */}
-      <SprintFormModal
-        showFormModal={showFormModal}
-        setShowFormModal={setShowFormModal}
-        editingSprint={editingSprint}
-        formName={formName}
-        setFormName={setFormName}
-        formGoal={formGoal}
-        setFormGoal={setFormGoal}
-        formProjectId={formProjectId}
-        setFormProjectId={setFormProjectId}
-        formStartDate={formStartDate}
-        setFormStartDate={setFormStartDate}
-        formEndDate={formEndDate}
-        setFormEndDate={setFormEndDate}
-        formStatus={formStatus}
-        setFormStatus={setFormStatus}
-        formSubmitting={formSubmitting}
+      {/* 4. Form Modal: Create / Edit (IssueModal 완벽 일치 구조) */}
+      <SprintModal
+        isOpen={showFormModal}
+        onClose={() => setShowFormModal(false)}
+        sprint={editingSprint}
         projects={projects}
-        applyDatePreset={applyDatePreset}
-        handleAutoFillDatesFromProject={handleAutoFillDatesFromProject}
-        handleSubmitForm={handleSubmitForm}
+        initialProjectId={selectedProjectId === 'ALL' ? undefined : selectedProjectId}
+        onSuccess={() => fetchData()}
       />
 
       {/* 5. Manage Issues Modal */}

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import { FolderKanban, CheckSquare, Clock, CheckCircle2 } from 'lucide-react';
 import type { Project, Issue } from '@/types';
 

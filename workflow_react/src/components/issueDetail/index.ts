@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-export * from './IssueDetailHeader';
+﻿export * from './IssueDetailHeader';
 export * from './IssueDetailView';
 export * from './IssueDetailEditForm';
 export * from './IssueDetailMainCard';

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const createSprintService = async (data: any) => {
   const { name, goal, startDate, endDate, projectId, status, issueIds, autoCalculateDates } = data;

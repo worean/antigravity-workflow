@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-export * from './SettingsHeaderToolbar';
+﻿export * from './SettingsHeaderToolbar';
 export * from './SettingsSidebarNav';
 export * from './SettingsProfileTab';
 export * from './SettingsWorkspaceTab';

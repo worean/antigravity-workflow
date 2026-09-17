@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getSprintDiscussionsService } from '../modules/sprints/services/getSprintDiscussions.service.js';
 import { prisma } from '#lib/prisma.js';
 

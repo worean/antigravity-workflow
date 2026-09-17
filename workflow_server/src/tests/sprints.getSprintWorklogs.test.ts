@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getSprintWorklogsService } from '../modules/sprints/services/getSprintWorklogs.service.js';
 import { prisma } from '#lib/prisma.js';
 

@@ -44,6 +44,7 @@
     }
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
     "@tanstack/react-query": "^5.102.3",
     "axios": "^1.18.1",
     "dotenv": "^17.4.2",
@@ -52,7 +53,8 @@
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
@@ -64,6 +66,7 @@
     "electron": "^43.4.0",
     "electron-builder": "^26.15.3",
     "oxlint": "^1.71.0",
+    "playwright": "^1.63.0",
     "tslib": "^2.8.1",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",

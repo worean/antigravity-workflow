@@ -1,53 +1,102 @@
-﻿// -*- coding: utf-8 -*-
 import path from 'path';
-import fs from 'fs';
-import {
-  takeDbSnapshot,
-  restoreDbSnapshot,
-  createTestDbCopy,
-  cleanupTestDb,
-  cleanupSnapshot,
-  ensureTmpDir,
-} from '#lib/dbSnapshot.js';
+import dotenv from 'dotenv';
+import { globalPrisma } from '#lib/globalPrisma.js';
+import { prisma } from '#lib/prisma.js';
+import { workspaceManager } from '#lib/workspaceManager.js';
 
-const TMP_DIR = path.resolve(process.cwd(), '.tmp');
-const TEST_DB_PATH = path.resolve(TMP_DIR, 'test_task_board.db');
-const TEST_DATABASE_URL = `file:${TEST_DB_PATH}`;
+// 테스트 전용 .env.test 로드
+dotenv.config({ path: path.resolve(process.cwd(), '.env.test'), override: true });
 
 export async function setup() {
-  ensureTmpDir();
-  console.log('\n📦 [Test DB Setup] Creating database snapshot & isolated test database...');
+  console.log('\n🔒 [Test Safety Guard] Verifying isolated test database connection...');
 
-  // 1. 메인 DB 스냅샷 백업
-  const snapshotCreated = takeDbSnapshot();
-  if (snapshotCreated) {
-    console.log('📸 [Test DB Setup] Snapshot created: task_board.db.snapshot');
+  const globalUrl = process.env.GLOBAL_DATABASE_URL || '';
+  const workspaceUrl = process.env.WORKSPACE_DATABASE_URL || '';
+
+  // 🛡️ Fail-Safe 가드: 만약 개발용 DB(끝이 /global 또는 /workspace)로 지정되어 있다면 테스트 중단
+  if (
+    globalUrl.endsWith('/global') ||
+    workspaceUrl.endsWith('/workspace') ||
+    (!globalUrl.includes('test') && !workspaceUrl.includes('test'))
+  ) {
+    throw new Error(
+      `🚨 FATAL: Tests attempted to run against DEV/PROD databases!\n` +
+      `GLOBAL_DATABASE_URL: ${globalUrl}\n` +
+      `WORKSPACE_DATABASE_URL: ${workspaceUrl}\n` +
+      `Tests must ONLY run against isolated test databases (e.g. global_test, workspace_test).`
+    );
   }
 
-  // 2. 테스트 전용 DB 복제본 생성
-  const testDbCreated = createTestDbCopy();
-  if (testDbCreated) {
-    console.log(`🧪 [Test DB Setup] Test database prepared: ${testDbCreated}`);
-  }
+  console.log(`✅ [Test Safety Guard] Test databases verified:\n - Global: ${globalUrl}\n - Workspace: ${workspaceUrl}`);
 
-  // 3. 환경 변수 DATABASE_URL을 테스트 DB로 설정
-  process.env.DATABASE_URL = TEST_DATABASE_URL;
-  console.log(`🔗 [Test DB Setup] DATABASE_URL routed to: ${TEST_DATABASE_URL}\n`);
+  // 테스트 DB 기본 메타데이터 및 어드민 시드 보장
+  try {
+    const adminUser = await globalPrisma.user.upsert({
+      where: { email: 'worean@naver.com' },
+      update: { name: '시스템 최고 관리자', role: 'ADMIN' },
+      create: { email: 'worean@naver.com', name: '시스템 최고 관리자', role: 'ADMIN' },
+    });
+
+    const defaultWs = await globalPrisma.workspace.upsert({
+      where: { slug: 'antigravity-test' },
+      update: { dbUrl: workspaceUrl, ownerId: adminUser.id },
+      create: {
+        slug: 'antigravity-test',
+        name: 'AntiGravity Test Workspace',
+        ownerId: adminUser.id,
+        dbType: 'postgresql',
+        dbUrl: workspaceUrl,
+        status: 'ACTIVE',
+      },
+    });
+
+    await globalPrisma.userWorkspace.upsert({
+      where: {
+        userId_workspaceId: {
+          userId: adminUser.id,
+          workspaceId: defaultWs.id,
+        },
+      },
+      update: { role: 'OWNER', status: 'ACTIVE' },
+      create: {
+        userId: adminUser.id,
+        workspaceId: defaultWs.id,
+        role: 'OWNER',
+        status: 'ACTIVE',
+      },
+    });
+
+    await workspaceManager.seedDefaultMetadata(prisma);
+    await workspaceManager.syncUserToWorkspace(prisma, {
+      id: adminUser.id,
+      email: adminUser.email,
+      name: adminUser.name,
+      role: adminUser.role,
+    });
+
+    // PostgreSQL autoincrement sequence 동기화 (명시적 id 삽입 후 시퀀스 꼬임 방지)
+    try {
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), COALESCE((SELECT MAX(id) FROM "User"), 1));`);
+      await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), COALESCE((SELECT MAX(id) FROM "User"), 1));`);
+      await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Workspace"', 'id'), COALESCE((SELECT MAX(id) FROM "Workspace"), 1));`);
+    } catch {
+      // SQLite 등 타 환경 무시
+    }
+
+    console.log('🌱 [Test DB Setup] Test database seeds initialized cleanly.\n');
+  } catch (err: any) {
+    console.warn('⚠️ [Test DB Setup] Note during seed initialization:', err.message);
+  }
 }
 
 export async function teardown() {
-  console.log('\n🧹 [Test DB Teardown] Cleaning up test database and restoring snapshot...');
-
-  // 1. 테스트용 임시 DB 정리
-  cleanupTestDb();
-
-  // 2. 메인 DB를 테스트 실행 직전의 스냅샷 상태로 완벽 복원
-  const restored = restoreDbSnapshot();
-  if (restored) {
-    console.log('🔄 [Test DB Teardown] Main database successfully restored from snapshot!');
+  console.log('\n🧹 [Test DB Teardown] Cleaning up test client connections...');
+  try {
+    await workspaceManager.closeAll();
+    await prisma.$disconnect();
+    await globalPrisma.$disconnect();
+    console.log('✨ [Test DB Teardown] All test connections disconnected.\n');
+  } catch (err: any) {
+    console.warn('⚠️ [Test DB Teardown] Error during disconnect:', err.message);
   }
-
-  // 3. 임시 스냅샷 파일 정리
-  cleanupSnapshot();
-  console.log('✨ [Test DB Teardown] Completed cleanly. Main database is 100% preserved.\n');
 }

@@ -1,5 +1,4 @@
-// -*- coding: utf-8 -*-
-import { Request, Response, NextFunction } from 'express';
+﻿﻿import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '#lib/prisma.js';
 import { globalPrisma } from '#lib/globalPrisma.js';
@@ -66,7 +65,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       try {
         const decoded = jwt.verify(token, jwtSecret) as { userId: number };
         if (decoded && decoded.userId) {
-          const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+          const user = await globalPrisma.user.findUnique({ where: { id: decoded.userId } });
           if (user) req.user = user;
         }
       } catch {
@@ -97,12 +96,15 @@ export const requireProjectMember = async (req: Request, res: Response, next: Ne
     // URL의 :id 가 issueId 또는 projectId 로 들어올 수 있음
     const paramId = Number(req.params.id);
     if (!projectId && paramId) {
-      // 먼저 이슈 검색
-      const issue = await prisma.issue.findUnique({ where: { id: paramId }, select: { projectId: true } });
-      if (issue) {
-        projectId = issue.projectId;
+      if (req.baseUrl?.includes('issues')) {
+        const issue = await prisma.issue.findUnique({ where: { id: paramId }, select: { projectId: true } });
+        if (issue) {
+          projectId = issue.projectId;
+        } else {
+          projectId = paramId;
+        }
       } else {
-        // 이슈가 아니면 프로젝트 ID로 간주
+        // projects 라우터에서는 :id가 무조건 projectId
         projectId = paramId;
       }
     }
@@ -149,10 +151,15 @@ export const requireProjectPM = async (req: Request, res: Response, next: NextFu
 
     const paramId = Number(req.params.id);
     if (!projectId && paramId) {
-      const issue = await prisma.issue.findUnique({ where: { id: paramId }, select: { projectId: true } });
-      if (issue) {
-        projectId = issue.projectId;
+      if (req.baseUrl?.includes('issues')) {
+        const issue = await prisma.issue.findUnique({ where: { id: paramId }, select: { projectId: true } });
+        if (issue) {
+          projectId = issue.projectId;
+        } else {
+          projectId = paramId;
+        }
       } else {
+        // projects 라우터에서는 :id가 무조건 projectId
         projectId = paramId;
       }
     }

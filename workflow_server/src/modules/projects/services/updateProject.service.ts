@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const updateProjectService = async (id: number, data: any, modifierUserId?: number) => {
   if (!id) throw new Error('Project ID is required');
@@ -13,6 +12,7 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
     dueDate,
     actualStartDate,
     actualEndDate,
+    visibility,
     userId,
   } = data;
   const targetUserId = modifierUserId || (userId ? Number(userId) : undefined);
@@ -23,6 +23,13 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
   if (key !== undefined) updateData.key = key;
   if (statusId !== undefined) updateData.statusId = statusId ? Number(statusId) : undefined;
   if (priorityId !== undefined) updateData.priorityId = priorityId ? Number(priorityId) : undefined;
+
+  if (visibility !== undefined) {
+    const norm = String(visibility).toUpperCase();
+    if (['PUBLIC', 'PROTECTED', 'PRIVATE'].includes(norm)) {
+      updateData.visibility = norm;
+    }
+  }
 
   if (plannedStartDate !== undefined) {
     updateData.plannedStartDate = plannedStartDate ? new Date(plannedStartDate) : null;
@@ -62,8 +69,19 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
       sprints: true,
       milestones: true,
       customFieldDefs: true,
+      tags: true,
     },
   });
+
+  // 🏷️ 태그 동기화
+  if (data.tags !== undefined) {
+    const { syncProjectTagsService } = await import('../../tags/services/syncProjectTags.service.js');
+    await syncProjectTagsService(Number(id), data.tags);
+  } else if (description !== undefined || name !== undefined) {
+    const { syncProjectTagsService } = await import('../../tags/services/syncProjectTags.service.js');
+    const tagSource = `${name ?? updated.name} ${description ?? updated.description ?? ''}`;
+    await syncProjectTagsService(Number(id), tagSource);
+  }
 
   try {
     const { createActivityLogService } = await import('../../activityLogs/services/createActivityLog.service.js');
@@ -77,6 +95,6 @@ export const updateProjectService = async (id: number, data: any, modifierUserId
     });
   } catch {}
 
-  return updated;
+  const { getProjectService } = await import('./getProject.service.js');
+  return await getProjectService(Number(id), targetUserId, true);
 };
-

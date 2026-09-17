@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Clock, RefreshCw, ExternalLink, UserCheck, Calendar } from 'lucide-react';
 import type { SprintWorklogItem } from '@/types';
 import { getSprintWorklogs } from '@/services/api';

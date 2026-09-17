@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import type { Issue, Sprint } from '@/types';
+﻿import type { Issue, Sprint } from '@/types';
 import type { WBSColorTheme, WBSItem, TimelineRange, TopHeader, BottomHeaders, SprintDueLine } from '@/types/wbs';
 import { parseLocalDate, formatDateOnly, addDays, diffDays, getWeekNumber } from './dateUtils';
 

@@ -1,9 +1,9 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { WorkspaceProvider } from '@/context/WorkspaceContext';
+import { prefRepository } from '@/lib/prefRepository';
 import { Header, type BreadcrumbItem } from '@/components/Header';
 
 import { Sidebar, type TabType } from '@/components/Sidebar';
@@ -11,31 +11,53 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
 import { ProjectDetailPage } from '@/pages/ProjectDetailPage';
 import { IssuesPage } from '@/pages/IssuesPage';
+import { IssueDetailPage } from '@/pages/IssueDetailPage';
 import { SprintsPage } from '@/pages/SprintsPage';
 import { SprintDetailPage } from '@/pages/SprintDetailPage';
 import { WBSPage } from '@/pages/WBSPage';
 import { WorklogsPage } from '@/pages/WorklogsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ChatPage } from '@/pages/ChatPage';
-import { AuthModal } from '@/components/AuthModal';
+import { StateDemoPage } from '@/pages/StateDemoPage';
+import { GlobalModalManager } from '@/components/GlobalModalManager';
+import { useUIStore } from '@/stores/useUIStore';
 
-import { ProjectModal } from '@/components/ProjectModal';
-import { IssueModal } from '@/components/IssueModal';
+import { SprintModal } from '@/components/SprintModal';
 import { IssueDetailDrawer } from '@/components/issueDetail';
-import { getProjects } from '@/services/api';
-import type { Project, Issue } from '@/types';
+import { useProjects, projectKeys } from '@/api/projects';
+import { issueKeys } from '@/api/issues';
+import { getSocket } from '@/lib/socketClient';
+import { sendDesktopNotification } from '@/utils/notificationUtils';
+import type { Issue, Sprint } from '@/types';
 import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/utils/routeUtils';
 
 type IssueDetailMode = 'view' | 'edit';
 
 const AppContent: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loginWithTokenAndUser } = useAuth();
+
+  // OAuth / Email Magic Link Redirect Handler (?token=...&user=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirectToken = params.get('token');
+    const redirectUserStr = params.get('user');
+
+    if (redirectToken && redirectUserStr) {
+      try {
+        const redirectUser = JSON.parse(decodeURIComponent(redirectUserStr));
+        loginWithTokenAndUser(redirectToken, redirectUser);
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      } catch (err) {
+        console.error('Failed to parse redirect user info:', err);
+      }
+    }
+  }, [loginWithTokenAndUser]);
 
   const initialRoute = useMemo(() => {
     return parseRouteFromHash(window.location.hash);
   }, []);
 
-  const [activeTab, setActiveTabState] = useState<TabType>(initialRoute.tab === 'issue-detail' ? 'issues' : initialRoute.tab);
+  const [activeTab, setActiveTabState] = useState<TabType>(initialRoute.tab as TabType);
   const [selectedProjectId, setSelectedProjectIdState] = useState<number | null>(initialRoute.projectId);
   const [selectedAssigneeId, setSelectedAssigneeIdState] = useState<number | 'ALL' | 'MY'>(initialRoute.assigneeId);
   const [searchTerm, setSearchTermState] = useState<string>(initialRoute.search);
@@ -44,23 +66,99 @@ const AppContent: React.FC = () => {
   const [selectedChannelId, setSelectedChannelIdState] = useState<number | null>(initialRoute.channelId);
   const [issueDetailMode, setIssueDetailModeState] = useState<IssueDetailMode>(initialRoute.mode);
 
-  // Modals
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState<boolean>(false);
-  const [isIssueModalOpen, setIsIssueModalOpen] = useState<boolean>(false);
+  // Global Modals (Zustand useUIStore 기반 제어)
+  const openAuthModal = useUIStore((s) => s.openAuthModal);
+  const openIssueModal = useUIStore((s) => s.openIssueModal);
+  const openProjectModal = useUIStore((s) => s.openProjectModal);
+  const [isSprintModalOpen, setIsSprintModalOpen] = useState<boolean>(false);
+  const [selectedSprintForEdit, setSelectedSprintForEdit] = useState<Sprint | null>(null);
 
-  const [projects, setProjects] = useState<Project[]>([]);
+  // TanStack Query 기반 프로젝트 목록 (Single Source of Truth)
+  const { data: projects = [] } = useProjects();
   const [issueRefreshKey, setIssueRefreshKey] = useState<number>(Date.now());
 
   const handleIssueRefreshed = useCallback(() => {
     setIssueRefreshKey(Date.now());
+    queryClient.invalidateQueries({ queryKey: issueKeys.all });
   }, []);
 
-  // 로그인 및 로그아웃 시 전체 프로젝트 목록 및 화면 상태 리프레시
+  const handleSprintRefreshed = useCallback(() => {
+    setIssueRefreshKey(Date.now());
+    queryClient.invalidateQueries({ queryKey: ['sprints'] });
+  }, []);
+
+  const handleOpenCreateSprint = useCallback(() => {
+    setSelectedSprintForEdit(null);
+    setIsSprintModalOpen(true);
+  }, []);
+
+  const handleOpenEditSprint = useCallback((sprint: Sprint) => {
+    setSelectedSprintForEdit(sprint);
+    setIsSprintModalOpen(true);
+  }, []);
+
+  // 로그인 및 로그아웃 시 화면 상태 리프레시
   useEffect(() => {
-    fetchProjects();
+    queryClient.invalidateQueries({ queryKey: projectKeys.all });
     setIssueRefreshKey(Date.now());
   }, [isAuthenticated, user?.id]);
+
+  // 🌐 실시간 이슈 생성/수정/삭제 이벤트 구독 및 타인 변경 알림 처리
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleRealtimeIssueCreated = (data: { actorId?: number; issue: Issue }) => {
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      setIssueRefreshKey(Date.now());
+
+      if (data && data.actorId && data.actorId !== user?.id && data.issue) {
+        sendDesktopNotification({
+          title: '신규 이슈 등록',
+          body: `#${data.issue.issueNumber || data.issue.id} ${data.issue.title}`,
+          priority: data.issue.priorityId || 2,
+        });
+      }
+    };
+
+    const handleRealtimeIssueUpdated = (data: { actorId?: number; issue: Issue }) => {
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      if (data?.issue?.id) {
+        queryClient.invalidateQueries({ queryKey: issueKeys.detail(data.issue.id) });
+      }
+      setIssueRefreshKey(Date.now());
+
+      if (data && data.actorId && data.actorId !== user?.id && data.issue) {
+        sendDesktopNotification({
+          title: '이슈 내용 갱신',
+          body: `#${data.issue.issueNumber || data.issue.id} ${data.issue.title}`,
+          priority: data.issue.priorityId || 2,
+        });
+      }
+    };
+
+    const handleRealtimeIssueDeleted = (_data: { actorId?: number; issueId: number }) => {
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      setIssueRefreshKey(Date.now());
+    };
+
+    const handleRealtimeBatchUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: issueKeys.all });
+      setIssueRefreshKey(Date.now());
+    };
+
+    socket.on('issue:created', handleRealtimeIssueCreated);
+    socket.on('issue:updated', handleRealtimeIssueUpdated);
+    socket.on('issue:deleted', handleRealtimeIssueDeleted);
+    socket.on('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
+
+    return () => {
+      socket.off('issue:created', handleRealtimeIssueCreated);
+      socket.off('issue:updated', handleRealtimeIssueUpdated);
+      socket.off('issue:deleted', handleRealtimeIssueDeleted);
+      socket.off('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
+    };
+  }, [user?.id]);
 
   const navigate = useCallback(
     (
@@ -71,30 +169,26 @@ const AppContent: React.FC = () => {
       replace: boolean = false,
       extra?: { assigneeId?: number | 'ALL' | 'MY'; search?: string; channelId?: number | null; sprintId?: number | null }
     ) => {
-      const normalizedTab = tab === 'issue-detail' ? 'issues' : tab;
-      localStorage.setItem('activeTab', normalizedTab);
-      if (projId) {
-        localStorage.setItem('selectedProjectId', String(projId));
-      }
+      prefRepository.activeTab = tab;
 
-      const targetSprintId = extra?.sprintId ?? (normalizedTab === 'sprint-detail' ? issueId : null);
+      const targetSprintId = extra?.sprintId ?? (tab === 'sprint-detail' ? issueId : null);
 
-      setActiveTabState(normalizedTab);
+      setActiveTabState(tab);
       setSelectedProjectIdState(projId);
       if (extra?.assigneeId !== undefined) setSelectedAssigneeIdState(extra.assigneeId);
       if (extra?.search !== undefined) setSearchTermState(extra.search);
       if (extra?.channelId !== undefined) setSelectedChannelIdState(extra.channelId);
       setSelectedSprintIdState(targetSprintId);
-      setSelectedIssueIdState(normalizedTab === 'sprint-detail' ? null : issueId);
+      setSelectedIssueIdState(tab === 'issue-detail' ? issueId : null);
       setIssueDetailModeState(mode);
 
       // Build RESTful Hierarchical Hash URL
       const newHash = buildHashFromRoute({
-        tab: (issueId ? 'issue-detail' : normalizedTab) as ActiveTabType,
+        tab: tab as ActiveTabType,
         projectId: projId,
-        issueId: normalizedTab === 'sprint-detail' ? null : issueId,
+        issueId: tab === 'issue-detail' ? issueId : null,
         sprintId: targetSprintId,
-        channelId: extra?.channelId ?? (normalizedTab === 'chat' ? selectedChannelId : null),
+        channelId: extra?.channelId ?? (tab === 'chat' ? selectedChannelId : null),
         mode,
         assigneeId: extra?.assigneeId ?? selectedAssigneeId,
         search: extra?.search ?? searchTerm,
@@ -113,25 +207,11 @@ const AppContent: React.FC = () => {
     navigate(tab, selectedProjectId, null, 'view', false);
   };
 
-  const fetchProjects = async () => {
-    try {
-      const data = await getProjects();
-      setProjects(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
   // 브라우저 뒤로가기 / 앞으로가기 및 URL 변경 감지 (popstate & hashchange)
   useEffect(() => {
     const handleUrlChange = () => {
       const route = parseRouteFromHash(window.location.hash);
-      const normalizedTab = route.tab === 'issue-detail' ? 'issues' : route.tab;
-      setActiveTabState(normalizedTab);
+      setActiveTabState(route.tab as TabType);
       setSelectedProjectIdState(route.projectId);
       setSelectedAssigneeIdState(route.assigneeId);
       setSearchTermState(route.search);
@@ -149,21 +229,18 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  const handleOpenCreateIssue = () => {
-    setIsIssueModalOpen(true);
-  };
+  const handleOpenCreateIssue = useCallback(() => {
+    openIssueModal(selectedProjectId || undefined);
+  }, [openIssueModal, selectedProjectId]);
 
-  // 이슈 클릭 시: 기존 페이지 상태를 유지한 채 우측 슬라이드 드로어 오픈!
+  // 이슈 클릭 시: URL 변경 없이 순수 컴포넌트 State로 우측 슬라이드 드로어 오픈!
   const handleSelectIssue = (issue: Issue) => {
-    const projId = selectedProjectId || issue.projectId || null;
     setSelectedIssueIdState(issue.id);
-    navigate(activeTab, projId, issue.id, 'view', false);
   };
 
-  // 이슈 드로어 닫기
+  // 이슈 드로어 닫기: URL 변경 없이 순수 컴포넌트 State로 닫기
   const handleCloseIssueDrawer = () => {
     setSelectedIssueIdState(null);
-    navigate(activeTab, selectedProjectId, null, 'view', false);
   };
 
   // 프로젝트 클릭 시 프로젝트 상세/설정 페이지로 이동
@@ -171,14 +248,8 @@ const AppContent: React.FC = () => {
     navigate('project-detail', projectId, null, 'view', false);
   };
 
-  const handleProjectCreated = (newProject: Project) => {
-    setProjects((prev) => [newProject, ...prev]);
-  };
-
   const handleIssueModeChange = (newMode: IssueDetailMode) => {
-    if (selectedIssueId) {
-      navigate(activeTab, selectedProjectId, selectedIssueId, newMode, false);
-    }
+    setIssueDetailModeState(newMode);
   };
 
   // 필터 변경 시 URL 해시 업데이트
@@ -223,6 +294,13 @@ const AppContent: React.FC = () => {
           baseCrumbs.push({ label: '이슈 칸반 보드' });
         }
         break;
+      case 'issue-detail':
+        baseCrumbs.push(
+          { label: '이슈 목록', onClick: () => navigate('issues', selectedProjectId) },
+          ...(currentProject ? [{ label: `${currentProject.name} (${currentProject.key})`, onClick: () => navigate('issues', currentProject.id) }] : []),
+          { label: `이슈 상세 #${selectedIssueId}` }
+        );
+        break;
       case 'sprints':
         if (currentProject) {
           baseCrumbs.push(
@@ -259,6 +337,9 @@ const AppContent: React.FC = () => {
       case 'settings':
         baseCrumbs.push({ label: '환경 설정' });
         break;
+      case 'demo-state':
+        baseCrumbs.push({ label: '상태 관리 실습 (Zustand)' });
+        break;
       default:
         baseCrumbs.push({ label: '대시보드' });
         break;
@@ -281,31 +362,34 @@ const AppContent: React.FC = () => {
           setActiveTab={setActiveTab}
           selectedProjectId={selectedProjectId}
           selectedChannelId={selectedChannelId}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenAuth={openAuthModal}
+          onOpenSettings={() => navigate('settings')}
           onSelectProjectDetail={(pId) => navigate('project-detail', pId, null, 'view', false)}
+          onSelectProjectIssues={(pId) => navigate('issues', pId, null, 'view', false)}
+          onSelectProjectSprints={(pId) => navigate('sprints', pId, null, 'view', false)}
+          onSelectProjectWBS={(pId) => navigate('wbs', pId, null, 'view', false)}
           onSelectChatChannel={(cId: number) => navigate('chat', null, null, 'view', false, { channelId: cId })}
         />
 
-        <main style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-dark)', padding: '16px 20px', position: 'relative' }}>
+        <main className="main-content" data-tab={activeTab}>
           {activeTab === 'dashboard' && (
             <DashboardPage
-              key={`tab-dash-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-dash-${selectedProjectId || 'all'}`}
               onNavigate={(tab, pId) => navigate(tab, pId ?? null)}
               onOpenCreateIssue={handleOpenCreateIssue}
-              onOpenCreateProject={() => setIsProjectModalOpen(true)}
+              onOpenCreateProject={openProjectModal}
               onSelectIssue={handleSelectIssue}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
               refreshKey={issueRefreshKey}
             />
           )}
 
           {activeTab === 'projects' && (
             <ProjectsPage
-              key={`tab-projects-${issueRefreshKey}`}
-              projects={projects}
+              key="tab-projects"
               onSelectProject={handleSelectProject}
-              onOpenCreateProject={() => setIsProjectModalOpen(true)}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenCreateProject={openProjectModal}
+              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -314,117 +398,132 @@ const AppContent: React.FC = () => {
               key={`tab-project-detail-${selectedProjectId || 1}`}
               projectId={selectedProjectId || 1}
               onBack={() => navigate('projects')}
-              onProjectUpdated={(upProj) => {
-                setProjects((prev) => prev.map((p) => (p.id === upProj.id ? upProj : p)));
+              onProjectUpdated={() => {
+                queryClient.invalidateQueries({ queryKey: projectKeys.all });
               }}
-              onProjectDeleted={(delId) => {
-                setProjects((prev) => prev.filter((p) => p.id !== delId));
+              onProjectDeleted={() => {
+                queryClient.invalidateQueries({ queryKey: projectKeys.all });
                 navigate('projects');
               }}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'issues' && (
             <IssuesPage
-              key={`tab-issues-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-issues-${selectedProjectId || 'all'}`}
               onOpenCreateIssue={handleOpenCreateIssue}
               onSelectIssue={handleSelectIssue}
               selectedProjectId={selectedProjectId}
               selectedAssigneeId={selectedAssigneeId}
               searchTermProp={searchTerm}
               onFilterChange={handleFilterChange}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
               refreshKey={issueRefreshKey}
+            />
+          )}
+
+          {activeTab === 'issue-detail' && (
+            <IssueDetailPage
+              key={`tab-issue-detail-${selectedIssueId}`}
+              issueId={selectedIssueId}
+              projectId={selectedProjectId}
+              mode={issueDetailMode}
+              onModeChange={handleIssueModeChange}
+              onBack={() => navigate('issues', selectedProjectId)}
+              onGoToList={() => navigate('issues', selectedProjectId)}
+              onIssueUpdated={handleIssueRefreshed}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'chat' && (
             <ChatPage
-              key={`tab-chat-${isAuthenticated ? user?.id : 'guest'}-${selectedChannelId || 'none'}-${issueRefreshKey}`}
+              key={`tab-chat-${isAuthenticated ? user?.id : 'guest'}`}
               selectedChannelId={selectedChannelId}
               onSelectChannel={(cId) => navigate('chat', null, null, 'view', true, { channelId: cId })}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'sprints' && (
             <SprintsPage
-              key={`tab-sprints-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-sprints-${selectedProjectId || 'all'}`}
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('sprints', pId === 'ALL' ? null : pId, null, 'view', true)}
               onSelectSprint={(sId) => navigate('sprint-detail', selectedProjectId, sId, 'view', false)}
+              onOpenCreateSprint={handleOpenCreateSprint}
+              onOpenEditSprint={handleOpenEditSprint}
               onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'sprint-detail' && (
             <SprintDetailPage
-              key={`tab-sprint-detail-${selectedSprintId}-${issueRefreshKey}`}
+              key={`tab-sprint-detail-${selectedSprintId}`}
               sprintId={selectedSprintId}
               projectId={selectedProjectId}
               onBack={() => navigate('sprints', selectedProjectId, null, 'view', false)}
+              onOpenEditSprint={handleOpenEditSprint}
               onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'wbs' && (
             <WBSPage
-              key={`tab-wbs-${selectedProjectId || 'all'}-${issueRefreshKey}`}
+              key={`tab-wbs-${selectedProjectId || 'all'}`}
               selectedProjectId={selectedProjectId}
-              onFilterChange={(pId) => navigate('wbs', pId, null, 'view', true)}
+              onFilterChange={(pId) => navigate('wbs', pId, selectedIssueId, 'view', true)}
               onSelectIssue={handleSelectIssue}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'worklogs' && (
             <WorklogsPage
-              key={`tab-worklogs-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              key={`tab-worklogs-${isAuthenticated ? user?.id : 'guest'}`}
+              onOpenAuth={openAuthModal}
             />
           )}
 
           {activeTab === 'settings' && (
             <SettingsPage
-              key={`tab-settings-${isAuthenticated ? user?.id : 'guest'}-${issueRefreshKey}`}
-              onOpenAuth={() => setIsAuthModalOpen(true)}
+              key={`tab-settings-${isAuthenticated ? user?.id : 'guest'}`}
+              onOpenAuth={openAuthModal}
             />
+          )}
+
+          {activeTab === 'demo-state' && (
+            <StateDemoPage key="tab-demo-state" />
           )}
         </main>
       </div>
 
-      {/* Slide-over Issue Detail Drawer (우측 슬라이드 오버레이) */}
+      {/* Slide-over Issue Detail Drawer (우측 슬라이드 오버레이: Full page 이슈 상세 및 자체 Drawer를 가진 WBS 제외) */}
       <IssueDetailDrawer
-        isOpen={!!selectedIssueId}
+        isOpen={activeTab !== 'issue-detail' && activeTab !== 'wbs' && !!selectedIssueId}
         issueId={selectedIssueId}
         projectId={selectedProjectId}
         mode={issueDetailMode}
         onModeChange={handleIssueModeChange}
         onClose={handleCloseIssueDrawer}
         onIssueUpdated={handleIssueRefreshed}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenAuth={openAuthModal}
       />
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {/* 🌐 Global Modals (AuthModal, ProjectModal, IssueModal 등 Zustand 기반 전역 관리) */}
+      <GlobalModalManager />
 
-      {/* Project Create Modal */}
-      <ProjectModal
-        isOpen={isProjectModalOpen}
-        onClose={() => setIsProjectModalOpen(false)}
-        onSuccess={handleProjectCreated}
-      />
-
-      {/* Issue Create / Quick Modal */}
-      <IssueModal
-        isOpen={isIssueModalOpen}
-        onClose={() => setIsIssueModalOpen(false)}
+      {/* Sprint Create / Edit Modal (App 루트 전역 모달) */}
+      <SprintModal
+        isOpen={isSprintModalOpen}
+        onClose={() => setIsSprintModalOpen(false)}
+        sprint={selectedSprintForEdit}
         projects={projects}
         initialProjectId={selectedProjectId || undefined}
-        onIssueCreated={handleIssueRefreshed}
+        onSuccess={handleSprintRefreshed}
       />
     </div>
   );

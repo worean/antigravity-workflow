@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React, { memo } from 'react';
 import {
   Pin,
   Bell,
@@ -17,11 +16,11 @@ interface ChatHeaderProps {
   showNotificationMenu: boolean;
   setShowNotificationMenu: (show: boolean) => void;
   showMemberSidebar: boolean;
-  setShowMemberSidebar: (show: boolean) => void;
+  setShowMemberSidebar: (show: boolean | ((prev: boolean) => boolean)) => void;
   handleSetNotificationLevel: (level: NotificationLevel) => Promise<void>;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({
+export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
   currentChannel,
   showPinnedOnly,
   setShowPinnedOnly,
@@ -188,4 +187,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
     </div>
   );
-};
+});
+
+ChatHeader.displayName = 'ChatHeader';

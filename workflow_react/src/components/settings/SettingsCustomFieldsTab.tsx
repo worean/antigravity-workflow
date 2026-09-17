@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { CustomFieldDefinition } from '@/types';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button, Spinner } from '@/components/common';

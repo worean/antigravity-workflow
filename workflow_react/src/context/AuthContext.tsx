@@ -1,49 +1,31 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { User } from '@/types';
-import { getMe, loginEmail, registerUser } from '@/services/api';
+import { getMe, loginEmail, registerUser, verifyEmail as verifyEmailApi, resendVerification as resendVerificationApi, loginGoogle } from '@/services/api';
 import { queryClient } from '@/lib/queryClient';
 import { disconnectSocket, getSocket } from '@/lib/socketClient';
+import { prefRepository } from '@/lib/prefRepository';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<void>;
-  signup: (email: string, name: string, password?: string) => Promise<void>;
+  login: (email: string, password?: string) => Promise<{ requireVerification?: boolean; email?: string } | void>;
+  loginWithGoogle: (accessToken: string) => Promise<void>;
+  signup: (email: string, name: string, password?: string) => Promise<{ requireVerification?: boolean; email?: string }>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<string>;
+  loginWithTokenAndUser: (token: string, user: User) => void;
   logout: () => void;
   updateUserLocal: (updated: User) => void;
 }
 
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [user, setUser] = useState<User | null>(() => prefRepository.currentUser);
+  const [token, setToken] = useState<string | null>(() => prefRepository.authToken);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // 각 User의 설정에 맞춰 로컬 스토리지 동기화
-  const syncPreferencesToStorage = (userObj?: User | null) => {
-    if (!userObj || !userObj.preferences) return;
-    try {
-      const prefs = typeof userObj.preferences === 'string' ? JSON.parse(userObj.preferences) : userObj.preferences;
-      if (typeof prefs.isSundayStart === 'boolean') {
-        localStorage.setItem('pref_is_sunday_start', String(prefs.isSundayStart));
-      }
-      if (prefs.defaultPriority) {
-        localStorage.setItem('pref_default_priority', String(prefs.defaultPriority));
-      }
-      if (typeof prefs.compactCards === 'boolean') {
-        localStorage.setItem('pref_compact_cards', String(prefs.compactCards));
-      }
-      if (typeof prefs.desktopNotifications === 'boolean') {
-        localStorage.setItem('pref_desktop_notifications', String(prefs.desktopNotifications));
-      }
-    } catch (e) {
-      console.error('Failed to sync user preferences to storage:', e);
-    }
-  };
 
   // 초기 인증 상태 설정 (첫 로딩 시)
   useEffect(() => {
@@ -52,12 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const res = await getMe();
           setUser(res.user);
-          localStorage.setItem('user', JSON.stringify(res.user));
-          syncPreferencesToStorage(res.user);
+          prefRepository.currentUser = res.user;
+          prefRepository.syncFromUserProfile(res.user.preferences);
         } catch (err) {
           console.error('Failed to restore user session:', err);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
+          prefRepository.clearAuth();
           disconnectSocket();
           setToken(null);
           setUser(null);
@@ -69,66 +50,118 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [token]);
 
-  const login = async (email: string, password?: string) => {
+  // 세션 설정 공통 헬퍼
+  const setSession = useCallback((newToken: string, newUser: User) => {
+    prefRepository.authToken = newToken;
+    prefRepository.currentUser = newUser;
+    prefRepository.syncFromUserProfile(newUser.preferences);
+
+    setToken(newToken);
+    setUser(newUser);
+
+    disconnectSocket();
+    getSocket(newToken);
+    queryClient.clear();
+    queryClient.invalidateQueries();
+  }, []);
+
+  // 일반 이메일 로그인
+  const login = useCallback(async (email: string, password?: string) => {
     const res = await loginEmail(email, password);
-    if (res.token) {
-      localStorage.setItem('auth_token', res.token);
-      localStorage.setItem('user', JSON.stringify(res.user));
-      setToken(res.token);
-      setUser(res.user);
-      syncPreferencesToStorage(res.user);
-
-      // 소켓 재연결 및 쿼리 캐시 무효화/리패치
-      disconnectSocket();
-      getSocket(res.token);
-      queryClient.clear();
-      queryClient.invalidateQueries();
+    if (res.requireVerification) {
+      return { requireVerification: true, email: res.email };
     }
-  };
+    if (res.token) {
+      setSession(res.token, res.user);
+    }
+  }, [setSession]);
 
-  const signup = async (email: string, name: string, password?: string) => {
-    await registerUser(email, name, password);
-    // signup 후 자동 로그인 시도
-    await login(email, password);
-  };
+  // Google OAuth 로그인
+  const loginWithGoogle = useCallback(async (accessToken: string) => {
+    const res = await loginGoogle(accessToken);
+    if (res.token) {
+      setSession(res.token, res.user);
+    }
+  }, [setSession]);
 
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+  // 회원가입
+  const signup = useCallback(async (email: string, name: string, password?: string) => {
+    const res = await registerUser(email, name, password);
+    return res;
+  }, []);
+
+  // 6자리 OTP 이메일 인증
+  const verifyEmail = useCallback(async (email: string, code: string) => {
+    const res = await verifyEmailApi(email, code);
+    if (res.token) {
+      setSession(res.token, res.user);
+    }
+  }, [setSession]);
+
+  // 인증번호 재발송
+  const resendVerification = useCallback(async (email: string) => {
+    const res = await resendVerificationApi(email);
+    return res.message || '인증코드가 재발송되었습니다.';
+  }, []);
+
+  // URL 리다이렉트 등으로 들어왔을 때 즉시 세션 설정
+  const loginWithTokenAndUser = useCallback((newToken: string, newUser: User) => {
+    setSession(newToken, newUser);
+  }, [setSession]);
+
+  // 로그아웃
+  const logout = useCallback(() => {
+    prefRepository.clearAuth();
     disconnectSocket();
     setToken(null);
     setUser(null);
     queryClient.clear();
     queryClient.resetQueries();
-  };
+  }, []);
 
-  const updateUserLocal = (updated: User) => {
+  const updateUserLocal = useCallback((updated: User) => {
     setUser(updated);
-  };
+    prefRepository.currentUser = updated;
+    prefRepository.syncFromUserProfile(updated.preferences);
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      user,
+      token,
+      isAuthenticated: !!token && !!user,
+      isLoading,
+      login,
+      loginWithGoogle,
+      signup,
+      verifyEmail,
+      resendVerification,
+      loginWithTokenAndUser,
+      logout,
+      updateUserLocal,
+    }),
+    [
+      user,
+      token,
+      isLoading,
+      login,
+      loginWithGoogle,
+      signup,
+      verifyEmail,
+      resendVerification,
+      loginWithTokenAndUser,
+      logout,
+      updateUserLocal,
+    ]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        signup,
-        logout,
-        updateUserLocal,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
-
 };
 
-/**
- * Authfication을 위한 Hook 으로 AuthContext에 접근할 수 있습니다.
- * 컴포넌트 등은 해당 Hook을 사용하여 인증 상태 및 사용자 정보를 가져올 수 있습니다.
- */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

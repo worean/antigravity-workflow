@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { describe, it, expect } from 'vitest';
+﻿﻿﻿import { describe, it, expect } from 'vitest';
 import { createUserService } from '../modules/users/services/createUser.service.js';
 import { emailLoginService } from '../modules/auth/services/emailLogin.service.js';
 import { prisma } from '#lib/prisma.js';
@@ -36,7 +35,7 @@ describe('Auth & User bcrypt Unit Tests', () => {
 
     expect(res).toBeDefined();
     expect(res.token).toBeDefined();
-    expect(res.user.email).toBe(testEmail);
+    expect(res.user!.email).toBe(testEmail);
   });
 
   it('emailLogin - should reject incorrect password', async () => {

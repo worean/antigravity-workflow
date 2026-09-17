@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-/**
+﻿/**
  * 🧪 [Domain: users / Service: updateUser]
  * - 기능: 사용자 정보(이름 등) 수정 REST API 단위 테스트
  * - 경우의 수: 사용자 정보 수정 성공 (200 OK), 존재하지 않는 유저 ID 수정 요청 예외 (400 Bad Request)

@@ -1,6 +1,6 @@
-﻿import { useQuery, useSuspenseQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
-import type { Project } from '@/types';
+import type { Project, ProjectVisibility } from '@/types';
 
 export interface ProjectQueryParams {
   search?: string;
@@ -8,6 +8,7 @@ export interface ProjectQueryParams {
   priorityId?: number;
   ownerId?: number | 'my' | 'me' | 'MY';
   memberId?: number | 'my' | 'me' | 'MY';
+  visibility?: ProjectVisibility | string;
   limit?: number;
   take?: number;
   skip?: number;
@@ -28,6 +29,7 @@ export const getProjects = async (filters?: ProjectQueryParams): Promise<Project
     if (filters.priorityId !== undefined) params.priorityId = filters.priorityId;
     if (filters.ownerId !== undefined) params.ownerId = filters.ownerId;
     if (filters.memberId !== undefined) params.memberId = filters.memberId;
+    if (filters.visibility !== undefined) params.visibility = filters.visibility;
     if (filters.limit !== undefined) params.limit = filters.limit;
     if (filters.take !== undefined) params.take = filters.take;
     if (filters.skip !== undefined) params.skip = filters.skip;
@@ -46,7 +48,13 @@ export const getProject = async (id: number): Promise<Project> => {
   return res.data;
 };
 
-export const createProject = async (data: { name: string; key: string; description?: string }): Promise<Project> => {
+export const createProject = async (data: {
+  name: string;
+  key: string;
+  description?: string;
+  visibility?: ProjectVisibility;
+  tags?: string[] | any;
+}): Promise<Project> => {
   const res = await apiClient.post('/projects', data);
   return res.data;
 };
@@ -57,12 +65,14 @@ export const updateProject = async (
     name?: string;
     description?: string | null;
     key?: string;
+    visibility?: ProjectVisibility;
     statusId?: number;
     priorityId?: number;
     plannedStartDate?: string | null;
     dueDate?: string | null;
     actualStartDate?: string | null;
     actualEndDate?: string | null;
+    tags?: string[] | any;
   }
 ): Promise<Project> => {
   const res = await apiClient.put(`/projects/${id}`, data);
@@ -180,7 +190,12 @@ export const useDeleteProject = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteProject,
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
+      // ⚡ TanStack Query 프로젝트 목록 캐시 In-place 실시간 삭제 (0ms 반응)
+      queryClient.setQueriesData<Project[]>({ queryKey: projectKeys.all }, (old) => {
+        if (!Array.isArray(old)) return old;
+        return old.filter((p) => p.id !== deletedId);
+      });
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
   });

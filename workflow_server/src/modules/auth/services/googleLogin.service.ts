@@ -1,5 +1,7 @@
 ﻿import jwt from 'jsonwebtoken';
+import { globalPrisma } from '#lib/globalPrisma.js';
 import { prisma } from '#lib/prisma.js';
+import { createWorkspaceService } from '../../workspaces/services/createWorkspace.service.js';
 
 export const googleLoginService = async (accessToken: string) => {
   if (!accessToken) throw new Error('Google access token is required');
@@ -7,26 +9,28 @@ export const googleLoginService = async (accessToken: string) => {
   let email: string | null = null;
   let name: string | null = null;
   let googleId: string | null = null;
+  let picture: string | null = null;
 
   try {
     const gRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (gRes.ok) {
       const gData = await gRes.json();
       email = gData.email;
       name = gData.name;
       googleId = gData.sub;
+      picture = gData.picture;
     }
   } catch {
-    // dev network bypass
+    // dev bypass
   }
 
-  // 🧪 개발/테스트 환경용 토큰 백업 처리 (실제 구글 토큰이 아닌 테스트 토큰인 경우)
+  // 🧪 개발/테스트 환경용 토큰 백업 처리
   if (!email) {
     const numId = Number(accessToken);
     if (!isNaN(numId)) {
-      const dbUser = await prisma.user.findUnique({ where: { id: numId } });
+      const dbUser = await globalPrisma.user.findUnique({ where: { id: numId } });
       if (dbUser) {
         email = dbUser.email;
         name = dbUser.name;
@@ -40,51 +44,93 @@ export const googleLoginService = async (accessToken: string) => {
     }
   }
 
-  // 1. User 탐색 또는 생성 (Google 소셜 계정은 password = null로 지정)
-  let user = await prisma.user.findUnique({
-    where: { email },
-    include: { socialAccounts: true }
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // 1. User 탐색 또는 자동 회원가입
+  let user = await globalPrisma.user.findUnique({
+    where: { email: normalizedEmail },
+    include: { socialAccounts: true, ownedWorkspaces: true },
   });
 
   if (!user) {
-    user = await prisma.user.create({
+    user = await globalPrisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         name: name || 'Google User',
-        password: null // 🔒 구글 계정은 비밀번호가 null로 저장되어 일반 패스워드 로그인 불가
+        password: null, // 🔒 소셜 계정은 비밀번호가 null
+        isEmailVerified: true, // Google 인증 계정은 이메일 인증 완료로 처리
+        avatar: picture || null,
       },
-      include: { socialAccounts: true }
+      include: { socialAccounts: true, ownedWorkspaces: true },
+    });
+  } else if (!user.isEmailVerified) {
+    user = await globalPrisma.user.update({
+      where: { id: user.id },
+      data: { isEmailVerified: true },
+      include: { socialAccounts: true, ownedWorkspaces: true },
     });
   }
 
-  // 2. SocialAccount 소셜 계정 연동 정보 생성/업데이트
+  // 기본 테넌트 DB에도 유저 동기화 (기존 테스트 및 단일 테넌트 호환)
+  await prisma.user.upsert({
+    where: { id: user.id },
+    update: { email: user.email, name: user.name, avatar: user.avatar },
+    create: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      role: user.role,
+    },
+  }).catch(() => {});
+
+  // 2. SocialAccount 연동 정보 갱신
   const providerId = googleId || `google_${user.id}`;
-  await prisma.socialAccount.upsert({
+  await globalPrisma.socialAccount.upsert({
     where: {
       provider_providerId: {
         provider: 'GOOGLE',
-        providerId
-      }
+        providerId,
+      },
     },
     update: {
-      email,
-      accessToken
+      email: normalizedEmail,
+      accessToken,
     },
     create: {
       provider: 'GOOGLE',
       providerId,
-      email,
+      email: normalizedEmail,
       accessToken,
-      userId: user.id
+      userId: user.id,
+    },
+  });
+
+  // 3. 기본 워크스페이스 부재 시 자동 생성
+  let defaultWorkspace = user.ownedWorkspaces?.[0];
+  if (!defaultWorkspace) {
+    try {
+      const wsName = `${user.name || 'My'}'s Workspace`;
+      defaultWorkspace = await createWorkspaceService(
+        {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+        { name: wsName }
+      );
+    } catch (wsErr: any) {
+      console.error('[WORKSPACE PROVISION ERROR]', wsErr.message);
     }
-  });
+  }
 
-  const updatedUser = await prisma.user.findUnique({
+  const updatedUser = await globalPrisma.user.findUnique({
     where: { id: user.id },
-    include: { socialAccounts: true }
+    include: { socialAccounts: true },
   });
 
-  // 🔑 JWT 발급
+  // 4. 표준 JWT 발급
   const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
   const token = jwt.sign(
     { userId: user.id, email: user.email, name: user.name },
@@ -93,14 +139,18 @@ export const googleLoginService = async (accessToken: string) => {
   );
 
   return {
-    message: 'Google login successful',
+    message: 'Google 로그인 성공',
     token,
     user: {
       id: updatedUser!.id,
       email: updatedUser!.email,
       name: updatedUser!.name,
+      role: updatedUser!.role,
+      avatar: updatedUser!.avatar,
       isGoogleLinked: true,
-      socialAccounts: updatedUser!.socialAccounts
-    }
+      isEmailVerified: true,
+      socialAccounts: updatedUser!.socialAccounts,
+    },
+    workspace: defaultWorkspace,
   };
 };

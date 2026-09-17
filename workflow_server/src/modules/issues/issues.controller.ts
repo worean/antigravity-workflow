@@ -7,6 +7,7 @@ import { batchUpdateScheduleService } from './services/batchUpdateSchedule.servi
 import { deleteIssueService } from './services/deleteIssue.service.js';
 import { likeIssueService, unlikeIssueService } from './services/likeIssue.service.js';
 import { toggleLikeIssueService } from './services/toggleLikeIssue.service.js';
+import { broadcastGlobal } from '../../lib/socket.js';
 import { ErrorCode } from '../../common/errors/errorCode.js';
 
 export const createIssue = async (req: Request, res: Response) => {
@@ -14,6 +15,7 @@ export const createIssue = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
     const issueData = { ...req.body, authorId: req.user.id };
     const issue = await createIssueService(issueData);
+    broadcastGlobal('issue:created', { actorId: req.user.id, issue });
     res.status(201).json(issue);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
@@ -59,6 +61,7 @@ export const updateIssue = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
     const updateData = { ...req.body, userId: req.user.id };
     const updated = await updateIssueService(Number(req.params.id || req.body.id), updateData);
+    broadcastGlobal('issue:updated', { actorId: req.user.id, issue: updated });
     res.json(updated);
   } catch (error: any) {
     const isRestricted = error.message.includes('Restricted field modification');
@@ -74,6 +77,7 @@ export const batchUpdateSchedules = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
     const items = req.body.items || req.body;
     const result = await batchUpdateScheduleService(items);
+    broadcastGlobal('issue:batch_schedules_updated', { actorId: req.user.id, items });
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
@@ -83,7 +87,9 @@ export const batchUpdateSchedules = async (req: Request, res: Response) => {
 export const deleteIssue = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
-    const result = await deleteIssueService(Number(req.params.id || req.body.id), req.user.id);
+    const targetId = Number(req.params.id || req.body.id);
+    const result = await deleteIssueService(targetId, req.user.id);
+    broadcastGlobal('issue:deleted', { actorId: req.user.id, issueId: targetId });
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });

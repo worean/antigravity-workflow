@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const addGroupService = async (projectId: number, groupId: number, role?: string, actorUserId?: number) => {
   if (!projectId || !groupId) throw new Error('projectId and groupId are required');

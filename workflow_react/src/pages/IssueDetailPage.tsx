@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   getIssue,
   updateIssue,
@@ -71,6 +70,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
   // Form Fields
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
   const [projectId, setProjectId] = useState<number>(0);
   const [parentId, setParentId] = useState<number | null>(null);
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
@@ -136,6 +136,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
       // Populate Form Fields
       setTitle(issueData.title);
       setDescription(issueData.description || '');
+      setTags(Array.isArray(issueData.tags) ? issueData.tags.map((t: any) => t.name || t) : []);
       setProjectId(issueData.projectId || 1);
       setParentId(issueData.parentId || null);
       setAssigneeId(issueData.assigneeId || undefined);
@@ -194,6 +195,7 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
         return await updateIssue(issue.id, {
           title,
           description,
+          tags,
           projectId,
           parentId: parentId || undefined,
           assigneeId: assigneeId || undefined,
@@ -370,6 +372,8 @@ export const IssueDetailPage: React.FC<IssueDetailPageProps> = ({
         setTitle={setTitle}
         description={description}
         setDescription={setDescription}
+        tags={tags}
+        setTags={setTags}
         projectId={projectId}
         setProjectId={setProjectId}
         parentId={parentId}

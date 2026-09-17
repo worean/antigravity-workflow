@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 🧪 [Domain: projects / Service: getProject]
  * - 기능: 단일 프로젝트 상세 정보 조회 REST API 단위 테스트
  * - 경우의 수: 존재하는 프로젝트 ID로 조회 성공 (200 OK), 존재하지 않는 프로젝트 ID 404 Not Found 예외
@@ -46,7 +46,7 @@ describe('🧪 [projects.getProject] Service & REST API Unit Tests', () => {
   });
 
   describe('Case 1: 🔍 단일 프로젝트 상세 조회 기능', () => {
-    it('존재하는 프로젝트 ID로 조회 시 상세 정보를 반환해야 한다', async () => {
+    it('존재하는 프로젝트 ID로 조회 시 상세 정보를 반환해야 한다 (isFavorite 기본값 false)', async () => {
       const response = await request(app)
         .get(`/api/projects/get/${testProject.id}`)
         .set('Authorization', `Bearer ${authToken}`);
@@ -54,6 +54,33 @@ describe('🧪 [projects.getProject] Service & REST API Unit Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('id', testProject.id);
       expect(response.body.name).toBe('Single Proj Test');
+      expect(response.body).toHaveProperty('isFavorite', false);
+    });
+
+    it('즐겨찾기 등록된 프로젝트인 경우 isFavorite: true를 반환해야 한다', async () => {
+      await prisma.favorite.create({
+        data: {
+          userId: testUser.id,
+          targetType: 'PROJECT',
+          targetId: testProject.id,
+        },
+      });
+
+      const response = await request(app)
+        .get(`/api/projects/get/${testProject.id}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.isFavorite).toBe(true);
+
+      // 정리
+      await prisma.favorite.deleteMany({
+        where: {
+          userId: testUser.id,
+          targetType: 'PROJECT',
+          targetId: testProject.id,
+        },
+      });
     });
 
     it('존재하지 않는 프로젝트 ID로 조회 시 404 Not Found 에러를 반환해야 한다', async () => {

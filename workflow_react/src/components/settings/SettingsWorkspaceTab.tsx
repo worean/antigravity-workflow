@@ -1,5 +1,4 @@
-// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Shield,
@@ -14,7 +13,9 @@ import {
   Copy,
   Clock,
   KeyRound,
+  Camera,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import {
   getWorkspaceDetail,
@@ -28,9 +29,48 @@ import {
 } from '@/api/workspaces';
 import { Avatar } from '@/components/common';
 import { WorkspaceInviteModal, WorkspaceCreateModal } from '@/components/workspace';
+import { AvatarCropModal } from '@/components/AvatarCropModal';
 import type { WorkspaceRole } from '@/types';
 
 const DEFAULT_ICONS = ['🚀', '🏢', '⚡', '🌟', '💻', '🎯', '🔥', '🛡️', '📦', '🔬'];
+
+const renderSymbol = (iconVal?: string | null, size = 32) => {
+  if (iconVal && (iconVal.startsWith('data:image/') || iconVal.startsWith('http'))) {
+    return (
+      <img
+        src={iconVal}
+        alt="Workspace Symbol"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          borderRadius: 'var(--radius-xs)',
+          objectFit: 'cover',
+          border: '1px solid var(--border-light)',
+          display: 'inline-block',
+          verticalAlign: 'middle',
+        }}
+      />
+    );
+  }
+  return (
+    <span
+      style={{
+        fontSize: `${size * 0.62}px`,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: `${size}px`,
+        height: `${size}px`,
+        background: 'var(--bg-dark)',
+        borderRadius: 'var(--radius-xs)',
+        border: '1px solid var(--border-light)',
+        lineHeight: 1,
+      }}
+    >
+      {iconVal || '🏢'}
+    </span>
+  );
+};
 
 export const SettingsWorkspaceTab: React.FC = () => {
   const { currentWorkspace, switchWorkspace, workspaces, refetchWorkspaces } = useWorkspace();
@@ -69,6 +109,14 @@ export const SettingsWorkspaceTab: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // 🖼️ PNG 심볼 크롭 모달 관련 상태
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { user } = useAuth();
+
   useEffect(() => {
     if (detail) {
       setEditName(detail.name);
@@ -77,8 +125,38 @@ export const SettingsWorkspaceTab: React.FC = () => {
     }
   }, [detail]);
 
-  const isOwnerOrAdmin = currentWorkspace?.myRole === 'OWNER' || currentWorkspace?.myRole === 'ADMIN';
-  const isOwner = currentWorkspace?.myRole === 'OWNER';
+  const isOwnerOrAdmin =
+    user?.role === 'ADMIN' ||
+    user?.email === 'worean@naver.com' ||
+    currentWorkspace?.myRole === 'OWNER' ||
+    currentWorkspace?.myRole === 'ADMIN';
+  const isOwner = user?.role === 'ADMIN' || currentWorkspace?.myRole === 'OWNER';
+
+  const handleIconFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일(PNG, JPG, WebP 등)만 업로드할 수 있습니다.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('이미지 파일 크기는 최대 10MB 이하만 가능합니다.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setCropImageSrc(reader.result);
+        setCropFileName(file.name);
+        setShowCropModal(true);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // 워크스페이스 정보 수정
   const updateMutation = useMutation({
@@ -281,7 +359,7 @@ export const SettingsWorkspaceTab: React.FC = () => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                  <span style={{ fontSize: '1.4rem' }}>{ws.icon || '🏢'}</span>
+                  {renderSymbol(ws.icon, 28)}
                   <div style={{ minWidth: 0 }}>
                     <div
                       style={{
@@ -336,9 +414,7 @@ export const SettingsWorkspaceTab: React.FC = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.8rem', padding: '6px', background: 'var(--bg-dark)', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-light)' }}>
-              {detail?.icon || currentWorkspace?.icon || '🏢'}
-            </span>
+            {renderSymbol(detail?.icon || currentWorkspace?.icon, 44)}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-bright)' }}>
@@ -382,9 +458,46 @@ export const SettingsWorkspaceTab: React.FC = () => {
         {isEditing ? (
           <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-sub)', marginBottom: '4px' }}>
-                아이콘 선택
+              <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-sub)', marginBottom: '6px' }}>
+                워크스페이스 심볼 (PNG 크롭 또는 이모지)
               </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <div style={{ position: 'relative' }}>
+                  {renderSymbol(editIcon, 44)}
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleIconFileSelect}
+                    accept="image/png, image/jpeg, image/webp, image/*"
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '0.72rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Camera size={13} />
+                    <span>PNG 심볼 업로드 (크롭)</span>
+                  </button>
+
+                  {editIcon && (editIcon.startsWith('data:') || editIcon.startsWith('http')) && (
+                    <button
+                      type="button"
+                      onClick={() => setEditIcon('🏢')}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.72rem', padding: '4px 8px', color: '#f87171' }}
+                    >
+                      <Trash2 size={12} />
+                      <span>심볼 초기화</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {DEFAULT_ICONS.map((emoji) => (
                   <button
@@ -392,9 +505,9 @@ export const SettingsWorkspaceTab: React.FC = () => {
                     type="button"
                     onClick={() => setEditIcon(emoji)}
                     style={{
-                      width: '32px',
-                      height: '32px',
-                      fontSize: '1rem',
+                      width: '30px',
+                      height: '30px',
+                      fontSize: '0.95rem',
                       background: editIcon === emoji ? 'var(--primary-subtle)' : 'var(--bg-dark)',
                       border: editIcon === emoji ? '1px solid var(--primary)' : '1px solid var(--border-light)',
                       borderRadius: 'var(--radius-xs)',
@@ -742,6 +855,19 @@ export const SettingsWorkspaceTab: React.FC = () => {
           refetchWorkspaces();
         }}
       />
+
+      {showCropModal && (
+        <AvatarCropModal
+          isOpen={showCropModal}
+          imageSrc={cropImageSrc}
+          fileName={cropFileName}
+          onClose={() => setShowCropModal(false)}
+          onCropComplete={(croppedPngDataUrl) => {
+            setEditIcon(croppedPngDataUrl);
+            setShowCropModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

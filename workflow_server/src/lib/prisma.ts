@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 import {
   PrismaClient as WorkspacePrismaClient,
   Prisma as WorkspacePrisma,

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-export * from './WBSToolbar';
+﻿export * from './WBSToolbar';
 export * from './WBSTreeRow';
 export * from './WBSTreeTable';
 export * from './WBSGanttBar';

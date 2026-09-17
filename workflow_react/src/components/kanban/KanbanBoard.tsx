@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React from 'react';
+﻿import React from 'react';
 import type { Issue, User } from '@/types';
 import { STATUS_LIST, parseStatusCategory } from '@/utils/statusUtils';
 import { KanbanColumn } from './KanbanColumn';
@@ -20,6 +19,7 @@ interface KanbanBoardProps {
   handleOpenDeleteConfirm: (e: React.MouseEvent, issue: Issue) => void;
   handleToggleLike: (e: React.MouseEvent, issue: Issue) => Promise<void>;
   onSelectIssue: (issue: Issue) => void;
+  onTagClick?: (tagName: string) => void;
   onOpenAuth?: () => void;
 }
 
@@ -39,6 +39,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   handleOpenDeleteConfirm,
   handleToggleLike,
   onSelectIssue,
+  onTagClick,
   onOpenAuth,
 }) => {
   const getIssuesByColumn = (columnKey: string) => {
@@ -88,6 +89,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           handleOpenDeleteConfirm={handleOpenDeleteConfirm}
           handleToggleLike={handleToggleLike}
           onSelectIssue={onSelectIssue}
+          onTagClick={onTagClick}
           onOpenAuth={onOpenAuth}
         />
       ))}

@@ -1,4 +1,3 @@
-﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Issue } from '@/types';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +13,8 @@ import {
 import { useWBSProjectData } from '@/hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '@/hooks/useWBSGanttDrag';
 import { WBSToolbar, WBSMainSplitView } from '@/components/wbs';
+import { IssueDetailDrawer } from '@/components/issueDetail/IssueDetailDrawer';
+import { usePrefStore } from '@/stores/usePrefStore';
 
 interface WBSPageProps {
   selectedProjectId?: number | null;
@@ -35,11 +36,11 @@ export const WBSPage: React.FC<WBSPageProps> = ({
   const ganttBodyRef = useRef<HTMLDivElement>(null);
   const ganttHeaderRef = useRef<HTMLDivElement>(null);
 
-  // Preference: isSundayStart (default: true)
-  const isSundayStart = useMemo<boolean>(() => {
-    const saved = localStorage.getItem('pref_is_sunday_start');
-    return saved !== null ? saved === 'true' : true;
-  }, []);
+  // WBS Local Issue Detail Drawer State (독립 오버레이 슬라이드)
+  const [selectedDrawerIssueId, setSelectedDrawerIssueId] = useState<number | null>(null);
+
+  // Preference: isSundayStart (Zustand 실시간 반응형 구독)
+  const isSundayStart = usePrefStore((s) => s.isSundayStart);
 
   // Collapse / Expand State (Set of collapsed parent issue IDs)
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
@@ -252,13 +253,26 @@ export const WBSPage: React.FC<WBSPageProps> = ({
       )}
 
       {/* Main Split Layout: Left Table + Right Gantt Timeline */}
-      {((loading && projects.length === 0) || (issuesLoading && issues.length === 0) || (isInitialLoading && issues.length === 0)) ? (
+      {!isAuthenticated ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '320px', gap: '12px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>간트 차트와 WBS 일정을 확인하려면 로그인이 필요합니다.</div>
+          {onOpenAuth && (
+            <button type="button" onClick={onOpenAuth} className="btn btn-primary" style={{ padding: '6px 14px' }}>
+              로그인하기
+            </button>
+          )}
+        </div>
+      ) : (loading && projects.length === 0) || (issuesLoading && issues.length === 0) || (isInitialLoading && issues.length === 0) ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-          <Spinner />
+          <Spinner centered label="간트차트 및 일정 데이터를 불러오는 중..." />
+        </div>
+      ) : projects.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          등록된 프로젝트가 없습니다. 먼저 상단에서 새 프로젝트를 생성해 주세요.
         </div>
       ) : issues.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          선택된 프로젝트/스프린트에 등록된 이슈가 없습니다.
+        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          선택된 프로젝트/스프린트에 등록된 일감(이슈)이 없습니다.
         </div>
       ) : (
         <WBSMainSplitView
@@ -268,7 +282,10 @@ export const WBSPage: React.FC<WBSPageProps> = ({
           collapsedIds={collapsedIds}
           onToggleCollapse={toggleCollapse}
           setCollapsedIds={setCollapsedIds}
-          onSelectIssue={onSelectIssue}
+          onSelectIssue={(iss) => {
+            setSelectedDrawerIssueId(iss.id);
+            if (onSelectIssue) onSelectIssue(iss);
+          }}
           tableBodyRef={tableBodyRef}
           onTableScroll={handleTableScroll}
           leftWidth={leftWidth}
@@ -291,6 +308,16 @@ export const WBSPage: React.FC<WBSPageProps> = ({
           onMouseDownOnBar={handleMouseDownOnBar}
         />
       )}
+
+      {/* WBS Slide-over Issue Detail Drawer (독립 우측 슬라이드 오버레이) */}
+      <IssueDetailDrawer
+        isOpen={!!selectedDrawerIssueId}
+        issueId={selectedDrawerIssueId}
+        projectId={selectedProjectId}
+        onClose={() => setSelectedDrawerIssueId(null)}
+        onIssueUpdated={() => loadProjectData(false)}
+        onOpenAuth={onOpenAuth}
+      />
     </div>
   );
 };

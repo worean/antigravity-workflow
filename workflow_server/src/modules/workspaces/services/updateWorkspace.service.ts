@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { globalPrisma } from '#lib/globalPrisma.js';
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
 
 export interface UpdateWorkspaceParams {
   name?: string;

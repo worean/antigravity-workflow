@@ -10,8 +10,23 @@ export const loginEmail = async (email: string, password?: string) => {
   return res.data;
 };
 
-export const registerUser = async (email: string, name: string, password?: string) => {
-  const res = await apiClient.post('/users', { email, name, password });
+export const registerUser = async (email: string, name?: string, password?: string) => {
+  const res = await apiClient.post('/auth/register', { email, name, password });
+  return res.data;
+};
+
+export const verifyEmail = async (email: string, code: string) => {
+  const res = await apiClient.post('/auth/verify-email', { email, code });
+  return res.data;
+};
+
+export const resendVerification = async (email: string) => {
+  const res = await apiClient.post('/auth/resend-verification', { email });
+  return res.data;
+};
+
+export const loginGoogle = async (accessToken: string) => {
+  const res = await apiClient.post('/auth/google', { accessToken });
   return res.data;
 };
 

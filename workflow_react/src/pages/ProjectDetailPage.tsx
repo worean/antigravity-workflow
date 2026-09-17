@@ -1,6 +1,5 @@
-﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
-import type { Project, User, Group } from '@/types';
+import type { Project, User, Group, ProjectVisibility } from '@/types';
 import {
   getProject,
   updateProject,
@@ -62,6 +61,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   const [editName, setEditName] = useState<string>('');
   const [editKey, setEditKey] = useState<string>('');
   const [editDescription, setEditDescription] = useState<string>('');
+  const [editVisibility, setEditVisibility] = useState<ProjectVisibility>('PUBLIC');
   const [editStatusId, setEditStatusId] = useState<number>(1);
   const [editPriorityId, setEditPriorityId] = useState<number>(1);
   const [editPlannedStartDate, setEditPlannedStartDate] = useState<string>('');
@@ -99,6 +99,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
       setEditName(projData.name || '');
       setEditKey(projData.key || '');
       setEditDescription(projData.description || '');
+      setEditVisibility(projData.visibility || 'PUBLIC');
       setEditStatusId(projData.statusId || 1);
       setEditPriorityId(projData.priorityId || 1);
       setEditPlannedStartDate(formatDateOnly(projData.plannedStartDate) || '');
@@ -131,6 +132,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
           name: editName.trim(),
           key: editKey.trim().toUpperCase(),
           description: editDescription,
+          visibility: editVisibility,
           statusId: editStatusId,
           priorityId: editPriorityId,
           plannedStartDate: editPlannedStartDate || null,
@@ -155,6 +157,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
     setEditName(project.name || '');
     setEditKey(project.key || '');
     setEditDescription(project.description || '');
+    setEditVisibility(project.visibility || 'PUBLIC');
     setEditStatusId(project.statusId || 1);
     setEditPriorityId(project.priorityId || 1);
     setEditPlannedStartDate(formatDateOnly(project.plannedStartDate) || '');
@@ -416,6 +419,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
         <ProjectSidebar
           project={project}
           isEditing={isEditing}
+          editVisibility={editVisibility}
+          setEditVisibility={setEditVisibility}
           editStatusId={editStatusId}
           setEditStatusId={setEditStatusId}
           editPriorityId={editPriorityId}

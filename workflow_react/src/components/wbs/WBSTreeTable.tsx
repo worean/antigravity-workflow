@@ -1,9 +1,9 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, type RefObject } from 'react';
+﻿import React, { useState, type RefObject } from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, TreeDropTarget } from '@/types/wbs';
 import { WBSTreeRow } from './WBSTreeRow';
 import { updateIssue } from '@/services/api';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface WBSTreeTableProps {
   items: WBSItem[];
@@ -136,10 +136,13 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
     try {
       await updateIssue(sourceId, { parentId: newParentId });
       await loadProjectData();
+      useUIStore.getState().showToast('이슈 계층 구조가 성공적으로 변경되었습니다.', 'success');
     } catch (err: any) {
       console.error('Failed to reparent issue in tree:', err);
       setIssues(previousIssues);
-      setErrorMessage(err.response?.data?.error || '계층 구조 변경에 실패하여 원위치로 롤백합니다.');
+      const errMsg = err.response?.data?.error || '계층 구조 변경에 실패하여 원위치로 되돌렸습니다.';
+      setErrorMessage(errMsg);
+      useUIStore.getState().showToast(errMsg, 'error');
       await loadProjectData();
     } finally {
       setUpdatingIssueId(null);

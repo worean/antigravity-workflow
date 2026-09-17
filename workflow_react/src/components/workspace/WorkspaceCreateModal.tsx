@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Layers, X, Sparkles } from 'lucide-react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 

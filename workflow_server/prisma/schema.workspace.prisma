@@ -1,4 +1,3 @@
-// -*- coding: utf-8 -*-
 // ==========================================
 // 🏢 Workspace Database Schema (schema.workspace.prisma)
 // ==========================================
@@ -9,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("WORKSPACE_DATABASE_URL")
 }
 
@@ -181,6 +180,7 @@ model Project {
   actualEndDate    DateTime?
 
   syncStatus String @default("SYNCED")
+  visibility String @default("PUBLIC") // PUBLIC, PROTECTED, PRIVATE
 
   members         ProjectMember[]
   groups          ProjectGroup[]
@@ -192,6 +192,7 @@ model Project {
   testRuns        TestRun[]
   customFieldDefs CustomFieldDefinition[]
   chatChannels    ChatChannel[]
+  tags            Tag[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -318,6 +319,7 @@ model Issue {
   assignee   User? @relation("AssigneeIssues", fields: [assigneeId], references: [id])
 
   labels        Label[]
+  tags          Tag[]
   testCases     TestCase[]
   comments      Comment[]
   reminders     Reminder[]
@@ -333,6 +335,17 @@ model Issue {
   updatedAt DateTime @updatedAt
 
   @@unique([projectId, issueNumber])
+}
+
+// 태그 모델 (이슈 및 프로젝트 해시태그 분류 시스템)
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  color     String?   @default("#3b82f6")
+  issues    Issue[]
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 // 이슈 좋아요 (Like / Unlike)

@@ -1,4 +1,3 @@
-﻿// -*- coding: utf-8 -*-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -27,6 +26,8 @@ import {
 } from '@/utils/notificationUtils';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
+import { AvatarCropModal } from '@/components/AvatarCropModal';
+import { usePrefStore } from '@/stores/usePrefStore';
 import {
   SettingsHeaderToolbar,
   SettingsSidebarNav,
@@ -38,13 +39,14 @@ import {
   SettingsSystemTab,
   type SettingsTabType,
 } from '@/components/settings';
+import { StateDemoPage } from './StateDemoPage';
 
 interface SettingsPageProps {
   onOpenAuth?: () => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUserLocal } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
 
   // Active Sub-Tab
@@ -59,11 +61,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
 
   // Avatar Crop Modal State
-  const [, setShowCropModal] = useState<boolean>(false);
-  const [, setCropImageSrc] = useState<string | null>(null);
-  const [, setCropFileName] = useState<string>('');
-  const [, setCropZoom] = useState<number>(1);
-  const [, setCropPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [showCropModal, setShowCropModal] = useState<boolean>(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState<string>('');
 
   // --- TAB 2: Organization (Groups & Permissions) State ---
   const [treeGroups, setTreeGroups] = useState<Group[]>([]);
@@ -96,20 +96,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   const [fieldDesc, setFieldDesc] = useState<string>('');
   const [fieldRequired, setFieldRequired] = useState<boolean>(false);
 
-  // --- TAB 4: Display & Notification Preferences State ---
-  const [desktopNotifications, setDesktopNotifications] = useState<boolean>(() => {
-    return localStorage.getItem('pref_desktop_notifications') === 'true';
-  });
-  const [compactCards, setCompactCards] = useState<boolean>(() => {
-    return localStorage.getItem('pref_compact_cards') === 'true';
-  });
-  const [defaultPriority, setDefaultPriority] = useState<number>(() => {
-    return Number(localStorage.getItem('pref_default_priority')) || 3;
-  });
-  const [isSundayStart, setIsSundayStart] = useState<boolean>(() => {
-    const saved = localStorage.getItem('pref_is_sunday_start');
-    return saved !== null ? saved === 'true' : true;
-  });
+  // --- TAB 4: Display & Notification Preferences State (Zustand 실시간 반응형) ---
+  const desktopNotifications = usePrefStore((s) => s.desktopNotifications);
+  const compactCards = usePrefStore((s) => s.compactCards);
+  const defaultPriority = usePrefStore((s) => s.defaultPriority);
+  const isSundayStart = usePrefStore((s) => s.isSundayStart);
+  const setDesktopNotifications = usePrefStore((s) => s.setDesktopNotifications);
+  const setCompactCards = usePrefStore((s) => s.setCompactCards);
+  const setDefaultPriority = usePrefStore((s) => s.setDefaultPriority);
+  const setSundayStart = usePrefStore((s) => s.setSundayStart);
   const [testNotificationSent, setTestNotificationSent] = useState<boolean>(false);
   const [prioritySavedFeedback, setPrioritySavedFeedback] = useState<boolean>(false);
   const [weekStartSavedFeedback, setWeekStartSavedFeedback] = useState<boolean>(false);
@@ -227,11 +222,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
 
     await executeAction(
       async () => {
-        return await updateUser(user!.id, {
+        const updated = await updateUser(user!.id, {
           name: name.trim(),
-          avatar: avatar || undefined,
-          avatarColor: avatarColor || undefined,
+          avatar: avatar ?? null,
+          avatarColor: avatarColor ?? null,
         });
+        if (updated && updateUserLocal) {
+          updateUserLocal(updated);
+        }
+        return updated;
       },
       {
         onSuccess: async () => {
@@ -403,7 +402,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       const granted = await requestWebNotificationPermission();
       if (granted) {
         setDesktopNotifications(true);
-        localStorage.setItem('pref_desktop_notifications', 'true');
         sendDesktopNotification({
           title: '데스크톱 알림 활성화',
           body: 'AntiGravity Workflow 데스크톱 알림이 성공적으로 활성화되었습니다.',
@@ -411,11 +409,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       } else {
         alert('OS 알림 권한이 거부되었거나 지원되지 않는 환경입니다.');
         setDesktopNotifications(false);
-        localStorage.setItem('pref_desktop_notifications', 'false');
       }
     } else {
       setDesktopNotifications(false);
-      localStorage.setItem('pref_desktop_notifications', 'false');
     }
   };
 
@@ -430,19 +426,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
 
   const handleToggleCompactCards = (enabled: boolean) => {
     setCompactCards(enabled);
-    localStorage.setItem('pref_compact_cards', String(enabled));
   };
 
   const handleDefaultPriorityChange = (priorityId: number) => {
     setDefaultPriority(priorityId);
-    localStorage.setItem('pref_default_priority', String(priorityId));
     setPrioritySavedFeedback(true);
     setTimeout(() => setPrioritySavedFeedback(false), 2000);
   };
 
   const handleWeekStartChange = (isSunday: boolean) => {
-    setIsSundayStart(isSunday);
-    localStorage.setItem('pref_is_sunday_start', String(isSunday));
+    setSundayStart(isSunday);
     setWeekStartSavedFeedback(true);
     setTimeout(() => setWeekStartSavedFeedback(false), 2000);
   };
@@ -533,8 +526,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               onOpenCropModal={(img, fName) => {
                 setCropImageSrc(img);
                 setCropFileName(fName);
-                setCropZoom(1);
-                setCropPan({ x: 0, y: 0 });
                 setShowCropModal(true);
               }}
             />
@@ -635,10 +626,25 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               healthLoading={healthLoading}
             />
           )}
+
+          {activeSubTab === 'demo' && <StateDemoPage />}
         </div>
       </div>
 
       <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />
+
+      {showCropModal && (
+        <AvatarCropModal
+          isOpen={showCropModal}
+          imageSrc={cropImageSrc}
+          fileName={cropFileName}
+          onClose={() => setShowCropModal(false)}
+          onCropComplete={(croppedPngDataUrl) => {
+            setAvatar(croppedPngDataUrl);
+            setShowCropModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

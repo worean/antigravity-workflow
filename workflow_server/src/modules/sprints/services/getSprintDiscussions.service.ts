@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const getSprintDiscussionsService = async (sprintId: number) => {
   if (!sprintId || isNaN(Number(sprintId))) {

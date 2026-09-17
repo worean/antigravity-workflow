@@ -1,4 +1,4 @@
-/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
+﻿/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
 
 :root {
   /* VS Code Core Colors */
@@ -42,6 +42,9 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 3px 8px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.65);
+
+  /* Layout Custom Properties */
+  --main-padding: 12px 16px;
 }
 
 * {
@@ -72,10 +75,15 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
 }
 
-/* VS Code Slim Scrollbar */
+/* 🌟 Global Rounded Modern Dark Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -84,15 +92,62 @@ h1, h2, h3, h4, h5, h6 {
 
 ::-webkit-scrollbar-thumb {
   background: #424242;
-  border-radius: 0;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4f4f4f;
+  background: #5a5a5a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #6e6e6e;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Custom Scrollbar Utility */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a transparent;
+}
+
+/* 📱 Main Content Area with CSS Variable Controlled Padding */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg-dark);
+  padding: var(--main-padding);
+  position: relative;
+  height: 100%;
+}
+
+/* 🎯 탭 또는 상황별 패딩 동적 제어 (CSS Custom Property Override) */
+.main-content[data-tab="chat"],
+.main-content.no-padding {
+  --main-padding: 0px;
+  overflow-y: hidden;
+}
+
+/* 🌀 Spinner & Rotation Keyframes */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 0.85s linear infinite;
+  display: inline-block;
+  transform-origin: center center;
 }
 
 /* Compact Panels (VS Code Style) */
@@ -303,6 +358,8 @@ textarea.input-field {
   padding: 16px 20px;
   width: 92%;
   max-width: 500px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   color: var(--text-main);
 }
@@ -410,24 +467,20 @@ textarea.input-field {
 
 @keyframes fadeIn {
   from {
-    opacity: 0;
-    transform: translateY(3px);
+    opacity: 0.92;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  /* 불필요한 번쩍임/덜컹거림 방지 */
+  animation: fadeIn 0.1s ease-out forwards;
 }
 
 .transition-pending {
-  opacity: 0.6;
-  filter: grayscale(20%);
-  transition: opacity 0.2s ease, filter 0.2s ease;
+  /* 깜빡임 방지: 부드러운 상태 유지 */
   pointer-events: none;
 }
 

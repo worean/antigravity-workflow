@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const getSprintsService = async (projectId?: number, currentUserId?: number) => {
   const sprints = await prisma.sprint.findMany({

@@ -1,5 +1,4 @@
-﻿// -*- coding: utf-8 -*-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Issue } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -13,6 +12,7 @@ import {
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { STATUS_CONFIG, parseStatusCategory } from '@/utils/statusUtils';
 import { KanbanFilterBar, KanbanBoard } from '@/components/kanban';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface IssuesPageProps {
   onOpenCreateIssue: () => void;
@@ -34,31 +34,46 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   selectedAssigneeId = 'ALL',
   searchTermProp = '',
   onFilterChange,
+  refreshKey,
   onIssueUpdatedDirectly,
   onIssueDeletedDirectly,
   onOpenAuth,
 }) => {
   const { isAuthenticated, user } = useAuth();
 
-  // Filters
-  const [filterProjectId, setFilterProjectId] = useState<number | 'ALL'>(selectedProjectId || 'ALL');
-  const [filterAssigneeId, setFilterAssigneeId] = useState<number | 'ALL' | 'MY'>(selectedAssigneeId || 'ALL');
-  const [searchTerm, setSearchTerm] = useState<string>(searchTermProp || '');
+  // Filters (Single Source of Truth from Props/URL)
+  const filterProjectId = selectedProjectId || 'ALL';
+  const filterAssigneeId = selectedAssigneeId || 'ALL';
+  const [filterTag, setFilterTag] = useState<string>('ALL');
+  const [localSearchTerm, setLocalSearchTerm] = useState<string>(searchTermProp || '');
+
+  // Sync search term when prop changes from outside
+  useEffect(() => {
+    setLocalSearchTerm(searchTermProp || '');
+  }, [searchTermProp]);
 
   // 1. Projects & Users Query
   const { data: projects = [] } = useProjects({ limit: 50 });
   const { data: users = [] } = useUsers();
 
   // 2. Issues Query
-  const queryProjectId = filterProjectId === 'ALL' ? undefined : filterProjectId;
+  const queryProjectId = filterProjectId === 'ALL' ? undefined : Number(filterProjectId);
   const queryAssigneeId = filterAssigneeId === 'MY' ? 'my' : filterAssigneeId === 'ALL' ? undefined : Number(filterAssigneeId);
+  const queryTag = filterTag === 'ALL' ? undefined : filterTag;
 
-  const { data: issues = [], isLoading: loading } = useIssues({
+  const { data: issues = [], isLoading: loading, refetch: refetchIssues } = useIssues({
     projectId: queryProjectId,
     assigneeId: queryAssigneeId,
-    search: searchTerm.trim() || undefined,
+    tag: queryTag,
+    search: localSearchTerm.trim() || undefined,
     all: true,
   });
+
+  useEffect(() => {
+    if (refreshKey) {
+      refetchIssues();
+    }
+  }, [refreshKey, refetchIssues]);
 
   // Mutations
   const updateIssueMutation = useUpdateIssue();
@@ -73,36 +88,21 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
   const [deletingIssue, setDeletingIssue] = useState<Issue | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
 
-  // Sync props to internal state on URL change / history back
-  useEffect(() => {
-    setFilterProjectId(selectedProjectId ? selectedProjectId : 'ALL');
-  }, [selectedProjectId]);
-
-  useEffect(() => {
-    setFilterAssigneeId(selectedAssigneeId || 'ALL');
-  }, [selectedAssigneeId]);
-
-  useEffect(() => {
-    setSearchTerm(searchTermProp || '');
-  }, [searchTermProp]);
-
   // Filter change handlers
   const handleProjectFilterChange = (newProj: number | 'ALL') => {
-    setFilterProjectId(newProj);
     if (onFilterChange) {
-      onFilterChange({ projectId: newProj, assigneeId: filterAssigneeId, search: searchTerm });
+      onFilterChange({ projectId: newProj, assigneeId: filterAssigneeId, search: localSearchTerm });
     }
   };
 
   const handleAssigneeFilterChange = (newAssignee: number | 'ALL' | 'MY') => {
-    setFilterAssigneeId(newAssignee);
     if (onFilterChange) {
-      onFilterChange({ projectId: filterProjectId, assigneeId: newAssignee, search: searchTerm });
+      onFilterChange({ projectId: filterProjectId, assigneeId: newAssignee, search: localSearchTerm });
     }
   };
 
   const handleSearchChange = (newSearch: string) => {
-    setSearchTerm(newSearch);
+    setLocalSearchTerm(newSearch);
     if (onFilterChange) {
       onFilterChange({ projectId: filterProjectId, assigneeId: filterAssigneeId, search: newSearch });
     }
@@ -122,9 +122,16 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         data: { statusId: targetMeta.id },
       });
       if (onIssueUpdatedDirectly) onIssueUpdatedDirectly(updated);
+      useUIStore.getState().showToast(
+        `이슈 #${targetIssue.issueNumber || targetIssue.id} 상태가 '${targetMeta.koreanLabel}'(으)로 변경되었습니다.`,
+        'success'
+      );
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.error || '상태 변경 중 오류가 발생했습니다.');
+      useUIStore.getState().showToast(
+        err.response?.data?.error || '상태 변경 중 오류가 발생했습니다.',
+        'error'
+      );
     }
   };
 
@@ -170,14 +177,18 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     e.stopPropagation();
     if (!isAuthenticated) {
       if (onOpenAuth) onOpenAuth();
-      else alert('좋아요 기능은 로그인 후 이용 가능합니다.');
+      else useUIStore.getState().showToast('좋아요 기능은 로그인 후 이용 가능합니다.', 'error');
       return;
     }
 
     try {
       await toggleLikeMutation.mutateAsync(issue.id);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      useUIStore.getState().showToast(
+        err.response?.data?.error || '좋아요 처리에 실패했습니다.',
+        'error'
+      );
     }
   };
 
@@ -185,6 +196,7 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     e.stopPropagation();
     if (!isAuthenticated) {
       if (onOpenAuth) onOpenAuth();
+      else useUIStore.getState().showToast('로그인이 필요한 기능입니다.', 'error');
       return;
     }
     setDeletingIssue(issue);
@@ -197,10 +209,17 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
     try {
       await deleteIssueMutation.mutateAsync(deletingIssue.id);
       if (onIssueDeletedDirectly) onIssueDeletedDirectly(deletingIssue.id);
+      useUIStore.getState().showToast(
+        `이슈 #${deletingIssue.issueNumber || deletingIssue.id}가 삭제되었습니다.`,
+        'success'
+      );
       setDeletingIssue(null);
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.error || '이슈 삭제 중 오류가 발생했습니다.');
+      useUIStore.getState().showToast(
+        err.response?.data?.error || '이슈 삭제 중 오류가 발생했습니다.',
+        'error'
+      );
     } finally {
       setDeleteLoading(false);
     }
@@ -226,7 +245,9 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         handleProjectFilterChange={handleProjectFilterChange}
         filterAssigneeId={filterAssigneeId}
         handleAssigneeFilterChange={handleAssigneeFilterChange}
-        searchTerm={searchTerm}
+        filterTag={filterTag}
+        handleTagFilterChange={(t) => setFilterTag(t)}
+        searchTerm={localSearchTerm}
         handleSearchChange={handleSearchChange}
         projects={projects}
         users={users}
@@ -252,6 +273,9 @@ export const IssuesPage: React.FC<IssuesPageProps> = ({
         handleOpenDeleteConfirm={handleOpenDeleteConfirm}
         handleToggleLike={handleToggleLike}
         onSelectIssue={onSelectIssue}
+        onTagClick={(tagName) => {
+          setFilterTag(tagName);
+        }}
         onOpenAuth={onOpenAuth}
       />
 

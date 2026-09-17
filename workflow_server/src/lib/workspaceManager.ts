@@ -1,4 +1,3 @@
-﻿// -*- coding: utf-8 -*-
 import fs from 'fs';
 import path from 'path';
 import { PrismaClient as WorkspacePrismaClient, Prisma as WorkspacePrisma } from '../generated/workspace-client/index.js';
@@ -47,9 +46,16 @@ export class WorkspaceManager {
       return this.clientPool.get(workspace.id)!;
     }
 
+    // 대상 DB URL 결정 (PostgreSQL 모드인 경우 file: URL 방어)
+    let targetDbUrl = workspace.dbUrl;
+    const isPostgresMode = process.env.TASK_STORAGE_MODE === 'postgresql' || Boolean(process.env.WORKSPACE_DATABASE_URL);
+    if (isPostgresMode && (!targetDbUrl || targetDbUrl.startsWith('file:'))) {
+      targetDbUrl = process.env.WORKSPACE_DATABASE_URL || 'postgresql://juyeong:qkrwndud@localhost:5432/workspace';
+    }
+
     // SQLite 파일 기반인 경우 디렉터리 존재 보장
-    if (workspace.dbUrl.startsWith('file:')) {
-      const filePath = workspace.dbUrl.replace(/^file:/, '');
+    if (targetDbUrl.startsWith('file:')) {
+      const filePath = targetDbUrl.replace(/^file:/, '');
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -57,14 +63,14 @@ export class WorkspaceManager {
 
       // DB 파일이 없는 경우 기본 템플릿 복사 또는 초기 프로비저닝
       if (!fs.existsSync(filePath)) {
-        await this.provisionWorkspaceDb(workspace);
+        await this.provisionWorkspaceDb({ ...workspace, dbUrl: targetDbUrl });
       }
     }
 
     const client = new WorkspacePrismaClient({
       datasources: {
         db: {
-          url: workspace.dbUrl,
+          url: targetDbUrl,
         },
       },
     });
