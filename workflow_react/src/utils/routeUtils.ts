@@ -1,9 +1,10 @@
-export type RootTabType =
+﻿export type RootTabType =
   | 'dashboard'
   | 'projects'
   | 'issues'
   | 'sprints'
   | 'wbs'
+  | 'calendar'
   | 'worklogs'
   | 'chat'
   | 'settings'
@@ -283,8 +284,8 @@ export function parseRouteFromHash(rawHash: string): RouteInfo {
       };
     }
 
-    // #/wbs, #/worklogs, #/dashboard, #/settings, #/demo-state
-    const validRoots: RootTabType[] = ['dashboard', 'projects', 'issues', 'sprints', 'wbs', 'worklogs', 'chat', 'settings', 'demo-state'];
+    // #/wbs, #/calendar, #/worklogs, #/dashboard, #/settings, #/demo-state
+    const validRoots: RootTabType[] = ['dashboard', 'projects', 'issues', 'sprints', 'wbs', 'calendar', 'worklogs', 'chat', 'settings', 'demo-state'];
     const matchedRoot = validRoots.includes(root) ? root : 'dashboard';
 
     return {

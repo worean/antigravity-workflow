@@ -1,4 +1,4 @@
-export interface UserPreferences {
+﻿export interface UserPreferences {
   isSundayStart?: boolean;
   defaultPriority?: number;
   compactCards?: boolean;
@@ -14,6 +14,7 @@ export interface User {
   avatar?: string | null;
   avatarColor?: string | null;
   preferences?: string | null;
+  isGoogleLinked?: boolean;
   groupMemberships?: GroupMember[];
   createdAt?: string;
 }
@@ -404,5 +405,6 @@ export interface WorkspaceDetail extends Workspace {
 
 export * from './wbs';
 export * from './chatbot';
+export * from './calendar';
 
 

@@ -10,4 +10,5 @@ export * from './groups';
 export * from './favorites';
 export * from './workspaces';
 export * from './tags';
+export * from './calendar';
 

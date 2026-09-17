@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+﻿import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
@@ -19,6 +19,7 @@ import { favoriteRouter } from './modules/favorites/favorites.routes.js';
 import { workspaceRouter } from './modules/workspaces/workspaces.routes.js';
 import tagRouter from './modules/tags/tags.routes.js';
 import { aiRouter } from './modules/ai/ai.routes.js';
+import { calendarRouter } from './modules/calendar/calendar.routes.js';
 
 dotenv.config();
 
@@ -80,6 +81,7 @@ app.use('/api/favorites', favoriteRouter);
 app.use('/api/workspaces', workspaceRouter);
 app.use('/api/tags', tagRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/calendar', calendarRouter);
 
 
 

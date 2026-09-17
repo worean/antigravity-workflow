@@ -15,6 +15,7 @@ import { IssueDetailPage } from '@/pages/IssueDetailPage';
 import { SprintsPage } from '@/pages/SprintsPage';
 import { SprintDetailPage } from '@/pages/SprintDetailPage';
 import { WBSPage } from '@/pages/WBSPage';
+import { CalendarPage } from '@/pages/CalendarPage';
 import { WorklogsPage } from '@/pages/WorklogsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ChatPage } from '@/pages/ChatPage';
@@ -328,6 +329,9 @@ const AppContent: React.FC = () => {
           baseCrumbs.push({ label: 'WBS 간트 차트' });
         }
         break;
+      case 'calendar':
+        baseCrumbs.push({ label: '캘린더 일정' });
+        break;
       case 'chat':
         baseCrumbs.push({ label: '실시간 채팅' });
         break;
@@ -478,6 +482,13 @@ const AppContent: React.FC = () => {
               onFilterChange={(pId) => navigate('wbs', pId, selectedIssueId, 'view', true)}
               onSelectIssue={handleSelectIssue}
               onOpenAuth={openAuthModal}
+            />
+          )}
+
+          {activeTab === 'calendar' && (
+            <CalendarPage
+              key="tab-calendar"
+              onSelectIssue={(issueId) => handleSelectIssue({ id: issueId } as any)}
             />
           )}
 

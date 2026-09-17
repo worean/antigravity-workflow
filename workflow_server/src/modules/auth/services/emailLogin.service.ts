@@ -139,6 +139,7 @@ export const emailLoginService = async (data: any) => {
       avatar: user.avatar,
       avatarColor: user.avatarColor,
       isEmailVerified: globalUser ? globalUser.isEmailVerified : true,
+      isGoogleLinked: !!globalUser?.socialAccounts?.some((sa: any) => sa.provider === 'GOOGLE'),
     },
   };
 };

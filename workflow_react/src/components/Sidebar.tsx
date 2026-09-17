@@ -9,6 +9,7 @@ import {
   Settings,
   MessageSquare,
   FlaskConical,
+  CalendarDays,
 } from 'lucide-react';
 import { ProfileCard } from './ProfileCard';
 import { SidebarBrand, SidebarNavItem, type SidebarSubitem } from './navigation';
@@ -24,6 +25,7 @@ export type TabType =
   | 'issues'
   | 'sprints'
   | 'wbs'
+  | 'calendar'
   | 'worklogs'
   | 'chat'
   | 'issue-detail'
@@ -179,6 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
       })),
     },
+    { id: 'calendar', label: '캘린더 일정', icon: CalendarDays },
     { id: 'worklogs', label: '작업 로그', icon: Clock },
     { id: 'settings', label: '환경 설정', icon: Settings },
     { id: 'demo-state', label: '상태 관리 실습 (Zustand)', icon: FlaskConical },

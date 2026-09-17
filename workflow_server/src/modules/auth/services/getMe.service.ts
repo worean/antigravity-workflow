@@ -20,6 +20,9 @@ export const getMeService = async (userId: number) => {
         avatarColor: true,
         createdAt: true,
         updatedAt: true,
+        socialAccounts: {
+          select: { provider: true, email: true },
+        },
       },
     });
   } catch (e) {}
@@ -68,6 +71,7 @@ export const getMeService = async (userId: number) => {
     role: globalUser ? globalUser.role : workspaceUser!.role,
     avatar: globalUser?.avatar || workspaceUser?.avatar,
     avatarColor: globalUser?.avatarColor || workspaceUser?.avatarColor,
+    isGoogleLinked: !!globalUser?.socialAccounts?.some((sa: any) => sa.provider === 'GOOGLE'),
     pushToken: workspaceUser?.pushToken || null,
     preferences: workspaceUser?.preferences || null,
     createdAt: globalUser?.createdAt || workspaceUser?.createdAt,

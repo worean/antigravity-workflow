@@ -1,4 +1,4 @@
-# 📌 AntiGravity Frontend Specification (프론트엔드 종합 컴포넌트 설계 사양서)
+﻿# 📌 AntiGravity Frontend Specification (프론트엔드 종합 컴포넌트 설계 사양서)
 
 ## 1. 개요 (System Overview)
 AntiGravity Workflow 프론트엔드는 **React 18 + TypeScript + Vite + TanStack Query v5** 기반의 이슈 및 일감 관리(Issue & Task Management) 풀스택 웹 애플리케이션의 클라이언트 SPA 시스템입니다.
@@ -28,6 +28,7 @@ AntiGravity Workflow 프론트엔드는 **React 18 + TypeScript + Vite + TanStac
 | **실시간 채팅 (9종)** | [`09_CHAT_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/09_CHAT_COMPONENTS.md) | `ChatPage`, `ChatCategoryNav`, `ChatChannelSidebar`, `ChatMainArea`, `ChatHeader`, `ChatMessageList`, `ChatMessageItem`, `ChatInputArea`, `ChatMemberSidebar`, `ChatCreateModal` |
 | **환경설정 (8종)** | [`10_SETTINGS_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/10_SETTINGS_COMPONENTS.md) | `SettingsPage`, `SettingsHeaderToolbar`, `SettingsSidebarNav`, `SettingsProfileTab`, `SettingsWorkspaceTab`, `SettingsOrgTab`, `SettingsDisplayTab`, `SettingsSystemTab`, `SettingsCustomFieldsTab` |
 | **전역 모달 & 레이아웃 (12종)** | [`11_GLOBAL_MODALS_LAYOUT.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/11_GLOBAL_MODALS_LAYOUT.md) | `Header`, `Sidebar`, `ProfileCard`, `AuthModal`, `ActionFeedbackModal`, `AvatarCropModal`, `ConfirmModal`, `CustomFieldsModal`, `GroupModal`, `IssueModal`, `ProjectModal`, `SprintModal`, `WorkspaceCreateModal`, `WorkspaceInviteModal` |
+| **캘린더 & 구글 연동 (5종)** | [`12_CALENDAR_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/12_CALENDAR_COMPONENTS.md) | `CalendarPage`, `CalendarGoogleSyncBanner`, `CalendarHeader`, `CalendarMonthGrid`, `CalendarWeekGrid` |
 | **AI 챗봇 & 플로팅 팝업 (6종)** | [`chatbot_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/chatbot_COMPONENTS.md) | `ChatbotPopup`, `ChatbotHeader`, `ChatbotMessageList`, `ChatbotMessageItem`, `ChatbotInputArea`, `ChatbotLauncher`, `ChatbotActionCard` |
 
 ---
