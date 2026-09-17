@@ -8,7 +8,10 @@
   endDate: string;
   status?: string;
   priority?: string;
-  type: 'issue' | 'sprint';
+  type: 'issue' | 'sprint' | 'google';
+  source?: 'workflow' | 'google';
+  htmlLink?: string | null;
+  location?: string | null;
   project?: {
     id: number;
     name: string;
@@ -16,6 +19,11 @@
     color?: string | null;
   };
   assignee?: {
+    id: number;
+    name: string;
+    avatar?: string | null;
+  } | null;
+  reporter?: {
     id: number;
     name: string;
     avatar?: string | null;
@@ -43,4 +51,5 @@ export interface CalendarFilter {
   projectId?: number | 'ALL';
   startDate?: string;
   endDate?: string;
+  onlyMyEvents?: boolean;
 }

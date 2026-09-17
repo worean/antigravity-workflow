@@ -5,12 +5,17 @@ import { syncGoogleCalendarService } from './services/syncGoogleCalendar.service
 
 export const getCalendarEvents = async (req: Request, res: Response) => {
   try {
-    const { projectId, startDate, endDate } = req.query;
+    const { projectId, startDate, endDate, onlyMyEvents } = req.query;
+    const userId = (req as any).user?.id;
+
     const events = await getCalendarEventsService({
       projectId: projectId ? Number(projectId) : undefined,
       startDate: startDate as string | undefined,
       endDate: endDate as string | undefined,
+      userId: userId ? Number(userId) : undefined,
+      onlyMyEvents: onlyMyEvents === 'true',
     });
+
     return res.json({ events });
   } catch (error: any) {
     console.error('[CALENDAR_GET_EVENTS_ERROR]', error);

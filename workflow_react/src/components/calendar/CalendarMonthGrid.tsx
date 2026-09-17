@@ -104,6 +104,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
 
   // 이벤트 스타일 클래스 매핑
   const getEventClass = (evt: CalendarEvent) => {
+    if (evt.type === 'google') return 'calendar-event-google google';
     if (evt.type === 'sprint') return 'calendar-event-sprint';
     switch (evt.priority?.toUpperCase()) {
       case 'URGENT':
@@ -327,8 +328,27 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                       }}
                       title={`${seg.event.title} (${seg.event.startDate.split('T')[0]} ~ ${seg.event.endDate.split('T')[0]})`}
                     >
-                      {/* 시작일이 아니면 좌측에 이어짐 표시(◀), 맞으면 도트 아이콘 */}
-                      {!seg.isStart ? (
+                      {/* Google 캘린더 일정 배지 혹은 시작일/이음새 도트 표시 */}
+                      {seg.event.type === 'google' ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            background: '#4285F4',
+                            color: '#ffffff',
+                            borderRadius: '2px',
+                            padding: '0 3px',
+                            height: '13px',
+                            lineHeight: '13px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          G
+                        </span>
+                      ) : !seg.isStart ? (
                         <span style={{ fontSize: '0.65rem', opacity: 0.75, flexShrink: 0 }}>◀</span>
                       ) : (
                         <span
@@ -342,7 +362,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                         />
                       )}
 
-                      {/* 이벤트 타이틀 및 프로젝트명 */}
+                      {/* 이벤트 타이틀 및 소스/프로젝트명 */}
                       <span
                         style={{
                           overflow: 'hidden',
@@ -353,7 +373,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                           fontSize: '0.72rem',
                         }}
                       >
-                        {seg.event.project?.key ? `[${seg.event.project.key}] ` : ''}
+                        {seg.event.type === 'google' ? '[Google] ' : (seg.event.project?.key ? `[${seg.event.project.key}] ` : '')}
                         {seg.event.title}
                       </span>
 

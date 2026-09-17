@@ -681,3 +681,39 @@ textarea.input-field {
   z-index: 10;
 }
 
+/* Google Calendar Event Styling */
+.calendar-event-bar.google {
+  background: linear-gradient(90deg, rgba(66, 133, 244, 0.25) 0%, rgba(52, 168, 83, 0.18) 100%);
+  border-color: rgba(66, 133, 244, 0.5);
+  border-left: 3px solid #4285F4;
+  color: #a8c7fa;
+}
+
+.calendar-event-bar.google:hover {
+  box-shadow: 0 0 8px rgba(66, 133, 244, 0.4);
+}
+
+.calendar-event-chip.google {
+  background: rgba(66, 133, 244, 0.2);
+  border-color: rgba(66, 133, 244, 0.45);
+  border-left: 3px solid #4285F4;
+  color: #8ab4f8;
+}
+
+.calendar-event-chip.google:hover {
+  box-shadow: 0 0 6px rgba(66, 133, 244, 0.35);
+}
+
+.google-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  background: rgba(66, 133, 244, 0.25);
+  color: #8ab4f8;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+

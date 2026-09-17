@@ -147,4 +147,53 @@ describe('🧪 [Calendar Events API] GET /api/calendar/events', () => {
       }
     });
   });
+
+  it('4️⃣ onlyMyEvents=true 적용 시 담당자/보고자가 본인인 이슈만 반환 및 스프린트 제외', async () => {
+    // testIssue1의 assignee를 testUser로 설정
+    await prisma.issue.update({
+      where: { id: testIssue1.id },
+      data: { assigneeId: testUser.id },
+    });
+
+    const res = await request(app)
+      .get(`/api/calendar/events?onlyMyEvents=true`)
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    const events = res.body.events;
+    // 스프린트 일정은 제외되어야 함
+    expect(events.some((e: any) => e.type === 'sprint')).toBe(false);
+    // 본인이 담당자인 testIssue1은 포함되어야 함
+    expect(events.some((e: any) => e.issueId === testIssue1.id)).toBe(true);
+  });
+
+  it('5️⃣ Google 소셜 계정 연동 유저의 경우 Google 캘린더 일정(type: google) 반환', async () => {
+    // testUser에게 Google 소셜 계정 연동 추가
+    const socialAccount = await globalPrisma.socialAccount.create({
+      data: {
+        provider: 'GOOGLE',
+        providerId: `google_test_${Date.now()}`,
+        email: testUser.email,
+        accessToken: 'dummy_google_access_token',
+        userId: testUser.id,
+      },
+    });
+
+    try {
+      const res = await request(app)
+        .get('/api/calendar/events')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      const events = res.body.events;
+      const googleEvents = events.filter((e: any) => e.type === 'google');
+      expect(googleEvents.length).toBeGreaterThan(0);
+      expect(googleEvents[0].source).toBe('google');
+      expect(googleEvents[0].title).toBeDefined();
+    } finally {
+      await globalPrisma.socialAccount.delete({
+        where: { id: socialAccount.id },
+      }).catch(() => {});
+    }
+  });
 });

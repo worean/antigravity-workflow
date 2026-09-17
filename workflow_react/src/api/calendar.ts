@@ -16,6 +16,7 @@ export const getCalendarEvents = async (filter?: CalendarFilter): Promise<Calend
   }
   if (filter?.startDate) params.startDate = filter.startDate;
   if (filter?.endDate) params.endDate = filter.endDate;
+  if (filter?.onlyMyEvents) params.onlyMyEvents = true;
 
   const res = await apiClient.get<{ events: CalendarEvent[] }>('/calendar/events', { params });
   return res.data.events || [];

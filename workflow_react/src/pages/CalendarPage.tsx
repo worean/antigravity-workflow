@@ -8,6 +8,7 @@ import {
   CalendarGoogleSyncBanner,
   CalendarMonthGrid,
   CalendarWeekGrid,
+  GoogleEventModal,
 } from '@/components/calendar';
 import type { CalendarViewMode, CalendarEvent } from '@/types';
 
@@ -19,6 +20,8 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [selectedProjectId, setSelectedProjectId] = useState<number | 'ALL'>('ALL');
+  const [onlyMyEvents, setOnlyMyEvents] = useState<boolean>(false);
+  const [selectedGoogleEvent, setSelectedGoogleEvent] = useState<CalendarEvent | null>(null);
 
   const openIssueModal = useUIStore((state) => state.openIssueModal);
   const openIssueDetail = useUIStore((state) => state.openIssueDetail);
@@ -54,6 +57,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
     projectId: selectedProjectId,
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
+    onlyMyEvents,
   });
 
   const { data: googleStatus, isLoading: googleStatusLoading } = useGoogleCalendarStatus();
@@ -89,6 +93,11 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
 
   // 5. 일정 선택 및 일자 클릭 핸들러
   const handleSelectEvent = (event: CalendarEvent) => {
+    if (event.type === 'google') {
+      setSelectedGoogleEvent(event);
+      return;
+    }
+
     if (event.issueId) {
       if (onSelectIssue) {
         onSelectIssue(event.issueId);
@@ -114,7 +123,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
         isLoading={googleStatusLoading}
       />
 
-      {/* 2. 캘린더 툴바 헤더 (날짜 네비게이션, 뷰 체인저, 프로젝트 필터, 새 일감 버튼) */}
+      {/* 2. 캘린더 툴바 헤더 (날짜 네비게이션, 뷰 체인저, 프로젝트 필터, 내 일정 필터, 새 일감 버튼) */}
       <CalendarHeader
         currentDate={currentDate}
         viewMode={viewMode}
@@ -125,6 +134,8 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
         projects={projects}
         selectedProjectId={selectedProjectId}
         onProjectChange={setSelectedProjectId}
+        onlyMyEvents={onlyMyEvents}
+        onOnlyMyEventsChange={setOnlyMyEvents}
         onNewIssue={() =>
           openIssueModal(
             selectedProjectId !== 'ALL' && typeof selectedProjectId === 'number'
@@ -154,6 +165,12 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
           onDateClick={handleDateClick}
         />
       )}
+
+      {/* 4. Google 캘린더 전용 상세 모달 */}
+      <GoogleEventModal
+        event={selectedGoogleEvent}
+        onClose={() => setSelectedGoogleEvent(null)}
+      />
     </div>
   );
 };

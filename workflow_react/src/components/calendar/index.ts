@@ -2,3 +2,4 @@
 export * from './CalendarGoogleSyncBanner';
 export * from './CalendarMonthGrid';
 export * from './CalendarWeekGrid';
+export * from './GoogleEventModal';

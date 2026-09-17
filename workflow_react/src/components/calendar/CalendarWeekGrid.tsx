@@ -151,6 +151,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                 </div>
               ) : (
                 dayEvents.map((evt) => {
+                  const isGoogle = evt.type === 'google';
                   const isDone =
                     evt.status?.toUpperCase() === 'DONE' ||
                     evt.status?.toUpperCase() === 'COMPLETED';
@@ -165,32 +166,40 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                       style={{
                         padding: '6px 8px',
                         borderRadius: 'var(--radius-xs)',
-                        background: 'var(--bg-input)',
-                        border: '1px solid var(--border-light)',
+                        background: isGoogle ? 'rgba(66, 133, 244, 0.08)' : 'var(--bg-input)',
+                        border: isGoogle ? '1px solid rgba(66, 133, 244, 0.4)' : '1px solid var(--border-light)',
+                        borderLeft: isGoogle ? '3px solid #4285F4' : undefined,
                         fontSize: '0.75rem',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '4px',
                         cursor: 'pointer',
-                        transition: 'border-color 0.12s ease',
+                        transition: 'border-color 0.12s ease, box-shadow 0.12s ease',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                        {evt.project && (
+                        {isGoogle ? (
+                          <span className="google-tag">
+                            Google Calendar
+                          </span>
+                        ) : evt.project ? (
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {evt.project.key || evt.project.name}
                           </span>
-                        )}
+                        ) : null}
+
                         <span
                           style={{
                             fontSize: '0.65rem',
                             padding: '1px 5px',
                             borderRadius: 'var(--radius-xs)',
                             fontWeight: 600,
-                            ...getStatusBadgeStyle(evt.status),
+                            ...(isGoogle
+                              ? { background: 'rgba(66, 133, 244, 0.25)', color: '#8ab4f8' }
+                              : getStatusBadgeStyle(evt.status)),
                           }}
                         >
-                          {evt.status || 'TODO'}
+                          {isGoogle ? '연동 일정' : (evt.status || 'TODO')}
                         </span>
                       </div>
 
@@ -198,7 +207,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                         style={{
                           margin: 0,
                           fontWeight: 500,
-                          color: 'var(--text-bright)',
+                          color: isGoogle ? '#a8c7fa' : 'var(--text-bright)',
                           overflow: 'hidden',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
@@ -216,9 +225,9 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           paddingTop: '4px',
-                          borderTop: '1px solid var(--border-subtle)',
+                          borderTop: isGoogle ? '1px solid rgba(66, 133, 244, 0.2)' : '1px solid var(--border-subtle)',
                           fontSize: '0.7rem',
-                          color: 'var(--text-muted)',
+                          color: isGoogle ? '#8ab4f8' : 'var(--text-muted)',
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -226,14 +235,18 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                           <span>{evt.endDate.split('T')[0].slice(5)}</span>
                         </span>
 
-                        {evt.assignee && (
+                        {isGoogle && evt.location ? (
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70px', fontSize: '0.68rem', color: '#8ab4f8' }}>
+                            {evt.location}
+                          </span>
+                        ) : evt.assignee ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                             <User size={11} />
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60px' }}>
                               {evt.assignee.name}
                             </span>
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );

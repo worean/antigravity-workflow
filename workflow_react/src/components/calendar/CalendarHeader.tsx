@@ -1,4 +1,5 @@
-﻿import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+﻿import React from 'react';
+import { ChevronLeft, ChevronRight, Plus, UserCheck } from 'lucide-react';
 import type { CalendarViewMode, Project } from '@/types';
 import { useUIStore } from '@/stores/useUIStore';
 
@@ -13,6 +14,8 @@ interface CalendarHeaderProps {
   selectedProjectId: number | 'ALL';
   onProjectChange: (projectId: number | 'ALL') => void;
   onNewIssue?: () => void;
+  onlyMyEvents?: boolean;
+  onOnlyMyEventsChange?: (onlyMy: boolean) => void;
 }
 
 export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
@@ -26,6 +29,8 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
   selectedProjectId,
   onProjectChange,
   onNewIssue,
+  onlyMyEvents = false,
+  onOnlyMyEventsChange,
 }) => {
   const openIssueModal = useUIStore((s) => s.openIssueModal);
   const handleNewIssue = onNewIssue || (() => openIssueModal(selectedProjectId === 'ALL' ? undefined : selectedProjectId));
@@ -59,8 +64,8 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
         borderBottom: '1px solid var(--border-light)',
       }}
     >
-      {/* 1. 날짜 네비게이션 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {/* 1. 날짜 네비게이션 및 범례 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
         <div
           style={{
             display: 'flex',
@@ -110,10 +115,45 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
             </span>
           )}
         </div>
+
+        {/* 일정 범례 (Legend) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', color: 'var(--text-sub)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#007acc' }} />
+            이슈
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#c586c0' }} />
+            스프린트
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#4285F4' }} />
+            Google 일정
+          </span>
+        </div>
       </div>
 
       {/* 2. 필터 및 뷰 체인저, 액션 버튼 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* '내 일정만 보기' 토글 버튼 */}
+        {onOnlyMyEventsChange && (
+          <button
+            type="button"
+            onClick={() => onOnlyMyEventsChange(!onlyMyEvents)}
+            className={`btn btn-sm ${onlyMyEvents ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              height: '26px',
+              fontSize: '0.75rem',
+              gap: '5px',
+              border: onlyMyEvents ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+            }}
+            title="담당자 또는 보고자가 나인 이슈만 필터링합니다"
+          >
+            <UserCheck size={13} />
+            <span>{onlyMyEvents ? '내 일정만 보는 중' : '내 일정만 보기'}</span>
+          </button>
+        )}
+
         {/* 프로젝트 필터 */}
         <select
           value={selectedProjectId}
@@ -123,7 +163,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
             )
           }
           className="input-field"
-          style={{ width: '150px', height: '26px', fontSize: '0.78rem' }}
+          style={{ width: '140px', height: '26px', fontSize: '0.78rem' }}
         >
           <option value="ALL">전체 프로젝트</option>
           {projects.map((p) => (
