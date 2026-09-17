@@ -1,0 +1,24 @@
+{
+  "name": "antigravity-workflow-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AntiGravity Issue & Task Workflow Integrated Workspace",
+  "scripts": {
+    "install:all": "npm install --prefix workflow_server && npm install --prefix workflow_react",
+    "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"cyan.bold,green.bold\" \"npm run dev --prefix workflow_server\" \"npm run dev --prefix workflow_react\"",
+    "dev:server": "npm run dev --prefix workflow_server",
+    "dev:client": "npm run dev --prefix workflow_react",
+    "build": "npm run build --prefix workflow_server && npm run build --prefix workflow_react",
+    "build:server": "npm run build --prefix workflow_server",
+    "build:client": "npm run build --prefix workflow_react",
+    "build:electron": "npm run electron:build --prefix workflow_react",
+    "electron": "concurrently -k -n \"SERVER,ELECTRON\" -c \"cyan.bold,yellow.bold\" \"npm run dev --prefix workflow_server\" \"npm run electron:dev --prefix workflow_react\"",
+    "electron:client": "npm run electron:dev --prefix workflow_react",
+    "electron:build": "npm run electron:build --prefix workflow_react",
+    "electron:dist": "npm run electron:dist --prefix workflow_react",
+    "kill": "powershell -Command \"Get-NetTCPConnection -LocalPort 4000,5173 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
