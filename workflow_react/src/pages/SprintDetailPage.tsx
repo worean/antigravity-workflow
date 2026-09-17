@@ -1,8 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
-import type { Sprint, Project, Issue } from '@/types';
+import type { Sprint, Issue } from '@/types';
 import {
   getSprint,
-  getProjects,
   getIssues,
   updateSprint,
   deleteSprint,
@@ -23,7 +22,7 @@ import {
   SprintNotesTab,
   SprintManageIssuesModal,
 } from '@/components/sprints';
-import { SprintModal } from '@/components/SprintModal';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface SprintDetailPageProps {
   sprintId: number | null;
@@ -38,17 +37,20 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
   sprintId,
   onBack,
   onOpenEditSprint,
-  onOpenIssueDetail,
-  onOpenAuth,
+  onOpenIssueDetail: propOpenIssueDetail,
+  onOpenAuth: propOpenAuth,
 }) => {
   const { user, isAuthenticated } = useAuth();
+  const openSprintModal = useUIStore((state) => state.openSprintModal);
+  const storeOpenAuthModal = useUIStore((state) => state.openAuthModal);
+  const storeOpenIssueDetail = useUIStore((state) => state.openIssueDetail);
+
+  const onOpenAuth = propOpenAuth || storeOpenAuthModal;
+  const onOpenIssueDetail = propOpenIssueDetail || storeOpenIssueDetail;
+
   const [sprint, setSprint] = useState<Sprint | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<SprintDetailTabType>('discussions');
-
-  // Edit Modal State (로컬 폴백용)
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
 
   // Manage Issues Modal State
   const [showManageModal, setShowManageModal] = useState<boolean>(false);
@@ -62,12 +64,8 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
     if (!sprintId) return;
     if (showLoading) setLoading(true);
     try {
-      const [sData, pData] = await Promise.all([
-        getSprint(sprintId),
-        getProjects(),
-      ]);
+      const sData = await getSprint(sprintId);
       setSprint(sData);
-      setProjects(pData);
     } catch (err) {
       console.error('Failed to fetch sprint detail:', err);
     } finally {
@@ -78,6 +76,16 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
   useEffect(() => {
     fetchSprintData(true);
   }, [sprintId]);
+
+  const isSprintModalOpen = useUIStore((state) => state.isSprintModalOpen);
+  const prevModalOpen = React.useRef(isSprintModalOpen);
+
+  useEffect(() => {
+    if (prevModalOpen.current && !isSprintModalOpen) {
+      fetchSprintData();
+    }
+    prevModalOpen.current = isSprintModalOpen;
+  }, [isSprintModalOpen]);
 
   const handleQuickStatusChange = async (sId: number, newStatus: string) => {
     try {
@@ -91,8 +99,8 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
   const handleOpenEditModal = () => {
     if (onOpenEditSprint && sprint) {
       onOpenEditSprint(sprint);
-    } else {
-      setShowEditModal(true);
+    } else if (sprint) {
+      openSprintModal(sprint, sprint.projectId);
     }
   };
 
@@ -263,15 +271,6 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
           />
         )}
       </div>
-
-      {/* Edit Modal (IssueModal 완벽 일치 구조) */}
-      <SprintModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        sprint={sprint}
-        projects={projects}
-        onSuccess={() => fetchSprintData()}
-      />
 
       {/* Manage Issues Modal */}
       <SprintManageIssuesModal

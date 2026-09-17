@@ -1,5 +1,6 @@
 ﻿import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { CalendarViewMode, Project } from '@/types';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -11,7 +12,7 @@ interface CalendarHeaderProps {
   projects?: Project[];
   selectedProjectId: number | 'ALL';
   onProjectChange: (projectId: number | 'ALL') => void;
-  onNewIssue: () => void;
+  onNewIssue?: () => void;
 }
 
 export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
@@ -26,6 +27,9 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
   onProjectChange,
   onNewIssue,
 }) => {
+  const openIssueModal = useUIStore((s) => s.openIssueModal);
+  const handleNewIssue = onNewIssue || (() => openIssueModal(selectedProjectId === 'ALL' ? undefined : selectedProjectId));
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
 
@@ -134,7 +138,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
         {/* 새 일감 등록 */}
         <button
           type="button"
-          onClick={onNewIssue}
+          onClick={handleNewIssue}
           className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />

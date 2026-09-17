@@ -14,7 +14,7 @@ import {
 import type { VisibilityFilterType } from '@/components/projects/ProjectsHeaderToolbar';
 
 interface ProjectsPageProps {
-  onOpenCreateProject: () => void;
+  onOpenCreateProject?: () => void;
   onSelectProject: (projectId: number) => void;
   projects?: Project[];
   onProjectsChange?: (projects: Project[]) => void;
@@ -26,7 +26,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onSelectProject,
   projects: externalProjects,
   onProjectsChange,
-  onOpenAuth,
+  onOpenAuth: propOpenAuth,
 }) => {
   const { isAuthenticated } = useAuth();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
@@ -41,6 +41,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   const [isCustomFieldsModalOpen, setIsCustomFieldsModalOpen] = useState<boolean>(false);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const openProjectModal = useUIStore((s) => s.openProjectModal);
+  const storeOpenAuthModal = useUIStore((s) => s.openAuthModal);
+
+  const onOpenAuth = propOpenAuth || storeOpenAuthModal;
 
   // externalProjects가 명시적으로 배열로 주어지고 비어있지 않은 경우에만 사용, 그 외는 서버 데이터(fetchedProjects)가 단일 진실 공급원
   const rawProjects =
@@ -55,7 +58,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
 
   const handleCreateClick = () => {
     if (!isAuthenticated) {
-      if (onOpenAuth) onOpenAuth();
+      onOpenAuth();
       return;
     }
     if (onOpenCreateProject) {

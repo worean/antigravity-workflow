@@ -22,14 +22,11 @@ import { ChatPage } from '@/pages/ChatPage';
 import { StateDemoPage } from '@/pages/StateDemoPage';
 import { GlobalModalManager } from '@/components/GlobalModalManager';
 import { useUIStore } from '@/stores/useUIStore';
-
-import { SprintModal } from '@/components/SprintModal';
-import { IssueDetailDrawer } from '@/components/issueDetail';
 import { useProjects, projectKeys } from '@/api/projects';
 import { issueKeys } from '@/api/issues';
 import { getSocket } from '@/lib/socketClient';
 import { sendDesktopNotification } from '@/utils/notificationUtils';
-import type { Issue, Sprint } from '@/types';
+import type { Issue } from '@/types';
 import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/utils/routeUtils';
 
 type IssueDetailMode = 'view' | 'edit';
@@ -71,8 +68,7 @@ const AppContent: React.FC = () => {
   const openAuthModal = useUIStore((s) => s.openAuthModal);
   const openIssueModal = useUIStore((s) => s.openIssueModal);
   const openProjectModal = useUIStore((s) => s.openProjectModal);
-  const [isSprintModalOpen, setIsSprintModalOpen] = useState<boolean>(false);
-  const [selectedSprintForEdit, setSelectedSprintForEdit] = useState<Sprint | null>(null);
+  const openIssueDetail = useUIStore((s) => s.openIssueDetail);
 
   // TanStack Query 기반 프로젝트 목록 (Single Source of Truth)
   const { data: projects = [] } = useProjects();
@@ -81,21 +77,6 @@ const AppContent: React.FC = () => {
   const handleIssueRefreshed = useCallback(() => {
     setIssueRefreshKey(Date.now());
     queryClient.invalidateQueries({ queryKey: issueKeys.all });
-  }, []);
-
-  const handleSprintRefreshed = useCallback(() => {
-    setIssueRefreshKey(Date.now());
-    queryClient.invalidateQueries({ queryKey: ['sprints'] });
-  }, []);
-
-  const handleOpenCreateSprint = useCallback(() => {
-    setSelectedSprintForEdit(null);
-    setIsSprintModalOpen(true);
-  }, []);
-
-  const handleOpenEditSprint = useCallback((sprint: Sprint) => {
-    setSelectedSprintForEdit(sprint);
-    setIsSprintModalOpen(true);
   }, []);
 
   // 로그인 및 로그아웃 시 화면 상태 리프레시
@@ -234,14 +215,10 @@ const AppContent: React.FC = () => {
     openIssueModal(selectedProjectId || undefined);
   }, [openIssueModal, selectedProjectId]);
 
-  // 이슈 클릭 시: URL 변경 없이 순수 컴포넌트 State로 우측 슬라이드 드로어 오픈!
+  // 이슈 클릭 시: URL 변경 없이 Zustand Store를 통해 우측 슬라이드 드로어 오픈!
   const handleSelectIssue = (issue: Issue) => {
     setSelectedIssueIdState(issue.id);
-  };
-
-  // 이슈 드로어 닫기: URL 변경 없이 순수 컴포넌트 State로 닫기
-  const handleCloseIssueDrawer = () => {
-    setSelectedIssueIdState(null);
+    openIssueDetail(issue.id);
   };
 
   // 프로젝트 클릭 시 프로젝트 상세/설정 페이지로 이동
@@ -392,8 +369,6 @@ const AppContent: React.FC = () => {
             <ProjectsPage
               key="tab-projects"
               onSelectProject={handleSelectProject}
-              onOpenCreateProject={openProjectModal}
-              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -456,10 +431,6 @@ const AppContent: React.FC = () => {
               selectedProjectId={selectedProjectId}
               onFilterChange={(pId) => navigate('sprints', pId === 'ALL' ? null : pId, null, 'view', true)}
               onSelectSprint={(sId) => navigate('sprint-detail', selectedProjectId, sId, 'view', false)}
-              onOpenCreateSprint={handleOpenCreateSprint}
-              onOpenEditSprint={handleOpenEditSprint}
-              onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
-              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -469,9 +440,6 @@ const AppContent: React.FC = () => {
               sprintId={selectedSprintId}
               projectId={selectedProjectId}
               onBack={() => navigate('sprints', selectedProjectId, null, 'view', false)}
-              onOpenEditSprint={handleOpenEditSprint}
-              onOpenIssueDetail={(issueId) => handleSelectIssue({ id: issueId } as any)}
-              onOpenAuth={openAuthModal}
             />
           )}
 
@@ -486,10 +454,7 @@ const AppContent: React.FC = () => {
           )}
 
           {activeTab === 'calendar' && (
-            <CalendarPage
-              key="tab-calendar"
-              onSelectIssue={(issueId) => handleSelectIssue({ id: issueId } as any)}
-            />
+            <CalendarPage key="tab-calendar" />
           )}
 
           {activeTab === 'worklogs' && (
@@ -512,30 +477,8 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      {/* Slide-over Issue Detail Drawer (우측 슬라이드 오버레이: Full page 이슈 상세 및 자체 Drawer를 가진 WBS 제외) */}
-      <IssueDetailDrawer
-        isOpen={activeTab !== 'issue-detail' && activeTab !== 'wbs' && !!selectedIssueId}
-        issueId={selectedIssueId}
-        projectId={selectedProjectId}
-        mode={issueDetailMode}
-        onModeChange={handleIssueModeChange}
-        onClose={handleCloseIssueDrawer}
-        onIssueUpdated={handleIssueRefreshed}
-        onOpenAuth={openAuthModal}
-      />
-
-      {/* 🌐 Global Modals (AuthModal, ProjectModal, IssueModal 등 Zustand 기반 전역 관리) */}
+      {/* 🌐 Global Modals & Overlays (AuthModal, ProjectModal, IssueModal, SprintModal, IssueDetailDrawer 등 Zustand 기반 전역 통합 관리) */}
       <GlobalModalManager />
-
-      {/* Sprint Create / Edit Modal (App 루트 전역 모달) */}
-      <SprintModal
-        isOpen={isSprintModalOpen}
-        onClose={() => setIsSprintModalOpen(false)}
-        sprint={selectedSprintForEdit}
-        projects={projects}
-        initialProjectId={selectedProjectId || undefined}
-        onSuccess={handleSprintRefreshed}
-      />
     </div>
   );
 };

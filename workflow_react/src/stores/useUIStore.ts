@@ -1,6 +1,8 @@
 ﻿import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+import type { Sprint } from '@/types';
+
 export interface ToastState {
   id: number;
   message: string;
@@ -39,7 +41,22 @@ export interface UIStoreState {
   closeProjectModal: () => void;
   setIsProjectModalOpen: (open: boolean) => void;
 
-  // 4) 🍞 전역 토스트 알림 상태 (3초 자동 소멸 & 신규 알림 시 즉시 리셋)
+  // 4) 스프린트 생성/수정 모달
+  isSprintModalOpen: boolean;
+  sprintModalSprint: Sprint | null;
+  sprintModalInitialProjectId: number | null;
+  openSprintModal: (sprint?: Sprint | null, projectId?: number | null) => void;
+  closeSprintModal: () => void;
+  setIsSprintModalOpen: (open: boolean) => void;
+
+  // 5) 전역 이슈 상세 슬라이드 드로어
+  selectedIssueId: number | null;
+  issueDetailMode: 'view' | 'edit';
+  openIssueDetail: (issueId: number, mode?: 'view' | 'edit') => void;
+  closeIssueDetail: () => void;
+  setIssueDetailMode: (mode: 'view' | 'edit') => void;
+
+  // 6) 🍞 전역 토스트 알림 상태 (3초 자동 소멸 & 신규 알림 시 즉시 리셋)
   toast: ToastState | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   hideToast: () => void;
@@ -93,6 +110,32 @@ export const useUIStore = create<UIStoreState>()(
       openProjectModal: () => set({ isProjectModalOpen: true }),
       closeProjectModal: () => set({ isProjectModalOpen: false }),
       setIsProjectModalOpen: (isProjectModalOpen) => set({ isProjectModalOpen }),
+
+      // 스프린트 모달 제어
+      isSprintModalOpen: false,
+      sprintModalSprint: null,
+      sprintModalInitialProjectId: null,
+      openSprintModal: (sprint = null, projectId = null) =>
+        set({
+          isSprintModalOpen: true,
+          sprintModalSprint: sprint,
+          sprintModalInitialProjectId: projectId ?? sprint?.projectId ?? null,
+        }),
+      closeSprintModal: () =>
+        set({
+          isSprintModalOpen: false,
+          sprintModalSprint: null,
+          sprintModalInitialProjectId: null,
+        }),
+      setIsSprintModalOpen: (isSprintModalOpen) => set({ isSprintModalOpen }),
+
+      // 전역 이슈 상세 드로어 제어
+      selectedIssueId: null,
+      issueDetailMode: 'view',
+      openIssueDetail: (issueId: number, mode: 'view' | 'edit' = 'view') =>
+        set({ selectedIssueId: issueId, issueDetailMode: mode }),
+      closeIssueDetail: () => set({ selectedIssueId: null }),
+      setIssueDetailMode: (issueDetailMode) => set({ issueDetailMode }),
 
       // 🍞 전역 토스트 알림 제어
       toast: null,

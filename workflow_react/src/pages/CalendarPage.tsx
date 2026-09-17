@@ -20,6 +20,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
   const [selectedProjectId, setSelectedProjectId] = useState<number | 'ALL'>('ALL');
 
   const openIssueModal = useUIStore((state) => state.openIssueModal);
+  const openIssueDetail = useUIStore((state) => state.openIssueDetail);
 
   // 1. 프로젝트 목록 조회 (필터링용)
   const { data: projects = [] } = useProjects();
@@ -91,7 +92,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
       if (onSelectIssue) {
         onSelectIssue(event.issueId);
       } else {
-        openIssueModal(event.project?.id || null);
+        openIssueDetail(event.issueId);
       }
     }
   };

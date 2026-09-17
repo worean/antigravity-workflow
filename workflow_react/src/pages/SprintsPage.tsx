@@ -19,7 +19,6 @@ import {
   SprintDetailModal,
   type SprintStatusFilter,
 } from '@/components/sprints';
-import { SprintModal } from '@/components/SprintModal';
 import { useUIStore } from '@/stores/useUIStore';
 
 interface SprintsPageProps {
@@ -38,21 +37,25 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
   onSelectSprint,
   onOpenCreateSprint,
   onOpenEditSprint,
-  onOpenIssueDetail,
-  onOpenAuth,
+  onOpenIssueDetail: propOpenIssueDetail,
+  onOpenAuth: propOpenAuth,
 }) => {
   const { user, isAuthenticated } = useAuth();
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Zustand Global Store
+  const openSprintModal = useUIStore((s) => s.openSprintModal);
+  const storeOpenAuthModal = useUIStore((s) => s.openAuthModal);
+  const storeOpenIssueDetail = useUIStore((s) => s.openIssueDetail);
+
+  const onOpenAuth = propOpenAuth || storeOpenAuthModal;
+  const onOpenIssueDetail = propOpenIssueDetail || storeOpenIssueDetail;
+
   // Filters (Single Source of Truth from Props)
   const [statusFilter, setStatusFilter] = useState<SprintStatusFilter>('ALL');
   const selectedProjectId = initialProjectId || 'ALL';
-
-  // Create / Edit Modal State (로컬 폴백용)
-  const [showFormModal, setShowFormModal] = useState<boolean>(false);
-  const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
 
   // Collaboration Hub / Detail Modal State
   const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
@@ -87,23 +90,39 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     fetchData(false);
   }, [selectedProjectId]);
 
+  const isSprintModalOpen = useUIStore((s) => s.isSprintModalOpen);
+  const prevModalOpen = React.useRef(isSprintModalOpen);
+
+  useEffect(() => {
+    if (prevModalOpen.current && !isSprintModalOpen) {
+      fetchData(false);
+    }
+    prevModalOpen.current = isSprintModalOpen;
+  }, [isSprintModalOpen]);
+
   // Open Create Modal (전역 모달 우선 호출)
   const handleOpenCreateModal = () => {
+    if (!isAuthenticated) {
+      onOpenAuth();
+      return;
+    }
     if (onOpenCreateSprint) {
       onOpenCreateSprint();
     } else {
-      setEditingSprint(null);
-      setShowFormModal(true);
+      openSprintModal(null, selectedProjectId === 'ALL' ? undefined : selectedProjectId);
     }
   };
 
   // Open Edit Modal (전역 모달 우선 호출)
   const handleOpenEditModal = (sprint: Sprint) => {
+    if (!isAuthenticated) {
+      onOpenAuth();
+      return;
+    }
     if (onOpenEditSprint) {
       onOpenEditSprint(sprint);
     } else {
-      setEditingSprint(sprint);
-      setShowFormModal(true);
+      openSprintModal(sprint, sprint.projectId);
     }
   };
 
@@ -346,17 +365,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
         onOpenAuth={onOpenAuth}
       />
 
-      {/* 4. Form Modal: Create / Edit (IssueModal 완벽 일치 구조) */}
-      <SprintModal
-        isOpen={showFormModal}
-        onClose={() => setShowFormModal(false)}
-        sprint={editingSprint}
-        projects={projects}
-        initialProjectId={selectedProjectId === 'ALL' ? undefined : selectedProjectId}
-        onSuccess={() => fetchData()}
-      />
-
-      {/* 5. Manage Issues Modal */}
+      {/* 4. Manage Issues Modal */}
       <SprintManageIssuesModal
         showManageModal={showManageModal}
         setShowManageModal={setShowManageModal}
