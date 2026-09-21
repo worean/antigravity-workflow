@@ -3,6 +3,7 @@ import sys
 import subprocess
 import glob
 import re
+import json
 
 # Windows 콘솔 UTF-8 출력 보정
 if sys.stdout.encoding != 'utf-8':
@@ -61,38 +62,65 @@ def verify_qa_docs():
         print(f"[ERROR] Found {errors} file(s) with specification errors.")
         return False
 
+def find_project_dirs():
+    root_dir = os.getcwd()
+    server_dir = None
+    for cand in ["workflow_server", "server", "backend"]:
+        p = os.path.join(root_dir, cand)
+        if os.path.exists(p) and os.path.exists(os.path.join(p, "package.json")):
+            server_dir = p
+            break
+    if not server_dir:
+        server_dir = root_dir
+
+    react_dir = None
+    for cand in ["workflow_react", "client", "frontend"]:
+        p = os.path.join(root_dir, cand)
+        if os.path.exists(p) and os.path.exists(os.path.join(p, "package.json")):
+            react_dir = p
+            break
+    if not react_dir:
+        react_dir = root_dir
+
+    return root_dir, server_dir, react_dir
+
 def run_fullstack_tests():
     print("[Scenario QA Runner] Full-Stack Regression & QA Verification Started...\n")
     
-    root_dir = os.getcwd()
-    server_dir = os.path.join(root_dir, "workflow_server")
-    react_dir = os.path.join(root_dir, "workflow_react")
+    root_dir, server_dir, react_dir = find_project_dirs()
     reviewer_script = os.path.join(root_dir, ".agents", "skills", "react-component-reviewer", "scripts", "component_reviewer.py")
 
-    # 1. Backend Vitest
-    print("1. [Backend Unit & Integration Tests (workflow_server)]")
-    be_result = subprocess.run(["npm", "test"], cwd=server_dir, shell=True)
-    if be_result.returncode != 0:
-        print("[ERROR] Backend test failed!")
-        return False
-    print("[PASS] Backend tests passed!\n")
+    # 1. Backend Unit Tests
+    print(f"1. [Backend Unit & Integration Tests ({os.path.basename(server_dir)})]")
+    if os.path.exists(server_dir):
+        be_result = subprocess.run(["npm", "test"], cwd=server_dir, shell=True)
+        if be_result.returncode != 0:
+            print("[ERROR] Backend test failed!")
+            return False
+        print("[PASS] Backend tests passed!\n")
+    else:
+        print("[SKIP] Backend directory not found.\n")
 
     # 2. Frontend Component Reviewer
     print("2. [Frontend Component Architecture Static QA]")
     if os.path.exists(reviewer_script):
-        fe_review = subprocess.run([sys.executable, reviewer_script, os.path.join(react_dir, "src")], shell=True)
+        src_path = os.path.join(react_dir, "src") if os.path.exists(os.path.join(react_dir, "src")) else react_dir
+        fe_review = subprocess.run([sys.executable, reviewer_script, src_path], shell=True)
         if fe_review.returncode != 0:
             print("[ERROR] Frontend component review failed!")
             return False
-    print("[PASS] Frontend component review passed!\n")
+        print("[PASS] Frontend component review passed!\n")
 
     # 3. Frontend Build (tsc & vite build)
-    print("3. [Frontend Production Build & Type Check (workflow_react)]")
-    fe_build = subprocess.run(["npm", "run", "build"], cwd=react_dir, shell=True)
-    if fe_build.returncode != 0:
-        print("[ERROR] Frontend build failed!")
-        return False
-    print("[PASS] Frontend build passed!\n")
+    print(f"3. [Frontend Production Build & Type Check ({os.path.basename(react_dir)})]")
+    if os.path.exists(react_dir):
+        fe_build = subprocess.run(["npm", "run", "build"], cwd=react_dir, shell=True)
+        if fe_build.returncode != 0:
+            print("[ERROR] Frontend build failed!")
+            return False
+        print("[PASS] Frontend build passed!\n")
+    else:
+        print("[SKIP] Frontend directory not found.\n")
 
     print("==================================================")
     print("[COMPLETE] All full-stack verification steps passed cleanly!")
@@ -100,8 +128,26 @@ def run_fullstack_tests():
 
 def generate_api_report():
     print("[Scenario QA Runner] Generating REST API Test & Inspection Report (HTML & PDF)...")
-    root_dir = os.getcwd()
-    server_dir = os.path.join(root_dir, "workflow_server")
+    _, server_dir, _ = find_project_dirs()
+    if not os.path.exists(server_dir):
+        print("[SKIP] Server directory not found, skipping API inspection report.")
+        return True
+
+    # package.json에 test:api:report 스크립트가 있는지 확인
+    pkg_json_path = os.path.join(server_dir, "package.json")
+    has_script = False
+    if os.path.exists(pkg_json_path):
+        try:
+            with open(pkg_json_path, "r", encoding="utf-8") as f:
+                pkg_data = json.load(f)
+                has_script = "test:api:report" in pkg_data.get("scripts", {})
+        except Exception:
+            pass
+
+    if not has_script:
+        print("[INFO] 'test:api:report' script not defined in backend package.json. Skipping report generation.")
+        return True
+
     result = subprocess.run(["npm", "run", "test:api:report"], cwd=server_dir, shell=True)
     if result.returncode != 0:
         print("[ERROR] Failed to generate API inspection report!")

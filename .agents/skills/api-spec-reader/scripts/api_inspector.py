@@ -1,6 +1,6 @@
-﻿"""
-AntiGravity API Spec & Source Inspector CLI
-Docs(/docs/api)와 Backend(/workflow_server/src/modules)의 API 명세 및 구현 소스를 빠르게 검색/조회하는 헬퍼 도구입니다.
+"""
+REST API Spec & Source Inspector CLI
+Docs(/docs/api)와 Backend(/server 또는 /workflow_server의 src/modules)의 API 명세 및 구현 소스를 검색/조회하는 범용 헬퍼 도구입니다.
 """
 
 import os
@@ -18,7 +18,20 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 DOCS_API_DIR = os.path.join(ROOT_DIR, "docs", "api")
-SERVER_MODULES_DIR = os.path.join(ROOT_DIR, "workflow_server", "src", "modules")
+
+# 백엔드 모듈 디렉토리 자동 감지 (workflow_server, server, backend, src)
+SERVER_MODULES_DIR = None
+for cand in ["workflow_server", "server", "backend"]:
+    cand_path = os.path.join(ROOT_DIR, cand, "src", "modules")
+    if os.path.exists(cand_path):
+        SERVER_MODULES_DIR = cand_path
+        break
+if not SERVER_MODULES_DIR:
+    cand_path = os.path.join(ROOT_DIR, "src", "modules")
+    if os.path.exists(cand_path):
+        SERVER_MODULES_DIR = cand_path
+    else:
+        SERVER_MODULES_DIR = os.path.join(ROOT_DIR, "workflow_server", "src", "modules")
 
 def to_camel_case(snake_str):
     components = re.split(r'[-_]', snake_str)
@@ -87,7 +100,7 @@ def discover_api_domains():
 def cmd_list(args):
     domain_map = discover_api_domains()
     print("\n==========================================================================")
-    print(" 📌 AntiGravity Backend API Domains & Route Hierarchy (Auto-Discovered)")
+    print(" 📌 Backend REST API Domains & Route Hierarchy (Auto-Discovered)")
     print("==========================================================================")
     print(f"{'Domain':<16} | {'Docs Path':<32} | {'Sub-routes'}")
     print("-" * 75)
@@ -179,7 +192,7 @@ def cmd_search(args):
         print(f"\n총 {found}개의 일치 항목을 발견했습니다.\n")
 
 def main():
-    parser = argparse.ArgumentParser(description="AntiGravity API Inspector CLI")
+    parser = argparse.ArgumentParser(description="REST API Inspector CLI")
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser("list", help="전체 API 도메인 및 라우트 계층 목록")

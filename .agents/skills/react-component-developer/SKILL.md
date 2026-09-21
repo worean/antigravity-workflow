@@ -1,19 +1,19 @@
----
+﻿---
 name: react-component-developer
 description: React 컴포넌트, 페이지, 훅, 컨텍스트 및 상태관리(Zustand, useContext, Portal Popup, LocalStorage) 개발 표준 절차 및 산출물 규칙을 제공합니다.
 ---
 
 # ⚛️ React Component Developer Skill (`react-component-developer`)
 
-AntiGravity Workflow 프론트엔드(`workflow_react/`) 기능 구현 및 컴포넌트 개발 표준 스킬입니다.
-상세 코딩/스토어/모달/스토리지 컨벤션은 [`references/RULES.md`](file:///C:/Users/admin/antigravity-workflow/.agents/skills/react-component-developer/references/RULES.md)를 참조합니다.
+React 18 프론트엔드 기능 구현 및 컴포넌트 개발 표준 스킬입니다.
+상세 코딩/스토어/모달/스토리지 컨벤션은 [`references/RULES.md`](./references/RULES.md)를 참조합니다.
 
 ---
 
 ## 📂 1. 표준 디렉토리 아키텍처
 
 ```text
-workflow_react/src/
+src/ (또는 workflow_react/src/)
 ├── components/   # 도메인별 React UI 컴포넌트 (Max 400줄, common/ 및 {domain}/index.ts 배럴 필수)
 ├── pages/        # 순수 오케스트레이터 페이지 (Pure Orchestrator)
 ├── stores/       # Zustand 5.x 클라이언트 전역 상태 (use{Domain}Store.ts)

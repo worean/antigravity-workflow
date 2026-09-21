@@ -1,6 +1,6 @@
-# 📐 Frontend State, Modal & Storage Conventions
+﻿# 📐 Frontend State, Modal & Storage Conventions
 
-AntiGravity Workflow 프론트엔드(`workflow_react/`) 구현 규칙 명세서입니다.
+React 프론트엔드 상태 관리, 모달 및 스토리지 구현 규칙 명세서입니다.
 
 ---
 
@@ -74,7 +74,7 @@ export const useFeatureStore = create<FeatureState>()(
 
 ## 4. LocalStorage 안전 사용 규칙
 
-- **네임스페이스 강제**: 모든 스토리지 키는 `ag_` 접두사 필수 (`ag_ui_state`, `ag_draft_*`).
+- **네임스페이스 강제**: 모든 스토리지 키는 프로젝트 고유 접두사 필수 (예: `app_`, `ag_` 등 네임스페이스 격리).
 - **Raw `localStorage` 직접 호출 금지**:
   - React 스토어 상태: Zustand `persist` 미들웨어 사용.
   - 비-스토어 일반 접근: `safeStorage.getItem(key, fallback)` / `safeStorage.setItem(key, value)` (`src/utils/safeStorage.ts`) 사용.

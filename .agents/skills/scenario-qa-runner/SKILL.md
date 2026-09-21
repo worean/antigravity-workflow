@@ -1,4 +1,4 @@
----
+﻿---
 name: scenario-qa-runner
 description: 프론트엔드 UI/UX 조작과 실제 백엔드 API 연동을 결합한 통합 시나리오 테스트 케이스(Positive/Negative TCs)를 작성하고, 데이터 정합성 및 에러 핸들링을 검증하는 전담 QA 실행 기술(Skill)입니다.
 ---

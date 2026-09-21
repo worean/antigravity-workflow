@@ -1,4 +1,4 @@
----
+﻿---
 name: react-component-reviewer
 description: React 컴포넌트의 모듈화 아키텍처(Sub-components 구조), 파일 크기 제한(400줄), 모달/오버레이 Portal 및 Colocation, Ghost State([, setX] 언팩), LocalStorage 안전성 누락 여부를 정적 분석하고 검증하는 전담 스킬입니다.
 ---

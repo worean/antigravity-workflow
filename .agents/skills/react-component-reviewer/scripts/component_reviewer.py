@@ -69,7 +69,7 @@ def review_component_file(file_path):
                 issues.append({
                     'type': 'WARNING',
                     'line': idx,
-                    'msg': "컴포넌트 내 Raw `localStorage` 직접 접근 발견: 예외 안전성과 네임스페이스('ag_') 보장을 위해 `safeStorage` 유틸리티 또는 Zustand `persist` 미들웨어 사용을 권장합니다."
+                    'msg': "컴포넌트 내 Raw `localStorage` 직접 접근 발견: 예외 안전성과 네임스페이스 격리를 위해 `safeStorage` 유틸리티 또는 Zustand `persist` 미들웨어 사용을 권장합니다."
                 })
 
     # 5. 모달 컴포넌트(*Modal.tsx)의 Portal / ModalWrapper 적용 여부 검사
@@ -112,7 +112,15 @@ def scan_directory(target_dir):
     return all_results, total_files_checked, total_errors, total_warnings
 
 def main():
-    target = sys.argv[1] if len(sys.argv) > 1 else 'workflow_react/src'
+    if len(sys.argv) > 1:
+        target = sys.argv[1]
+    else:
+        # 프론트엔드 소스 디렉토리 자동 감지
+        target = 'workflow_react/src'
+        for cand in ['workflow_react/src', 'client/src', 'frontend/src', 'src']:
+            if os.path.exists(cand):
+                target = cand
+                break
     
     print(f"🔍 [React Component Reviewer] Scanning target: {target}")
     

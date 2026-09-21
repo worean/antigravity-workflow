@@ -1,108 +1,90 @@
-# 📌 AntiGravity Workflow System - Unified Agent Instructions
+﻿# 📌 Full-Stack Web Application - Unified Agent Instructions
 
-## 1. Project Context & Reference Architecture
-이 프로젝트는 **이슈 및 일감 관리 시스템 (Issue & Task Management System)**의 풀스택 웹 애플리케이션입니다:
-- **`workflow_server/`**: Node.js + Express + TypeScript + Prisma ORM 기반 백엔드 REST API
-- **`workflow_react/`**: React 18 + TypeScript + Vite + TanStack Query 기반 프론트엔드 SPA
-
-> **📖 상세 아키텍처 참조 (필요 시 선택적 열람)**:
-> 세부 디렉토리 구조, 데이터 모델 및 설계 명세는 필요할 때 아래 전담 문서를 참조합니다.
-> - **백엔드 아키텍처**: [`docs/BACKEND_ARCHITECTURE.md`](file:///C:/Users/admin/antigravity-workflow/docs/BACKEND_ARCHITECTURE.md)
-> - **프론트엔드 아키텍처**: [`docs/FRONTEND_ARCHITECTURE.md`](file:///C:/Users/admin/antigravity-workflow/docs/FRONTEND_ARCHITECTURE.md)
-> - **프론트엔드 컴포넌트 설계 명세**: [`docs/FRONTEND_SPECIFICATION.md`](file:///C:/Users/admin/antigravity-workflow/docs/FRONTEND_SPECIFICATION.md), [`docs/FRONTEND_DESIGN_SYSTEM.md`](file:///C:/Users/admin/antigravity-workflow/docs/FRONTEND_DESIGN_SYSTEM.md)
-> - **REST API 도메인 명세**: [`docs/api/README.md`](file:///C:/Users/admin/antigravity-workflow/docs/api/README.md)
+## 1. Reference Architecture
+- **Backend (`server/` 또는 `workflow_server/`)**: Node.js + Express + TypeScript + Prisma ORM (REST API)
+- **Frontend (`client/` 또는 `workflow_react/`)**: React 18 + TypeScript + Vite + TanStack Query (SPA)
 
 ---
 
 ## 2. Core Development Standards
 
-### 2.1 Backend Coding Standards (`workflow_server/`)
-- **3-Tier Layered Architecture**: Routes (미들웨어 바인딩) ➔ Controllers (DTO 파싱/응답 직렬화) ➔ Sub-Services (순수 비즈니스 로직 및 Prisma 쿼리 전담, 30~50줄).
-- **Strict JWT Verification**: 사용자 신원은 오직 암호 검증된 JWT Access Token (`jwt.verify` -> `payload.userId`)으로만 인지 (임의 `userId` 바디 입력 우회 인가 금지).
-- **Subpath Imports**: 상대 경로 대신 `#lib/prisma.js` 등의 Path Alias 사용.
+### 2.1 Backend Standards
+- **3-Tier Layered**: Routes ➔ Controllers ➔ Sub-Services (순수 비즈니스/Prisma 쿼리 전담, 30~50줄).
+- **Strict JWT**: 신원은 암호 검증된 Access Token(`jwt.verify` -> `payload.userId`)으로만 인지.
+- **Subpath Imports**: `#lib/prisma.js` 등 Path Alias 사용.
 
-### 2.2 Frontend Coding Standards (`workflow_react/`)
-- **Sub-Component Modular Architecture (Max 400줄)**: 거대 단일 컴포넌트 금지. 모든 대형 UI는 `src/components/{domain}/` 하위의 전담 서브 컴포넌트들로 역할을 분할하여 구성 (`index.ts` re-export 필수).
-- **상태 관리 분리 원칙 (Server State vs Global Client State vs useContext)**:
-  - **Server State**: DB/API 데이터는 반드시 TanStack Query v5 (`useQuery`, `useMutation`)로 관리 (`placeholderData`로 깜빡임 방지, `setQueriesData` In-place 갱신).
-  - **Global Client State**: UI 전역 상태(모달, 사이드바, 필터, 뷰모드)는 **Zustand 5.x** 사용 (`src/stores/`). 비구조화 할당 금지, 셀렉터(`(state) => state.x`) 또는 `useShallow` 필수.
-  - **Session Context**: 정적 세션/인증/테넌트(`AuthContext`, `WorkspaceContext`) 맥락만 **React Context (`useContext`)** 사용.
-- **React Portal 기반 Popup/Modal 표준 (Modal Hoisting 금지)**:
-  - 모든 모달/팝업은 부모의 CSS Stacking Context(`overflow: hidden`, `transform`, `z-index`) 탈출을 위해 **`Portal`** 또는 **`ModalWrapper`**를 사용하여 최상위 DOM(`ag-portal-root`)에 마운트.
-  - **전역 모달**: 헤더/단축키/인터셉터 등 앱 전역에서 호출되는 모달(`AuthModal`, `IssueModal` 등)은 **Zustand `useUIStore` + `<GlobalModalManager />`**로 제어 (Props Drilling 0건).
-  - **페이지 모달**: 특정 화면에 국한된 모달(`ProjectModal`, `SprintModal`, `ConfirmModal` 등)은 **해당 Page/컴포넌트 내부에 `useState` 선언(Colocation)**.
-  - `App.tsx`에 모든 모달 State를 몰아넣는 안티패턴(Modal Hoisting) 엄격 금지.
-  - ESC 키 닫기, 배경 클릭 감지, 배경 스크롤 락(`overflow: hidden`), 접근성(`role="dialog"`) 필수 및 Ghost State(`const [, setX] = useState(...)`) 절대 금지.
-- **LocalStorage 안전 사용 원칙**:
-  - Raw `localStorage` 직접 호출 금지. 네임스페이스 `ag_` 접두사 강제 (`ag_ui_state`, `ag_draft_*` 등).
-  - 영속화 필요 시 Zustand `persist` 미들웨어 또는 `src/utils/safeStorage.ts` 유틸리티 활용.
-- **Draft Persistence (`draftStorage.ts`)**: 600ms 디바운스 자동 임시 저장 및 페이지 재진입 시 복원 배너 제공.
-- **Design Tokens**: CSS Variables 기반 다크 모던 테크(VS Code / Linear 스타일) 테마 및 색상 시스템 준수.
+### 2.2 Frontend Standards
+- **Sub-Component Modular (Max 400줄)**: 대형 UI는 `src/components/{domain}/` 전담 서브 컴포넌트로 분할 (`index.ts` 필수).
+- **상태 관리 분리**:
+  - Server State: TanStack Query v5 (`useQuery`, `useMutation`, `placeholderData`, `setQueriesData`).
+  - Global Client State: Zustand 5.x (`src/stores/`, 개별 셀렉터 또는 `useShallow` 필수).
+  - Session Context: 정적 인증/테넌트만 React Context (`useContext`) 사용.
+- **Modal/Popup 표준 (Modal Hoisting 금지)**:
+  - 전역 모달: `useUIStore` + `<GlobalModalManager />` (Portal).
+  - 페이지 모달: 해당 컴포넌트 내 `useState` (Colocation) + `ModalWrapper` (Portal).
+  - Ghost State(`const [, setX] = useState(...)`) 금지, `role="dialog"`, ESC 닫기, 스크롤 락 필수.
+- **LocalStorage**: 네임스페이스 접두사 강제(예: `app_`, `ag_`), `safeStorage.ts` 또는 Zustand `persist` 사용 (raw 직접 호출 금지).
 
 ---
 
-## 3. Sub-Service Unit Testing Standards (`src/tests/`)
-1. **테스트 파일 위치**: `workflow_server/src/tests/` 하위 작성.
-2. **Use-Case 검증**: Sub-Service 단위로 성공, 실패, 예외, 경계 조건 케이스를 포괄 검증.
-3. **파일명 명명 규칙**: `{domain}.{service}.test.ts` (예: `src/tests/auth.jwtAuth.test.ts`, `src/tests/tags.getTags.test.ts`).
+## 3. Sub-Service Unit Testing Standards
+- 파일 위치: `src/tests/{domain}.{service}.test.ts`
+- 성공, 실패, 경계 조건 단위 테스트 작성 및 `npm test` 100% Pass.
 
 ---
 
 ## 4. Language & File Encoding Standards
-- **한국어 우선**: 모든 질의응답, 문서 및 설명은 한국어로 진행합니다.
-- **UTF-8 with BOM**: 모든 소스 코드 및 마크다운 문서는 `UTF-8 with BOM` (`utf-8-sig`) 인코딩으로 저장합니다 (JSON 등 예외).
-- **상단 coding 주석 금지**: 파일 첫 줄에 `// -*- coding: utf-8 -*-` 등의 불필요한 헤더를 작성하지 않습니다.
-- **Clickable Links**: 파일 경로 언급 시 `[filename](file:///absolute/path/to/file)` 포맷을 준수합니다.
+- 한국어 우선, UTF-8 with BOM (`utf-8-sig`) 저장 (JSON 제외).
+- 파일 링크: `[filename](file:///absolute/path/to/file)` 형식 준수.
+- 상단 coding 주석(`// -*- coding: utf-8 -*-`) 금지.
 
 ---
 
-## 5. Operating Principles
-1. **Self-Annealing Loop**: 오류 발생 시 원인 분석 ➔ 자동 정정 ➔ 테스트 검증 후 보고합니다.
-2. **Modular Scalability**: 신규 기능 추가 시 거대 단일 파일 지양, `services/{action}.service.ts` 단위 파일 분할로 확장합니다.
-
----
-
-## 6. Custom Agents & Skills Architecture
+## 5. Agents & Skills Architecture
 - **Agents (`.agents/agents/`)**:
-  - `frontend-developer`: React 18 + Vite + TS + TanStack Query + Zustand 기반 프론트엔드 전담 개발자 에이전트. 기능 개발 파이프라인에 따라 사양서 문서(`docs/components/`)와 서브 컴포넌트 소스를 동반 생성하고, Zustand/Portal/LocalStorage 규칙 및 `react-component-reviewer` 스킬로 검증을 완수합니다.
-  - `backend-developer`: Node.js + Express + TS + Prisma ORM 기반 백엔드 전담 개발자 에이전트. 백엔드 파이프라인에 따라 REST API 스펙 문서(`docs/api/`)와 3-Tier 서브 서비스 및 Vitest 단위 테스트를 동반 생성합니다.
-  - `api-viewer`: `docs/api/` 및 백엔드 도메인 소스(`workflow_server/src/modules/`)를 분석하여 API 설명, DTO 규격 및 프론트/백 연계 지원을 전담하는 뷰어 에이전트.
-  - `qa-tester`: 프론트엔드 UI/UX 조작과 백엔드 REST API 연동을 결합한 통합 시나리오 테스트(E2E / 시나리오 검증)를 수행하고, 정상(Positive) 및 의도된 에러 검증(Negative TC)을 포괄하는 테스트 케이스를 설계/관리하는 전담 QA 테스터 에이전트.
+  - `frontend-developer`: React 18 모듈러 컴포넌트, Zustand, TanStack Query, 사양서 및 UI 구현.
+  - `backend-developer`: Express, Prisma 3-Tier 모듈, REST API 스펙 및 단위 테스트 구현.
+  - `api-viewer`: 완성된 백엔드 API/소스를 분석하여 `frontend-developer`와 `qa-tester`에게 규격을 전달하는 브릿지 허브.
+  - `qa-tester`: UI-API 통합 시나리오 TC(Positive/Negative) 작성 및 풀스택 회귀 테스트 전담.
 - **Skills (`.agents/skills/`)**:
-  - `react-component-developer`: 컴포넌트/페이지/상태관리(Zustand, useContext, Portal Popup, LocalStorage) 개발 표준 파이프라인을 가이드하며 지정된 사양서 산출물(`docs/components/*.md`)과 모듈화 소스 생성을 표준화하는 전담 개발 스킬.
-  - `react-component-reviewer`: 컴포넌트 모듈화(400줄 제한), React Portal 기반 팝업 격리, 모달 Colocation, Ghost State 누락 및 LocalStorage 안전성을 정적 분석하고 검증하는 품질 보증(QA) 스킬.
-  - `api-spec-reader`: `docs/api/` 폴더를 실시간 스캔(Auto-Discovery)하고 `api_inspector.py`를 통해 REST API 엔드포인트/도메인 정보를 핀포인트로 조회/검색하는 실행 기술(Skill).
-  - `scenario-qa-runner`: UI/UX 조작과 실제 API를 연동한 포괄적 시나리오 TC 작성 및 풀스택 회귀 검증(`qa_runner.py`)을 전담하는 QA 실행 기술(Skill).
+  - `api-spec-reader`: `docs/api/` 및 소스 실시간 스캔 CLI (`api_inspector.py`).
+  - `react-component-developer`: React 컴포넌트/상태 표준 개발 파이프라인.
+  - `react-component-reviewer`: 컴포넌트 정적 분석기 (`component_reviewer.py`, 400줄/Ghost State/Portal/Storage 검사).
+  - `scenario-qa-runner`: 풀스택 통합 회귀 테스트 실행기 (`qa_runner.py`).
 
 ---
 
-## 7. Standard Development Pipeline & Mandatory Deliverables (개발 파이프라인 및 지정 산출물 표준)
+## 6. Concurrent & API-Viewer Bridge Pipeline (개발 파이프라인 및 산출물)
 
-모든 신규 기능 추가 또는 변경 작업 시, 에이전트와 스킬은 반드시 아래 파이프라인을 따라 **지정된 산출물(Documents)과 소스 코드(Source Codes)**를 작성합니다.
+기능 개발 시 프론트엔드와 백엔드가 병렬로 동시 착수하며, API 완성 후 `api-viewer`가 규격을 전달하여 실제 연동 및 QA를 완성합니다.
 
 ```mermaid
-flowchart LR
-    S1[1. 타입/스키마 정의] --> S2[2. API/사양서 산출물 작성]
-    S2 --> S3[3. 모듈러 소스 코드 구현]
-    S3 --> S4[4. 정적 분석 & 단위 테스트 QA]
-    S4 --> S5[5. 시나리오 QA 및 마스터 동기화]
+flowchart TD
+    subgraph Phase1 [Phase 1: 병렬 동시 착수]
+        BE_DEV["backend-developer: DB 스키마, 3-Tier 모듈, docs/api/ 스펙, 단위테스트"]
+        FE_DEV["frontend-developer: docs/components/ 사양서, 서브 컴포넌트, Mock/UI 상태"]
+    end
+
+    subgraph Phase2 [Phase 2: API 완성 & 브릿지 전달]
+        BE_DONE["백엔드 API 완성"] --> VIEWER["api-viewer: api_inspector.py 스펙/소스 분석"]
+    end
+
+    subgraph Phase3 [Phase 3: 실제 연동 & 통합 QA]
+        VIEWER -->|API 규격 전달| FE_CALL["frontend-developer: src/api/{domain}.ts 실제 API Call 바인딩 & Reviewer 통과"]
+        VIEWER -->|엔드포인트/에러코드 전달| QA_TEST["qa-tester: docs/qa/scenarios/ TC 작성 & qa_runner.py 회귀 검증"]
+        FE_CALL -.-> QA_TEST
+    end
+
+    Phase1 --> Phase2
 ```
 
-### 프론트엔드 파이프라인 및 지정 산출물
-1. **타입 정의**: `workflow_react/src/types/{domain}.ts` 모델 정의.
-2. **사양서 문서 산출물**: `docs/components/{domain}_COMPONENTS.md` 작성 (Props, State, 컴포넌트 계층도, API 매핑).
-3. **소스 코드 구현**: `src/api/{domain}.ts`, `src/components/{domain}/*` (Max 400줄 + `index.ts`), `src/stores/use{Domain}Store.ts` (필요 시 Zustand 클라이언트 스토어), `src/pages/{Domain}Page.tsx` (순수 오케스트레이터).
-4. **품질 검증 (QA)**: `python .agents/skills/react-component-reviewer/scripts/component_reviewer.py workflow_react/src` (0 errors) 및 `npm run build` 통과.
-5. **마스터 동기화**: `docs/FRONTEND_SPECIFICATION.md` 인덱스 업데이트.
-
-### 백엔드 파이프라인 및 지정 산출물
-1. **API 스펙 산출물**: `docs/api/{domain}/{action}.md` (HTTP Method, URL, Body, Response 스펙).
-2. **DB 스키마/DTO**: `prisma/schema.workspace.prisma`, `src/modules/{domain}/dto/*.dto.ts`.
-3. **소스 코드 구현**: `src/modules/{domain}/{domain}.routes.ts`, `*.controller.ts`, `services/*.service.ts` (30~50줄).
-4. **단위 테스트 (QA)**: `src/tests/{domain}.{service}.test.ts` (Vitest 100% Pass).
-5. **마스터 동기화**: `docs/api/README.md` 인덱스 업데이트.
-
-### QA & 시나리오 테스트 파이프라인 및 지정 산출물
-1. **시나리오 TC 산출물**: `docs/qa/scenarios/{domain}.md` (Positive, Negative, Data Integrity 테스트 케이스 매트릭스).
-2. **풀스택 회귀 검증**: `python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --run-all` (All Pass).
-3. **마스터 동기화**: `docs/qa/README.md` 인덱스 업데이트.
+### 단계별 지정 산출물
+1. **Phase 1 (병렬 착수)**:
+   - Backend: `docs/api/{domain}/{action}.md`, `prisma/schema.prisma` (또는 프로젝트 스키마), `src/modules/{domain}/*`, `src/tests/*.test.ts`.
+   - Frontend: `docs/components/{domain}_COMPONENTS.md`, `src/components/{domain}/*` (Max 400줄 + `index.ts`), UI 상태/스토어.
+2. **Phase 2 (브릿지 전달)**:
+   - `api-viewer`가 `docs/api/` 및 서버 소스를 검증 후 `frontend-developer`와 `qa-tester`에게 DTO 및 엔드포인트 규격 인계.
+3. **Phase 3 (실제 연동 & QA)**:
+   - Frontend: `src/api/{domain}.ts` (TanStack Query 훅 실제 바인딩), `component_reviewer.py` 0 errors, `npm run build` 통과.
+   - QA: `docs/qa/scenarios/{domain}.md` (Positive/Negative TC), `python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --run-all` 통과.
+   - 마스터 인덱스 동기화: `docs/api/README.md`, `docs/FRONTEND_SPECIFICATION.md`, `docs/qa/README.md`.
