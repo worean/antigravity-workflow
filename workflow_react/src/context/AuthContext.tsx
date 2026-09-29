@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { User } from '@/types';
 import { getMe, loginEmail, registerUser, verifyEmail as verifyEmailApi, resendVerification as resendVerificationApi, loginGoogle } from '@/services/api';
 import { queryClient } from '@/lib/queryClient';
@@ -17,7 +17,7 @@ interface AuthContextType {
   resendVerification: (email: string) => Promise<string>;
   loginWithTokenAndUser: (token: string, user: User) => void;
   logout: () => void;
-  updateUserLocal: (updated: User) => void;
+  updateUserLocal: (updated: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,10 +119,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryClient.resetQueries();
   }, []);
 
-  const updateUserLocal = useCallback((updated: User) => {
-    setUser(updated);
-    prefRepository.currentUser = updated;
-    prefRepository.syncFromUserProfile(updated.preferences);
+  const updateUserLocal = useCallback((updated: Partial<User>) => {
+    setUser((prev) => {
+      const merged = prev ? ({ ...prev, ...updated } as User) : (updated as User);
+      prefRepository.currentUser = merged;
+      if (merged.preferences) {
+        prefRepository.syncFromUserProfile(merged.preferences);
+      }
+      return merged;
+    });
   }, []);
 
   const contextValue = useMemo(

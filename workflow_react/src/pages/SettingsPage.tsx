@@ -125,22 +125,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
     try {
       const me: any = await getMe();
       const u = me.user || me;
-      setName(u.name || '');
-      setEmail(u.email || '');
-      setAvatar(u.avatar || null);
-      setAvatarColor(u.avatarColor || null);
+      if (u) {
+        setName(u.name || '');
+        setEmail(u.email || '');
+        setAvatar(u.avatar || null);
+        setAvatarColor(u.avatarColor || null);
+        if (updateUserLocal) {
+          updateUserLocal(u);
+        }
+      }
     } catch (err: any) {
-      console.error(err);
+      console.error('Failed to load profile data:', err);
     } finally {
       setLoadingProfile(false);
     }
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && activeSubTab === 'profile') {
       loadProfileData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activeSubTab]);
 
   // Load Organization
   const loadGroupsData = async () => {
@@ -231,6 +236,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
         onSuccess: async () => {
           setProfileSuccessMsg('프로필이 성공적으로 저장되었습니다.');
           setTimeout(() => setProfileSuccessMsg(null), 3000);
+          await loadProfileData();
         },
       }
     );
@@ -242,6 +248,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       setSelectedGroupId(saved.id);
     }
     loadGroupsData();
+    loadProfileData();
   };
 
   const handleDeleteGroup = async (groupId: number, groupName: string) => {
@@ -257,6 +264,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
             setSelectedGroupId(null);
           }
           loadGroupsData();
+          loadProfileData();
         },
       }
     );
@@ -283,6 +291,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
           setNewMemberRole('MEMBER');
           setNewMemberTitle('');
           loadGroupsData();
+          loadProfileData();
         },
       }
     );
@@ -301,6 +310,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       {
         onSuccess: () => {
           loadGroupsData();
+          loadProfileData();
         },
       }
     );
@@ -317,6 +327,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       {
         onSuccess: () => {
           loadGroupsData();
+          loadProfileData();
         },
       }
     );

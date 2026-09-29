@@ -27,6 +27,18 @@ export const updateUserService = async (id: number, data: UpdateUserInput) => {
       preferences: true,
       createdAt: true,
       updatedAt: true,
+      groupMemberships: {
+        include: {
+          group: {
+            include: {
+              parent: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+          },
+        },
+        orderBy: { joinedAt: 'asc' },
+      },
     },
   });
 };
