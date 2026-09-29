@@ -176,7 +176,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
       )}
 
       {/* Project & Assignee info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-sub)' }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }}>
           📁 {issue.project?.name || `Prj #${issue.projectId}`}
         </span>
@@ -242,7 +242,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           style={{
             background: 'var(--bg-input)',
             border: '1px solid var(--border-light)',
-            color: 'var(--text-sub)',
+            color: 'var(--text-main)',
             fontSize: '0.7rem',
             borderRadius: '2px',
             padding: '1px 4px',

@@ -89,8 +89,8 @@ export const ProjectMembersTab: React.FC<ProjectMembersTabProps> = ({
                       fontSize: '0.7rem',
                       padding: '2px 8px',
                       borderRadius: '3px',
-                      background: m.role === 'ADMIN' ? 'rgba(0,122,204,0.2)' : 'rgba(255,255,255,0.06)',
-                      color: m.role === 'ADMIN' ? '#9cdcfe' : 'var(--text-sub)',
+                      background: m.role === 'ADMIN' ? 'var(--primary-subtle)' : 'var(--bg-subtle)',
+                      color: m.role === 'ADMIN' ? 'var(--primary)' : 'var(--text-sub)',
                       fontWeight: 600,
                     }}
                   >

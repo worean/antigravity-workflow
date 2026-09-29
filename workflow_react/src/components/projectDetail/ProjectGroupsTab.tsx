@@ -62,8 +62,8 @@ export const ProjectGroupsTab: React.FC<ProjectGroupsTabProps> = ({
                   width: '30px',
                   height: '30px',
                   borderRadius: '4px',
-                  background: 'rgba(78, 201, 176, 0.15)',
-                  color: '#4ec9b0',
+                  background: 'var(--badge-done-bg)',
+                  color: 'var(--badge-done-text)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -75,7 +75,7 @@ export const ProjectGroupsTab: React.FC<ProjectGroupsTabProps> = ({
                 <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>{g.group?.name}</span>
                   {g.group?.code && (
-                    <span style={{ fontSize: '0.65rem', background: '#333', color: 'var(--text-sub)', padding: '1px 5px', borderRadius: '3px' }}>
+                    <span style={{ fontSize: '0.65rem', background: 'var(--bg-subtle)', color: 'var(--text-sub)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--border-light)' }}>
                       {g.group.code}
                     </span>
                   )}
@@ -105,8 +105,8 @@ export const ProjectGroupsTab: React.FC<ProjectGroupsTabProps> = ({
                     fontSize: '0.7rem',
                     padding: '2px 8px',
                     borderRadius: '3px',
-                    background: 'rgba(78, 201, 176, 0.15)',
-                    color: '#4ec9b0',
+                    background: 'var(--badge-done-bg)',
+                    color: 'var(--badge-done-text)',
                     fontWeight: 600,
                   }}
                 >

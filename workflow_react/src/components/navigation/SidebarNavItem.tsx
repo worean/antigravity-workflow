@@ -56,14 +56,20 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
           fontSize: '0.8rem',
           cursor: 'pointer',
           textAlign: 'left',
-          transition: 'background-color 0.08s ease',
+          transition: 'background-color 0.08s ease, color 0.08s ease',
           borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
         }}
         onMouseEnter={(e) => {
-          if (!isActive) e.currentTarget.style.background = 'var(--bg-card-hover)';
+          if (!isActive) {
+            e.currentTarget.style.background = 'var(--bg-card-hover)';
+            e.currentTarget.style.color = 'var(--text-bright)';
+          }
         }}
         onMouseLeave={(e) => {
-          if (!isActive) e.currentTarget.style.background = 'transparent';
+          if (!isActive) {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--text-main)';
+          }
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
@@ -79,8 +85,8 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
               {hasMention && (
                 <span
                   style={{
-                    background: '#3b82f6',
-                    color: '#fff',
+                    background: 'var(--accent-cyan)',
+                    color: 'var(--text-inverse)',
                     fontSize: '0.6rem',
                     fontWeight: 800,
                     padding: '0 3px',
@@ -96,8 +102,8 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
               )}
               <span
                 style={{
-                  background: '#f43f5e',
-                  color: '#ffffff',
+                  background: 'var(--accent-rose)',
+                  color: 'var(--text-inverse)',
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   padding: '1px 5px',
@@ -176,14 +182,14 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   if (!isSubActive) {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                    e.currentTarget.style.color = '#ffffff';
+                    e.currentTarget.style.background = 'var(--bg-card-hover)';
+                    e.currentTarget.style.color = 'var(--text-bright)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isSubActive) {
                     e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#9ca3af';
+                    e.currentTarget.style.color = 'var(--text-sub)';
                   }
                 }}
                 title={sub.label}

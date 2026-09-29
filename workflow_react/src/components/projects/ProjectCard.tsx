@@ -25,9 +25,9 @@ const renderVisibilityBadge = (vis?: ProjectVisibility) => {
             fontSize: '0.64rem',
             padding: '1px 5px',
             borderRadius: '2px',
-            background: 'rgba(215, 186, 125, 0.15)',
-            color: '#dcdcaa',
-            border: '1px solid rgba(215, 186, 125, 0.3)',
+            background: 'var(--badge-review-bg)',
+            color: 'var(--badge-review-text)',
+            border: '1px solid var(--badge-review-border)',
           }}
         >
           <ShieldCheck size={10} />
@@ -45,9 +45,9 @@ const renderVisibilityBadge = (vis?: ProjectVisibility) => {
             fontSize: '0.64rem',
             padding: '1px 5px',
             borderRadius: '2px',
-            background: 'rgba(244, 71, 107, 0.15)',
-            color: '#f48771',
-            border: '1px solid rgba(244, 71, 107, 0.3)',
+            background: 'var(--priority-urgent-bg)',
+            color: 'var(--priority-urgent-text)',
+            border: '1px solid var(--priority-urgent-border)',
           }}
         >
           <Lock size={10} />
@@ -66,9 +66,9 @@ const renderVisibilityBadge = (vis?: ProjectVisibility) => {
             fontSize: '0.64rem',
             padding: '1px 5px',
             borderRadius: '2px',
-            background: 'rgba(78, 201, 176, 0.12)',
-            color: '#4ec9b0',
-            border: '1px solid rgba(78, 201, 176, 0.25)',
+            background: 'var(--badge-done-bg)',
+            color: 'var(--badge-done-text)',
+            border: '1px solid var(--badge-done-border)',
           }}
         >
           <Globe size={10} />
@@ -111,9 +111,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 fontWeight: 700,
                 padding: '1px 5px',
                 borderRadius: '2px',
-                background: 'rgba(0, 122, 204, 0.15)',
-                color: '#9cdcfe',
-                border: '1px solid rgba(0, 122, 204, 0.3)',
+                background: 'var(--primary-subtle)',
+                color: 'var(--primary)',
+                border: '1px solid var(--border-light)',
               }}
             >
               {project.key}
@@ -173,26 +173,26 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
       <div
         style={{
-          borderTop: '1px solid #383838',
+          borderTop: '1px solid var(--border-light)',
           paddingTop: '6px',
           marginTop: '8px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           fontSize: '0.72rem',
-          color: 'var(--text-muted)',
+          color: 'var(--text-sub)',
         }}
       >
         <div style={{ display: 'flex', gap: '10px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <Layers size={11} /> {project._count?.issues ?? 0} 이슈
+            <Layers size={11} color="var(--text-sub)" /> {project._count?.issues ?? 0} 이슈
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <Users size={11} /> {project._count?.members ?? (project.members?.length ?? 1)} 멤버
+            <Users size={11} color="var(--text-sub)" /> {project._count?.members ?? (project.members?.length ?? 1)} 멤버
           </span>
         </div>
 
-        <span style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 500 }}>
+        <span style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
           열기 <ArrowRight size={11} />
         </span>
       </div>

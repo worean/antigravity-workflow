@@ -52,7 +52,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       onDragLeave={handleDragLeaveColumn}
       onDrop={(e) => handleDropOnColumn(e, col.key)}
       style={{
-        background: isColumnHovered ? '#2a2d2e' : 'var(--bg-card)',
+        background: isColumnHovered ? 'var(--bg-card-hover)' : 'var(--bg-card)',
         borderRadius: 'var(--radius-xs)',
         border: isColumnHovered ? '1px solid var(--primary)' : '1px solid var(--border-light)',
         boxShadow: isColumnHovered ? 'inset 0 0 0 1px var(--primary)' : 'none',
@@ -94,8 +94,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
           style={{
             fontSize: '0.7rem',
             fontWeight: 700,
-            background: '#333333',
-            color: 'var(--text-main)',
+            background: 'var(--bg-subtle)',
+            color: 'var(--text-sub)',
+            border: '1px solid var(--border-light)',
             padding: '1px 6px',
             borderRadius: '10px',
           }}

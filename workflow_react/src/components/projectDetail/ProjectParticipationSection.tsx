@@ -77,9 +77,9 @@ export const ProjectParticipationSection: React.FC<ProjectParticipationSectionPr
             type="button"
             onClick={() => setActiveSubTab('members')}
             style={{
-              background: activeSubTab === 'members' ? 'rgba(0, 122, 204, 0.2)' : 'transparent',
-              color: activeSubTab === 'members' ? '#9cdcfe' : 'var(--text-muted)',
-              border: activeSubTab === 'members' ? '1px solid #007acc' : '1px solid transparent',
+              background: activeSubTab === 'members' ? 'var(--primary-subtle)' : 'transparent',
+              color: activeSubTab === 'members' ? 'var(--primary)' : 'var(--text-sub)',
+              border: activeSubTab === 'members' ? '1px solid var(--border-focus)' : '1px solid transparent',
               borderRadius: '4px',
               padding: '4px 10px',
               fontSize: '0.78rem',
@@ -98,9 +98,9 @@ export const ProjectParticipationSection: React.FC<ProjectParticipationSectionPr
             type="button"
             onClick={() => setActiveSubTab('groups')}
             style={{
-              background: activeSubTab === 'groups' ? 'rgba(0, 122, 204, 0.2)' : 'transparent',
-              color: activeSubTab === 'groups' ? '#9cdcfe' : 'var(--text-muted)',
-              border: activeSubTab === 'groups' ? '1px solid #007acc' : '1px solid transparent',
+              background: activeSubTab === 'groups' ? 'var(--primary-subtle)' : 'transparent',
+              color: activeSubTab === 'groups' ? 'var(--primary)' : 'var(--text-sub)',
+              border: activeSubTab === 'groups' ? '1px solid var(--border-focus)' : '1px solid transparent',
               borderRadius: '4px',
               padding: '4px 10px',
               fontSize: '0.78rem',

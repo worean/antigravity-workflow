@@ -91,6 +91,23 @@
   --badge-done-text: #4ec9b0;
   --badge-done-border: rgba(78, 201, 176, 0.3);
 
+  /* Issue Types */
+  --badge-task-bg: rgba(0, 122, 204, 0.15);
+  --badge-task-text: #9cdcfe;
+  --badge-task-border: rgba(0, 122, 204, 0.3);
+
+  --badge-bug-bg: rgba(241, 76, 76, 0.15);
+  --badge-bug-text: #f14c4c;
+  --badge-bug-border: rgba(241, 76, 76, 0.3);
+
+  --badge-feature-bg: rgba(78, 201, 176, 0.15);
+  --badge-feature-text: #4ec9b0;
+  --badge-feature-border: rgba(78, 201, 176, 0.3);
+
+  --badge-improvement-bg: rgba(197, 134, 192, 0.15);
+  --badge-improvement-text: #c586c0;
+  --badge-improvement-border: rgba(197, 134, 192, 0.3);
+
   /* Priorities */
   --priority-urgent-bg: rgba(241, 76, 76, 0.18);
   --priority-urgent-text: #f14c4c;
@@ -158,12 +175,12 @@
   --accent-emerald: #059669;
 
   /* Text Colors */
-  --text-main: #334155;
+  --text-main: #1e293b;
   --text-bright: #0f172a;
-  --text-sub: #64748b;
-  --text-muted: #94a3b8;
+  --text-sub: #475569;
+  --text-muted: #64748b;
   --text-inverse: #ffffff;
-  --text-placeholder: #94a3b8;
+  --text-placeholder: #64748b;
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -183,7 +200,7 @@
   --btn-secondary-bg: #f1f5f9;
   --btn-secondary-hover: #e2e8f0;
   --btn-secondary-border: #cbd5e1;
-  --btn-secondary-text: #334155;
+  --btn-secondary-text: #1e293b;
 
   /* Badges */
   --badge-todo-bg: #f1f5f9;
@@ -201,6 +218,23 @@
   --badge-done-bg: rgba(5, 150, 105, 0.12);
   --badge-done-text: #059669;
   --badge-done-border: rgba(5, 150, 105, 0.28);
+
+  /* Issue Types */
+  --badge-task-bg: rgba(2, 132, 199, 0.12);
+  --badge-task-text: #0284c7;
+  --badge-task-border: rgba(2, 132, 199, 0.28);
+
+  --badge-bug-bg: rgba(220, 38, 38, 0.1);
+  --badge-bug-text: #dc2626;
+  --badge-bug-border: rgba(220, 38, 38, 0.25);
+
+  --badge-feature-bg: rgba(5, 150, 105, 0.12);
+  --badge-feature-text: #059669;
+  --badge-feature-border: rgba(5, 150, 105, 0.28);
+
+  --badge-improvement-bg: rgba(124, 58, 237, 0.1);
+  --badge-improvement-text: #7c3aed;
+  --badge-improvement-border: rgba(124, 58, 237, 0.25);
 
   /* Priorities */
   --priority-urgent-bg: rgba(220, 38, 38, 0.1);

@@ -81,11 +81,23 @@ export const ProjectsHeaderToolbar: React.FC<ProjectsHeaderToolbarProps> = ({
                   borderRadius: 'var(--radius-xs)',
                   border: 'none',
                   background: isSelected ? 'var(--primary)' : 'transparent',
-                  color: isSelected ? '#ffffff' : 'var(--text-muted)',
+                  color: isSelected ? 'var(--text-inverse)' : 'var(--text-sub)',
                   fontSize: '0.72rem',
-                  fontWeight: isSelected ? 600 : 400,
+                  fontWeight: isSelected ? 600 : 500,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.color = 'var(--text-bright)';
+                    e.currentTarget.style.background = 'var(--bg-card)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.color = 'var(--text-sub)';
+                    e.currentTarget.style.background = 'transparent';
+                  }
                 }}
               >
                 {Icon && <Icon size={11} />}

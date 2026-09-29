@@ -39,9 +39,9 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
         gap: '5px',
         fontSize: sizeStyles.fontSize,
         fontWeight: isMe ? 600 : 400,
-        color: isMe ? '#9cdcfe' : 'var(--text-main)',
-        background: isMe ? 'rgba(0, 122, 204, 0.15)' : '#2d2d2d',
-        border: isMe ? '1px solid rgba(0, 122, 204, 0.35)' : '1px solid #3c3c3c',
+        color: isMe ? 'var(--primary)' : 'var(--text-main)',
+        background: isMe ? 'var(--primary-subtle)' : 'var(--bg-subtle)',
+        border: isMe ? '1px solid var(--border-focus)' : '1px solid var(--border-light)',
         padding: sizeStyles.padding,
         borderRadius: 'var(--radius-xs)',
         userSelect: 'none',
@@ -50,7 +50,7 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
       <Avatar user={user} size={sizeStyles.avatarSize} shape="rounded" showBorder={false} />
       <span>{displayName}</span>
       {isMe && (
-        <span style={{ fontSize: '0.65rem', fontWeight: 700, marginLeft: '1px', color: '#9cdcfe' }}>
+        <span style={{ fontSize: '0.65rem', fontWeight: 700, marginLeft: '1px', color: 'var(--primary)' }}>
           (나)
         </span>
       )}

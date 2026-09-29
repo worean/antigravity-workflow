@@ -98,17 +98,17 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
           ) : (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600 }}>
               {project.visibility === 'PRIVATE' && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f48771' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--priority-urgent-text)' }}>
                   <Lock size={12} /> 비공개 (소유자 및 지정 멤버만)
                 </span>
               )}
               {project.visibility === 'PROTECTED' && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#dcdcaa' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--badge-review-text)' }}>
                   <ShieldCheck size={12} /> 부서/그룹 보호
                 </span>
               )}
               {(!project.visibility || project.visibility === 'PUBLIC') && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#4ec9b0' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--badge-done-text)' }}>
                   <Globe size={12} /> 전체 공개
                 </span>
               )}
