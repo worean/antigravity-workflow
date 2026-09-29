@@ -55,9 +55,9 @@ export const MemoQuickAdd: React.FC<MemoQuickAddProps> = ({
         flexDirection: 'column',
         gap: '6px',
         padding: '8px',
-        background: '#252526',
+        background: 'var(--bg-card)',
         borderRadius: '4px',
-        border: '1px solid #3c3c3c',
+        border: '1px solid var(--border-light)',
       }}
     >
       <textarea
@@ -67,8 +67,8 @@ export const MemoQuickAdd: React.FC<MemoQuickAddProps> = ({
         style={{
           width: '100%',
           minHeight: '60px',
-          background: '#1e1e1e',
-          border: '1px solid #383838',
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-light)',
           borderRadius: '3px',
           padding: '6px',
           fontSize: '0.78rem',

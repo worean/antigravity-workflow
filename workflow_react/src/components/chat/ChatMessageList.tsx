@@ -57,12 +57,12 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = memo(({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#72767d',
+            color: 'var(--text-muted)',
             gap: '8px',
           }}
         >
           <span style={{ fontSize: '2.5rem' }}>💬</span>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-bright)' }}>
             {showPinnedOnly ? '고정된 메시지가 없습니다' : `#${currentChannel?.name} 채널에 오신 것을 환영합니다!`}
           </div>
           <div style={{ fontSize: '0.75rem' }}>
@@ -128,7 +128,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = memo(({
               style={{
                 padding: '4px 16px',
                 fontSize: '0.7rem',
-                color: '#8e9297',
+                color: 'var(--text-muted)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',

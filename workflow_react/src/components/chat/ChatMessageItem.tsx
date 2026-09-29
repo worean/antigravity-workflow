@@ -36,7 +36,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
         transition: 'background 0.1s',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = '#282b30';
+        e.currentTarget.style.background = 'var(--bg-subtle)';
         const actions = e.currentTarget.querySelector('.msg-actions') as HTMLElement;
         if (actions) actions.style.opacity = '1';
       }}
@@ -60,7 +60,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Header: Name, Role, Time */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '2px' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
             {msg.sender?.name || msg.sender?.email?.split('@')[0] || '사용자'}
           </span>
           {msg.sender?.role === 'ADMIN' && (
@@ -68,7 +68,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
               style={{
                 fontSize: '0.62rem',
                 background: 'rgba(230, 162, 60, 0.2)',
-                color: '#e6a23c',
+                color: 'var(--accent-yellow, #e6a23c)',
                 padding: '1px 4px',
                 borderRadius: '3px',
                 fontWeight: 600,
@@ -77,7 +77,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
               PM
             </span>
           )}
-          <span style={{ fontSize: '0.68rem', color: '#72767d' }}>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
             {new Date(msg.createdAt).toLocaleTimeString('ko-KR', {
               hour: '2-digit',
               minute: '2-digit',
@@ -91,7 +91,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
                 alignItems: 'center',
                 gap: '2px',
                 fontSize: '0.65rem',
-                color: '#e6a23c',
+                color: 'var(--accent-yellow, #e6a23c)',
                 background: 'rgba(230, 162, 60, 0.1)',
                 padding: '1px 5px',
                 borderRadius: '3px',
@@ -106,7 +106,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
         <div
           style={{
             fontSize: '0.82rem',
-            color: '#dcddde',
+            color: 'var(--text-main)',
             lineHeight: 1.45,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
@@ -125,19 +125,19 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: '#18181b',
-                  border: '1px solid #2f3136',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-light)',
                   padding: '4px 8px',
                   borderRadius: '4px',
                   fontSize: '0.72rem',
                 }}
               >
-                <Paperclip size={12} color="#8e9297" />
+                <Paperclip size={12} color="var(--text-muted)" />
                 <a
                   href={att.url}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: '#3b82f6', textDecoration: 'none' }}
+                  style={{ color: 'var(--primary)', textDecoration: 'none' }}
                 >
                   {att.filename || '첨부파일'}
                 </a>
@@ -157,12 +157,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
                   type="button"
                   onClick={() => handleToggleReaction(msg.id, r.emoji)}
                   style={{
-                    background: isReactedByMe ? 'rgba(59, 130, 246, 0.2)' : '#2f3136',
-                    border: `1px solid ${isReactedByMe ? '#3b82f6' : '#393c43'}`,
+                    background: isReactedByMe ? 'rgba(0, 122, 204, 0.15)' : 'var(--bg-card)',
+                    border: `1px solid ${isReactedByMe ? 'var(--primary)' : 'var(--border-light)'}`,
                     borderRadius: '6px',
                     padding: '2px 6px',
                     fontSize: '0.72rem',
-                    color: isReactedByMe ? '#3b82f6' : '#b9bbbe',
+                    color: isReactedByMe ? 'var(--primary)' : 'var(--text-sub)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -186,15 +186,15 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
           position: 'absolute',
           right: '16px',
           top: '-12px',
-          background: '#313338',
-          border: '1px solid #27272a',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-light)',
           borderRadius: '6px',
           padding: '2px 4px',
           display: 'flex',
           alignItems: 'center',
           gap: '2px',
           opacity: showEmojiPickerForMsgId === msg.id ? 1 : 0,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
           zIndex: 10,
           transition: 'opacity 0.15s',
         }}
@@ -224,7 +224,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
           style={{
             background: 'none',
             border: 'none',
-            color: '#b9bbbe',
+            color: 'var(--text-sub)',
             cursor: 'pointer',
             padding: '2px 4px',
             fontSize: '0.75rem',
@@ -241,7 +241,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
           style={{
             background: 'none',
             border: 'none',
-            color: msg.isPinned ? '#e6a23c' : '#b9bbbe',
+            color: msg.isPinned ? 'var(--accent-yellow, #e6a23c)' : 'var(--text-sub)',
             cursor: 'pointer',
             padding: '2px 4px',
             display: 'flex',
@@ -259,7 +259,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
           style={{
             background: 'none',
             border: 'none',
-            color: '#b9bbbe',
+            color: 'var(--text-sub)',
             cursor: 'pointer',
             padding: '2px 4px',
             fontSize: '0.72rem',
@@ -277,14 +277,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
               position: 'absolute',
               right: 0,
               top: '30px',
-              background: '#2b2d31',
-              border: '1px solid #1f2023',
+              background: 'var(--bg-modal)',
+              border: '1px solid var(--border-light)',
               borderRadius: '8px',
               padding: '8px',
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '4px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
               zIndex: 30,
             }}
           >

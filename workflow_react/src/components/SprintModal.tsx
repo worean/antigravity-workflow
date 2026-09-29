@@ -214,9 +214,9 @@ export const SprintModal: React.FC<SprintModalProps> = ({
             overflowY: 'auto',
             margin: 'auto',
             borderRadius: '6px',
-            background: '#252526',
-            border: '1px solid #454545',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+            background: 'var(--bg-modal)',
+            border: '1px solid var(--border-light)',
+            boxShadow: 'var(--shadow-lg)',
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -327,8 +327,8 @@ export const SprintModal: React.FC<SprintModalProps> = ({
             {/* 4. 기간 설정 박스 */}
             <div
               style={{
-                background: '#2d2d2d',
-                border: '1px solid #3c3c3c',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-light)',
                 padding: '10px 12px',
                 borderRadius: 'var(--radius-xs, 4px)',
                 marginBottom: '12px',

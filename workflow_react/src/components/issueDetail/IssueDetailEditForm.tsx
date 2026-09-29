@@ -177,7 +177,7 @@ export const IssueDetailEditForm: React.FC<IssueDetailEditFormProps> = ({
       </div>
 
       {/* Schedule Dates Editing */}
-      <div style={{ background: '#252526', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginTop: '2px' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginTop: '2px' }}>
         <div style={{ fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Calendar size={13} /> 일정 및 기한 설정
         </div>
@@ -249,7 +249,7 @@ export const IssueDetailEditForm: React.FC<IssueDetailEditFormProps> = ({
 
       {/* Custom Fields Edit Section */}
       {customDefs.length > 0 && (
-        <div style={{ background: '#252526', padding: '8px 10px', borderRadius: 'var(--radius-xs)', border: '1px solid #3c3c3c' }}>
+        <div style={{ background: 'var(--bg-card)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-light)' }}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-sub)', marginBottom: '6px', fontWeight: 600 }}>
             ⚙️ 커스텀 필드 설정
           </div>

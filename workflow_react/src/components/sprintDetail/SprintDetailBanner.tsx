@@ -98,7 +98,7 @@ export const SprintDetailBanner: React.FC<SprintDetailBannerProps> = ({ sprint }
           <span>스프린트 진척도</span>
           <span style={{ fontWeight: 700, color: 'var(--text-bright)' }}>{rate}%</span>
         </div>
-        <div style={{ width: '100%', height: '6px', background: '#27272a', borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{ width: '100%', height: '6px', background: 'var(--bg-subtle)', borderRadius: '3px', overflow: 'hidden' }}>
           <div
             style={{
               width: `${rate}%`,

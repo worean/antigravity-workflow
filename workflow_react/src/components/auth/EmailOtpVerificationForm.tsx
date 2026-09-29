@@ -43,10 +43,10 @@ export const EmailOtpVerificationForm: React.FC<EmailOtpVerificationFormProps> =
             fontSize: '1.4rem',
             fontWeight: 'bold',
             letterSpacing: '6px',
-            background: '#1e1e1e',
+            background: 'var(--bg-input, var(--bg-card))',
             border: '1px solid var(--primary)',
             borderRadius: 'var(--radius-xs)',
-            color: '#ffffff',
+            color: 'var(--text-bright)',
           }}
           autoFocus
           required

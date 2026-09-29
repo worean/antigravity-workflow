@@ -115,8 +115,8 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                   justifyContent: 'space-between',
                   padding: '6px 8px',
                   paddingLeft: `${8 + depth * 14}px`,
-                  background: isSelected ? '#37373d' : 'transparent',
-                  color: isSelected ? '#ffffff' : 'var(--text-main)',
+                  background: isSelected ? 'var(--nav-item-active, rgba(0, 122, 204, 0.15))' : 'transparent',
+                  color: isSelected ? 'var(--primary)' : 'var(--text-main)',
                   borderRadius: 'var(--radius-xs)',
                   cursor: 'pointer',
                   fontSize: '0.76rem',
@@ -163,7 +163,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                   <span
                     style={{
                       fontSize: '0.65rem',
-                      background: isSelected ? 'var(--primary)' : '#333333',
+                      background: isSelected ? 'var(--primary)' : 'var(--border-light)',
                       color: isSelected ? '#ffffff' : 'var(--text-sub)',
                       padding: '1px 5px',
                       borderRadius: '10px',
@@ -254,7 +254,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
             style={{
               width: '320px',
               flexShrink: 0,
-              background: '#252526',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-xs)',
               padding: '10px',
@@ -264,7 +264,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
               overflowY: 'auto',
             }}
           >
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-sub)', borderBottom: '1px solid #333', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-sub)', borderBottom: '1px solid var(--border-light)', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>조직 계층 구조 (Tree)</span>
               <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 총 {flatGroups.length}개 그룹
@@ -284,7 +284,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
           <div
             style={{
               flex: 1,
-              background: '#252526',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-xs)',
               padding: '14px 16px',
@@ -297,7 +297,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
             {selectedGroup ? (
               <>
                 {/* Group Details Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Building2 size={18} color="var(--primary)" />
@@ -371,7 +371,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '8px 12px',
-                              background: '#2d2d2d',
+                              background: 'var(--bg-subtle)',
                               border: '1px solid var(--border-light)',
                               borderRadius: 'var(--radius-xs)',
                             }}
@@ -525,9 +525,9 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
               overflowY: 'auto',
               margin: 'auto',
               borderRadius: '6px',
-              background: '#252526',
-              border: '1px solid #454545',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+              background: 'var(--bg-modal)',
+              border: '1px solid var(--border-light)',
+              boxShadow: 'var(--shadow-lg)',
             }}
             onClick={(e) => e.stopPropagation()}
           >

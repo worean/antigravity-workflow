@@ -49,8 +49,8 @@ export const ProjectMembersTab: React.FC<ProjectMembersTabProps> = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '8px 12px',
-                background: '#252526',
-                border: '1px solid #333333',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-xs)',
               }}
             >
@@ -141,7 +141,7 @@ export const ProjectMembersTab: React.FC<ProjectMembersTabProps> = ({
           <div
             style={{
               width: '380px',
-              background: '#252526',
+              background: 'var(--bg-modal)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-xs)',
               padding: '16px',

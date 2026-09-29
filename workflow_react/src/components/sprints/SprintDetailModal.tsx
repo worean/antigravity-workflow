@@ -126,7 +126,7 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
               <span>이슈 진척도 ({completedIssues}/{totalIssues}개 완료)</span>
               <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{progressPercent}%</span>
             </div>
-            <div style={{ width: '100%', height: '5px', background: '#27272a', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '5px', background: 'var(--bg-subtle)', borderRadius: '3px', overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${progressPercent}%`,

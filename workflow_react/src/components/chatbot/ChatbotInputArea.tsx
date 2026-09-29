@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { useChatbotStore } from '@/stores/useChatbotStore';
 
@@ -123,7 +123,7 @@ export const ChatbotInputArea: React.FC = () => {
           marginTop: '6px',
           padding: '0 2px',
           fontSize: '0.64rem',
-          color: 'var(--text-sub, #666)',
+          color: 'var(--text-muted)',
         }}
       >
         <span>Shift + Enter 로 줄바꿈</span>
@@ -131,7 +131,7 @@ export const ChatbotInputArea: React.FC = () => {
           onClick={toggleAutoExecute}
           style={{
             cursor: 'pointer',
-            color: autoExecute ? '#facc15' : 'var(--text-sub, #777)',
+            color: autoExecute ? '#facc15' : 'var(--text-muted)',
             fontWeight: autoExecute ? 600 : 'normal',
             display: 'flex',
             alignItems: 'center',

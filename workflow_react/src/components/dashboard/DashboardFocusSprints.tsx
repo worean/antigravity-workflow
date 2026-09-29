@@ -34,17 +34,17 @@ export const DashboardFocusSprints: React.FC<DashboardFocusSprintsProps> = ({
   return (
     <div
       style={{
-        background: 'linear-gradient(180deg, rgba(37, 37, 38, 0.9) 0%, rgba(30, 30, 30, 0.95) 100%)',
-        border: '1px solid rgba(234, 179, 8, 0.3)',
+        background: 'var(--bg-card)',
+        border: '1px solid rgba(234, 179, 8, 0.35)',
         borderRadius: 'var(--radius-xs)',
         padding: '12px 14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
-        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div
             style={{
@@ -127,14 +127,14 @@ export const DashboardFocusSprints: React.FC<DashboardFocusSprintsProps> = ({
               <div
                 key={sprint.id}
                 style={{
-                  background: '#202022',
+                  background: 'var(--bg-subtle)',
                   border: '1px solid rgba(234, 179, 8, 0.4)',
                   borderRadius: 'var(--radius-xs)',
                   padding: '12px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '10px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  boxShadow: 'var(--shadow-sm)',
                   position: 'relative',
                   overflow: 'hidden',
                 }}
@@ -184,7 +184,8 @@ export const DashboardFocusSprints: React.FC<DashboardFocusSprintsProps> = ({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: '#1e1e1e',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-light)',
                     padding: '5px 8px',
                     borderRadius: 'var(--radius-xs)',
                     fontSize: '0.72rem',
@@ -206,13 +207,13 @@ export const DashboardFocusSprints: React.FC<DashboardFocusSprintsProps> = ({
                     <span>진척도 ({prog.rate}%)</span>
                     <span>완료 {prog.done} / 전체 {prog.total}개 이슈</span>
                   </div>
-                  <div style={{ width: '100%', height: '5px', background: '#333333', borderRadius: '3px', overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ width: '100%', height: '5px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden', display: 'flex' }}>
                     <div style={{ width: `${prog.rate}%`, background: '#89d185', transition: 'width 0.3s' }} />
                   </div>
                 </div>
 
                 {/* Assignees & Risk Badges */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-light)', paddingTop: '8px' }}>
                   {/* Assignee Avatar Stack */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Users size={12} color="var(--text-muted)" />

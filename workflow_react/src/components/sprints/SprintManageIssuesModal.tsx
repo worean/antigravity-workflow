@@ -59,8 +59,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
     >
       <div
         style={{
-          background: '#1e1e1e',
-          border: '1px solid #3c3c3c',
+          background: 'var(--bg-modal)',
+          border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-sm)',
           width: '100%',
           maxWidth: '860px',
@@ -78,8 +78,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '12px 16px',
-            borderBottom: '1px solid #333333',
-            background: '#252526',
+            borderBottom: '1px solid var(--border-light)',
+            background: 'var(--bg-card)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -104,8 +104,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '8px 16px',
-            background: '#282828',
-            borderBottom: '1px solid #333',
+            background: 'var(--bg-subtle)',
+            borderBottom: '1px solid var(--border-light)',
             flexWrap: 'wrap',
             gap: '8px',
           }}
@@ -145,8 +145,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
           {/* Left Column: Assigned Issues */}
           <div
             style={{
-              background: '#252526',
-              border: '1px solid #383838',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-xs)',
               display: 'flex',
               flexDirection: 'column',
@@ -154,7 +154,7 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
               gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '6px' }}>
               <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-bright)' }}>
                 스프린트 할당 이슈 ({sprintIssues.length})
               </span>
@@ -173,8 +173,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
                   <div
                     key={iss.id}
                     style={{
-                      background: '#1e1e1e',
-                      border: '1px solid #333',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-light)',
                       borderRadius: 'var(--radius-xs)',
                       padding: '6px 8px',
                       display: 'flex',
@@ -228,8 +228,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
           {/* Right Column: Project Backlog Pool */}
           <div
             style={{
-              background: '#252526',
-              border: '1px solid #383838',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-xs)',
               display: 'flex',
               flexDirection: 'column',
@@ -237,7 +237,7 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
               gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333', paddingBottom: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '6px' }}>
               <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-bright)' }}>
                 프로젝트 미할당 백로그 ({filteredBacklog.length})
               </span>
@@ -265,8 +265,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
                   <div
                     key={iss.id}
                     style={{
-                      background: '#1e1e1e',
-                      border: '1px solid #333',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-light)',
                       borderRadius: 'var(--radius-xs)',
                       padding: '6px 8px',
                       display: 'flex',
@@ -319,7 +319,7 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
         </div>
 
         {/* Modal Footer */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 16px', borderTop: '1px solid #333333', background: '#252526' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 16px', borderTop: '1px solid var(--border-light)', background: 'var(--bg-card)' }}>
           <Button
             variant="primary"
             size="sm"

@@ -124,7 +124,7 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
               flexDirection: 'column',
               gap: '8px',
               padding: '14px',
-              background: '#252526',
+              background: 'var(--bg-card)',
               border: '1px solid var(--border-light)',
               borderRadius: 'var(--radius-xs)',
             }}
@@ -206,7 +206,7 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
             </div>
           </div>
 
-          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-sub)', borderBottom: '1px solid #333', paddingBottom: '4px', marginTop: '2px' }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-sub)', borderBottom: '1px solid var(--border-light)', paddingBottom: '4px', marginTop: '2px' }}>
             기본 정보 수정
           </div>
 
@@ -250,7 +250,7 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderBottom: '1px solid #333',
+              borderBottom: '1px solid var(--border-light)',
               paddingBottom: '6px',
             }}
           >
@@ -313,7 +313,7 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
                       flexDirection: 'column',
                       gap: '8px',
                       padding: '12px 14px',
-                      background: '#252526',
+                      background: 'var(--bg-card)',
                       border: '1px solid var(--border-light)',
                       borderRadius: 'var(--radius-xs)',
                       transition: 'border-color 0.15s ease',
@@ -331,7 +331,7 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
                             style={{
                               fontSize: '0.68rem',
                               padding: '1px 5px',
-                              background: '#333',
+                              background: 'var(--border-light)',
                               color: 'var(--text-sub)',
                               borderRadius: '3px',
                               fontFamily: 'monospace',
@@ -432,10 +432,10 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
                             style={{
                               fontSize: '0.72rem',
                               color: 'var(--text-main)',
-                              background: '#1e1e1e',
+                              background: 'var(--bg-subtle)',
                               padding: '2px 6px',
                               borderRadius: '3px',
-                              border: '1px solid #3a3a3a',
+                              border: '1px solid var(--border-light)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '4px',
@@ -476,8 +476,8 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
                           setActiveSubTab('organization');
                         }}
                         style={{
-                          background: '#2d2d2d',
-                          border: '1px solid #3e3e42',
+                          background: 'var(--btn-secondary-bg)',
+                          border: '1px solid var(--border-light)',
                           borderRadius: 'var(--radius-xs)',
                           color: 'var(--text-main)',
                           padding: '3px 8px',
@@ -489,12 +489,10 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
                           transition: 'all 0.15s ease',
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#37373d';
-                          e.currentTarget.style.color = '#ffffff';
+                          e.currentTarget.style.background = 'var(--btn-secondary-hover)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#2d2d2d';
-                          e.currentTarget.style.color = 'var(--text-main)';
+                          e.currentTarget.style.background = 'var(--btn-secondary-bg)';
                         }}
                       >
                         <span>조직도에서 확인</span>
@@ -511,7 +509,7 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
                           gap: '4px',
                           fontSize: '0.68rem',
                           color: 'var(--text-muted)',
-                          borderTop: '1px solid #2d2d2d',
+                          borderTop: '1px solid var(--border-light)',
                           paddingTop: '6px',
                           marginTop: '2px',
                         }}
@@ -539,8 +537,8 @@ export const SettingsProfileTab: React.FC<SettingsProfileTabProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '24px 16px',
-                background: '#252526',
-                border: '1px dashed #3e3e42',
+                background: 'var(--bg-subtle)',
+                border: '1px dashed var(--border-light)',
                 borderRadius: 'var(--radius-xs)',
                 textAlign: 'center',
                 gap: '8px',

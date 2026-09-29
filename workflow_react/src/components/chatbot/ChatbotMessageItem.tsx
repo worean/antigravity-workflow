@@ -56,16 +56,16 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
           padding: '8px 12px',
           borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
           background: isUser
-            ? 'var(--accent-color, #007acc)'
+            ? 'var(--primary)'
             : message.isError
             ? 'rgba(241, 76, 76, 0.15)'
-            : 'var(--bg-tertiary, #252526)',
-          color: isUser ? '#ffffff' : 'var(--text-main, #cccccc)',
+            : 'var(--bg-card)',
+          color: isUser ? '#ffffff' : 'var(--text-main)',
           border: isUser
             ? 'none'
             : message.isError
             ? '1px solid rgba(241, 76, 76, 0.4)'
-            : '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+            : '1px solid var(--border-light)',
           fontSize: '0.8rem',
           lineHeight: '1.45',
           wordBreak: 'break-word',

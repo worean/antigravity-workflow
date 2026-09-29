@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Bot, X, Sparkles } from 'lucide-react';
 import { Portal } from '@/components/common/Portal';
 import { useChatbotStore } from '@/stores/useChatbotStore';
@@ -22,7 +22,7 @@ export const ChatbotLauncher: React.FC = () => {
           height: '52px',
           borderRadius: '26px',
           background: isOpen
-            ? 'var(--bg-tertiary, #2d2d2d)'
+            ? 'var(--bg-card)'
             : 'linear-gradient(135deg, #007acc 0%, #0098ff 100%)',
           border: '1px solid rgba(255, 255, 255, 0.2)',
           boxShadow: '0 8px 24px rgba(0, 122, 204, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4)',

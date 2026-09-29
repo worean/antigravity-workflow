@@ -116,7 +116,7 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
       {/* Right: Zoom Scale & View Controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         {/* Zoom In / Out Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', background: '#2d2d2d', borderRadius: 'var(--radius-xs)', border: '1px solid #3c3c3c' }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-light)' }}>
           <button
             type="button"
             onClick={onZoomOut}
@@ -139,7 +139,7 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
         </div>
 
         {/* Scale Preset Buttons */}
-        <div style={{ display: 'flex', gap: '2px', background: '#2d2d2d', padding: '2px', borderRadius: 'var(--radius-xs)', border: '1px solid #3c3c3c' }}>
+        <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-subtle)', padding: '2px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-light)' }}>
           <button
             type="button"
             onClick={() => onSetScalePreset('day')}

@@ -204,8 +204,8 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
             overflowY: 'auto',
             margin: 'auto',
             borderRadius: '6px',
-            background: '#252526',
-            border: '1px solid #454545',
+            background: 'var(--bg-modal)',
+            border: '1px solid var(--border-light)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
           }}
           onClick={(e) => e.stopPropagation()}

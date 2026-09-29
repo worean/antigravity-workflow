@@ -62,8 +62,8 @@ export const IssueComments: React.FC<IssueCommentsProps> = ({
       >
         <div
           style={{
-            background: '#252526',
-            border: '1px solid #333',
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-xs)',
             padding: '8px 10px',
           }}
@@ -211,7 +211,7 @@ export const IssueComments: React.FC<IssueCommentsProps> = ({
           </div>
         </form>
       ) : (
-        <div style={{ background: '#252526', border: '1px dashed #3e3e42', padding: '10px', borderRadius: 'var(--radius-xs)', textAlign: 'center', marginBottom: '10px' }}>
+        <div style={{ background: 'var(--bg-subtle)', border: '1px dashed var(--border-light)', padding: '10px', borderRadius: 'var(--radius-xs)', textAlign: 'center', marginBottom: '10px' }}>
           <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
             댓글을 작성하려면 로그인이 필요합니다.
           </span>

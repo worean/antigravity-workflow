@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { Portal } from '@/components/common/Portal';
 import { useChatbotStore } from '@/stores/useChatbotStore';
 import { ChatbotHeader } from './ChatbotHeader';
@@ -45,10 +45,10 @@ export const ChatbotPopup: React.FC = () => {
           height: isMinimized ? 'auto' : '580px',
           maxHeight: 'calc(100vh - 120px)',
           maxWidth: 'calc(100vw - 48px)',
-          background: 'var(--bg-primary, #181818)',
+          background: 'var(--bg-modal)',
           borderRadius: '12px',
-          border: '1px solid var(--border-color, rgba(255, 255, 255, 0.15))',
-          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+          border: '1px solid var(--border-light)',
+          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 1100, // --z-popup

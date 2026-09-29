@@ -227,7 +227,7 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
                 top: '-24px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                background: '#18181b',
+                background: 'var(--bg-modal)',
                 color: item.color.progress,
                 border: `1.5px solid ${item.color.dragBorder}`,
                 padding: '2px 6px',

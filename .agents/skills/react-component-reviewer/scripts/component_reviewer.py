@@ -82,21 +82,80 @@ def review_component_file(file_path):
                 'msg': "모달 컴포넌트에서 `ModalWrapper` 또는 `Portal` 사용이 탐지되지 않았습니다. CSS Stacking Context 격리를 위해 Portal 기반 래퍼 사용을 권장합니다."
             })
 
-    # 6. 테마 호환성 검사: JSX style 내 하드코딩 테마 컬러(#1e1e1e, #252526, #2d2d2d, #37373d, #3c3c3c) 검사
+    # 6. 테마 호환성 검사: JSX style 내 하드코딩 테마 컬러 및 Tailwind 임의 색상 클래스 검사
     if not norm_path.endswith(('.css', '.scss')) and '/styles/' not in norm_path:
-        theme_color_regex = re.compile(r'(background|backgroundColor|color|borderColor|borderTop|borderBottom|borderLeft|borderRight)\s*:\s*[\'"`](#(1e1e1e|252526|2d2d2d|37373d|3c3c3c))[\'"`]', re.IGNORECASE)
+        # 1) 태그 인라인 background / backgroundColor 내 고정 색상(#hex, rgb) 작성 전면 탐지
+        bg_hardcode_regex = re.compile(
+            r'(background|backgroundColor)\s*:\s*[\'"`](#([0-9a-fA-F]{3,8})|rgb\s*\([^)]+\))[\'"`]',
+            re.IGNORECASE
+        )
+        # 2) 텍스트 및 테두리 색상 중 테마를 무력화하는 다크/화이트/그레이 고정 색상 탐지
+        theme_fixed_palette = (
+            r'#(1e1e1e|252526|2d2d2d|282828|2b2d31|18181b|313338|1e1f22|232428|2f3136|'
+            r'383a40|282b30|1f2023|202022|202020|3c3c3c|383838|27272a|35373c|393c43|'
+            r'333333|333|8e9297|b9bbbe|dcddde|72767d|cccccc|ccc|ffffff|fff|000000|000)'
+        )
+        color_border_regex = re.compile(
+            rf'(color|borderColor|borderTop|borderBottom|borderLeft|borderRight)\s*:\s*[\'"`]({theme_fixed_palette})[\'"`]',
+            re.IGNORECASE
+        )
+        # 3) Tailwind 임의 색상 클래스 탐지 (예: bg-[#2d2d2d], text-[#fff], border-[#333])
+        tailwind_color_regex = re.compile(r'(?:bg|text|border)-\[#([0-9a-fA-F]{3,8})\]')
+
         for idx, line in enumerate(lines, start=1):
             if line.strip().startswith('//') or line.strip().startswith('/*'):
                 continue
-            match = theme_color_regex.search(line)
-            if match:
-                prop = match.group(1)
-                color_val = match.group(2)
+            
+            # 인라인 스타일 색상 검사 (var() 참조 제외)
+            if 'var(' not in line:
+                bg_match = bg_hardcode_regex.search(line)
+                if bg_match:
+                    prop = bg_match.group(1)
+                    val = bg_match.group(2)
+                    issues.append({
+                        'type': 'WARNING',
+                        'line': idx,
+                        'msg': f"태그 인라인 스타일에 하드코딩된 배경색 `{val}`({prop}) 사용 감지: 태그 내 직접 배경색 코딩은 라이트/다크 테마 전환을 무력화합니다. 반드시 `src/styles/theme.css`의 시맨틱 CSS 변수(`var(--bg-card)`, `var(--bg-main)`, `var(--bg-subtle)` 등)를 사용하세요."
+                    })
+                else:
+                    cb_match = color_border_regex.search(line)
+                    if cb_match:
+                        prop = cb_match.group(1)
+                        val = cb_match.group(2)
+                        issues.append({
+                            'type': 'WARNING',
+                            'line': idx,
+                            'msg': f"태그 인라인 스타일에 고정 테마 색상 `{val}`({prop}) 사용 감지: Light/Dark 테마 호환성을 위해 `src/styles/theme.css`의 시맨틱 CSS 변수(`var(--text-main)`, `var(--text-bright)`, `var(--border-light)` 등)를 사용하세요."
+                        })
+
+            # Tailwind 임의 색상 클래스 검사
+            tw_match = tailwind_color_regex.search(line)
+            if tw_match:
+                tw_val = tw_match.group(1)
                 issues.append({
                     'type': 'WARNING',
                     'line': idx,
-                    'msg': f"하드코딩된 테마 색상 `{color_val}`({prop}) 사용 감지: Light/Dark 테마 호환성을 위해 `src/styles/theme.css`의 CSS 변수(`var(--bg-card)`, `var(--bg-dark)`, `var(--text-main)`, `var(--border-light)` 등) 사용을 권장합니다."
+                    'msg': f"Tailwind 임의 색상 클래스(`#{tw_val}`) 사용 감지: Light/Dark 테마 호환성을 위해 Tailwind 임의 색상 대신 시맨틱 CSS 변수나 전역 클래스를 사용해야 합니다."
                 })
+
+    # 7. CSS Modules (*.module.css) 테마 색상 분리 원칙 검사 (고정 색상 작성 금지)
+    if norm_path.endswith('.module.css') or norm_path.endswith('.module.scss'):
+        fixed_color_regex = re.compile(r'(color|background|background-color|border-color)\s*:\s*([^;]+);')
+        color_val_pattern = re.compile(r'(#[0-9a-fA-F]{3,8}|rgb\s*\(|hsl\s*\()')
+        for idx, line in enumerate(lines, start=1):
+            if line.strip().startswith('/*') or line.strip().startswith('*') or line.strip().startswith('//'):
+                continue
+            match = fixed_color_regex.search(line)
+            if match:
+                prop = match.group(1).strip()
+                val = match.group(2).strip()
+                # var(--...) 참조가 아닌 고정 색상(hex, rgb 등)이 선언된 경우
+                if color_val_pattern.search(val) and 'var(' not in val:
+                    issues.append({
+                        'type': 'ERROR',
+                        'line': idx,
+                        'msg': f"CSS 모듈(`*.module.css`) 내 고정 색상값(`{val}`) 선언 금지: CSS 모듈은 레이아웃/구조(flex, grid, margin 등)만 전담해야 하며, 색상은 전역 테마 토큰(`var(--bg-card)`, `var(--text-main)` 등)을 사용해야 합니다."
+                    })
 
     return issues
 
@@ -110,7 +169,7 @@ def scan_directory(target_dir):
         if 'node_modules' in root or 'dist' in root or '.git' in root:
             continue
         for file in files:
-            if file.endswith(('.tsx', '.jsx', '.ts')):
+            if file.endswith(('.tsx', '.jsx', '.ts', '.module.css', '.module.scss')):
                 # 타입 정의나 설정 파일 제외
                 if file.endswith(('.d.ts', 'vite.config.ts')):
                     continue

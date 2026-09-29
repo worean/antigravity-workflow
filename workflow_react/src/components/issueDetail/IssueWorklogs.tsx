@@ -59,7 +59,7 @@ export const IssueWorklogs: React.FC<IssueWorklogsProps> = ({
       </div>
 
       {showWorklogForm && (
-        <form onSubmit={handleCreateWorklog} style={{ background: '#252526', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <form onSubmit={handleCreateWorklog} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: '6px', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontSize: '0.7rem' }}>소요 시간 (시간) *</label>
@@ -113,8 +113,8 @@ export const IssueWorklogs: React.FC<IssueWorklogsProps> = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '4px 8px',
-                background: '#252526',
-                border: '1px solid #333',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-light)',
                 borderRadius: '2px',
                 fontSize: '0.75rem',
               }}

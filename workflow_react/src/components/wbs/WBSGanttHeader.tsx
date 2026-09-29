@@ -22,14 +22,14 @@ export const WBSGanttHeader: React.FC<WBSGanttHeaderProps> = ({
         display: 'flex',
         flexDirection: 'column',
         borderBottom: '1px solid var(--border-light)',
-        background: '#252526',
+        background: 'var(--bg-card)',
         overflowX: 'hidden',
         userSelect: 'none',
         width: '100%',
       }}
     >
       {/* Top Row: Year or Month Headers */}
-      <div style={{ display: 'flex', height: '24px', borderBottom: '1px solid #333333' }}>
+      <div style={{ display: 'flex', height: '24px', borderBottom: '1px solid var(--border-light)' }}>
         {topHeaders.map((h, idx) => (
           <div
             key={idx}
@@ -42,7 +42,7 @@ export const WBSGanttHeader: React.FC<WBSGanttHeaderProps> = ({
               display: 'flex',
               alignItems: 'center',
               paddingLeft: '6px',
-              borderRight: '1px solid #383838',
+              borderRight: '1px solid var(--border-light)',
               boxSizing: 'border-box',
               overflow: 'hidden',
               whiteSpace: 'nowrap',
@@ -66,7 +66,7 @@ export const WBSGanttHeader: React.FC<WBSGanttHeaderProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRight: '1px solid #2e2e2e',
+                borderRight: '1px solid var(--border-light)',
                 background: b.isCurrent ? 'rgba(0,122,204,0.15)' : 'transparent',
                 color: b.isCurrent ? '#9cdcfe' : 'var(--text-sub)',
                 fontSize: '0.68rem',
@@ -90,7 +90,7 @@ export const WBSGanttHeader: React.FC<WBSGanttHeaderProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRight: '1px solid #2e2e2e',
+                borderRight: '1px solid var(--border-light)',
                 background: b.isCurrent ? 'rgba(0,122,204,0.15)' : 'transparent',
                 color: b.isCurrent ? '#9cdcfe' : 'var(--text-sub)',
                 fontSize: '0.65rem',
@@ -115,7 +115,7 @@ export const WBSGanttHeader: React.FC<WBSGanttHeaderProps> = ({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRight: '1px solid #2e2e2e',
+                borderRight: '1px solid var(--border-light)',
                 background: b.isToday ? 'rgba(0,122,204,0.25)' : b.isWeekend ? 'rgba(255,255,255,0.02)' : 'transparent',
                 color: b.isToday ? '#9cdcfe' : b.isWeekend ? '#f14c4c' : 'var(--text-sub)',
                 fontSize: '0.65rem',

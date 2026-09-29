@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Bot, Minimize2, Maximize2, X, RotateCcw, Sparkles, Zap } from 'lucide-react';
 import { useChatbotStore } from '@/stores/useChatbotStore';
 import { AVAILABLE_MODELS } from '@/api/chatbot';
@@ -98,7 +98,7 @@ export const ChatbotHeader: React.FC = () => {
             title="AI 추론 모델 선택"
           >
             {AVAILABLE_MODELS.map((m) => (
-              <option key={m.id} value={m.id} style={{ background: '#252526', color: '#ccc' }}>
+              <option key={m.id} value={m.id} style={{ background: 'var(--bg-card)', color: 'var(--text-main)' }}>
                 {m.name} ({m.provider})
               </option>
             ))}

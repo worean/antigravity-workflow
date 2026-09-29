@@ -70,8 +70,8 @@ export const StatusSelect: React.FC<StatusSelectProps> = ({
       onChange={(e) => onChange(Number(e.target.value))}
       disabled={disabled}
       style={{
-        background: '#252526',
-        border: '1px solid #3c3c3c',
+        background: 'var(--bg-input, var(--bg-card))',
+        border: '1px solid var(--border-light)',
         color: 'var(--text-main)',
         fontSize: '0.78rem',
         borderRadius: 'var(--radius-xs)',

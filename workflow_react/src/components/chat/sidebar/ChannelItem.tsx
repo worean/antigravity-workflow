@@ -31,12 +31,12 @@ export const ChannelItem: React.FC<ChannelItemProps> = memo(({
         borderRadius: '4px',
         marginBottom: '2px',
         cursor: 'pointer',
-        background: isSelected ? '#393c43' : 'transparent',
-        color: isSelected ? '#fff' : isMuted ? '#72767d' : '#8e9297',
+        background: isSelected ? 'var(--bg-subtle)' : 'transparent',
+        color: isSelected ? 'var(--text-bright)' : isMuted ? 'var(--text-muted)' : 'var(--text-sub)',
         transition: 'background 0.1s',
       }}
       onMouseEnter={(e) => {
-        if (!isSelected) e.currentTarget.style.background = '#2f3136';
+        if (!isSelected) e.currentTarget.style.background = 'var(--bg-card)';
       }}
       onMouseLeave={(e) => {
         if (!isSelected) e.currentTarget.style.background = 'transparent';
@@ -63,7 +63,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = memo(({
             style={{
               fontSize: '0.8rem',
               fontWeight: channel.unreadCount > 0 ? 600 : 400,
-              color: channel.unreadCount > 0 ? '#fff' : isMuted ? '#72767d' : '#dcddde',
+              color: channel.unreadCount > 0 ? 'var(--text-bright)' : isMuted ? 'var(--text-muted)' : 'var(--text-main)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -75,7 +75,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = memo(({
             <div
               style={{
                 fontSize: '0.68rem',
-                color: isSelected ? '#b9bbbe' : '#72767d',
+                color: isSelected ? 'var(--text-sub)' : 'var(--text-muted)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -89,8 +89,8 @@ export const ChannelItem: React.FC<ChannelItemProps> = memo(({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-        {isMuted && <BellOff size={12} color="#72767d" />}
-        {isMentionsOnly && <AtSign size={12} color="#3b82f6" />}
+        {isMuted && <BellOff size={12} color="var(--text-muted)" />}
+        {isMentionsOnly && <AtSign size={12} color="var(--primary)" />}
 
         {channel.unreadCount > 0 && (
           <span

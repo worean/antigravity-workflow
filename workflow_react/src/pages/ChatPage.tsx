@@ -71,7 +71,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   } = useChatRoom({ propChannelId, onSelectChannel, onOpenAuth });
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', height: 'calc(100vh - 56px)', background: '#1e1e1e', color: '#dcddde', overflow: 'hidden' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', height: 'calc(100vh - 56px)', background: 'var(--bg-dark)', color: 'var(--text-main)', overflow: 'hidden' }}>
       {/* 1. Category Nav (60px) */}
       <ChatCategoryNav
         activeCategory={activeCategory}

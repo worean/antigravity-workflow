@@ -166,7 +166,7 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: '#1e1e1e',
+        background: 'var(--bg-dark)',
       }}
     >
       {/* Timeline Header */}
@@ -215,7 +215,7 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
                   width: `${dayWidth}px`,
                   minWidth: `${dayWidth}px`,
                   height: '100%',
-                  borderRight: '1px solid #282828',
+                  borderRight: '1px solid var(--border-light)',
                   background: isToday ? 'rgba(0,122,204,0.08)' : isWeekend ? 'rgba(255,255,255,0.015)' : 'transparent',
                   position: 'relative',
                 }}

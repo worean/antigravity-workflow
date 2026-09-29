@@ -36,12 +36,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
     <div
       style={{
         height: '48px',
-        borderBottom: '1px solid #27272a',
+        borderBottom: '1px solid var(--border-light)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 16px',
-        background: '#18181b',
+        background: 'var(--bg-card)',
         flexShrink: 0,
       }}
     >
@@ -49,11 +49,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
         <span style={{ fontSize: '1.1rem' }}>
           {currentChannel.icon || (currentChannel.type === 'GLOBAL' ? '📢' : currentChannel.type === 'PROJECT' ? '📁' : '👥')}
         </span>
-        <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fff' }}>
+        <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-bright)' }}>
           {currentChannel.name}
         </span>
         {currentChannel.topic && (
-          <span style={{ fontSize: '0.75rem', color: '#72767d', marginLeft: '6px' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '6px' }}>
             | {currentChannel.topic}
           </span>
         )}
@@ -67,8 +67,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
           title="고정된 메시지 보기"
           style={{
             background: showPinnedOnly ? 'rgba(230, 162, 60, 0.2)' : 'none',
-            border: showPinnedOnly ? '1px solid #e6a23c' : 'none',
-            color: showPinnedOnly ? '#e6a23c' : '#b9bbbe',
+            border: showPinnedOnly ? '1px solid var(--accent-yellow, #e6a23c)' : 'none',
+            color: showPinnedOnly ? 'var(--accent-yellow, #e6a23c)' : 'var(--text-sub)',
             cursor: 'pointer',
             padding: '5px 8px',
             borderRadius: '4px',
@@ -91,7 +91,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
             style={{
               background: 'none',
               border: 'none',
-              color: '#b9bbbe',
+              color: 'var(--text-sub)',
               cursor: 'pointer',
               padding: '6px',
               borderRadius: '4px',
@@ -100,9 +100,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
             }}
           >
             {currentChannel.mySettings?.notificationLevel === 'MUTED' ? (
-              <BellOff size={16} color="#72767d" />
+              <BellOff size={16} color="var(--text-muted)" />
             ) : currentChannel.mySettings?.notificationLevel === 'MENTIONS_ONLY' ? (
-              <AtSign size={16} color="#3b82f6" />
+              <AtSign size={16} color="var(--primary)" />
             ) : (
               <Bell size={16} />
             )}
@@ -114,12 +114,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
                 position: 'absolute',
                 right: 0,
                 top: '32px',
-                background: '#2b2d31',
-                border: '1px solid #1f2023',
+                background: 'var(--bg-modal)',
+                border: '1px solid var(--border-light)',
                 borderRadius: '8px',
                 padding: '6px',
                 width: '180px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
                 zIndex: 40,
                 display: 'flex',
                 flexDirection: 'column',
@@ -141,7 +141,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
                     justifyContent: 'space-between',
                     padding: '6px 8px',
                     fontSize: '0.74rem',
-                    color: currentChannel.mySettings?.notificationLevel === opt.level ? '#3b82f6' : '#dcddde',
+                    color: currentChannel.mySettings?.notificationLevel === opt.level ? 'var(--primary)' : 'var(--text-main)',
                     background: 'none',
                     border: 'none',
                     borderRadius: '4px',
@@ -149,7 +149,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
                     textAlign: 'left',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#35373c';
+                    e.currentTarget.style.background = 'var(--bg-subtle)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'none';
@@ -172,9 +172,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = memo(({
           onClick={() => setShowMemberSidebar(!showMemberSidebar)}
           title="채널 멤버 목록"
           style={{
-            background: showMemberSidebar ? '#393c43' : 'none',
+            background: showMemberSidebar ? 'var(--bg-subtle)' : 'none',
             border: 'none',
-            color: showMemberSidebar ? '#fff' : '#b9bbbe',
+            color: showMemberSidebar ? 'var(--text-bright)' : 'var(--text-sub)',
             cursor: 'pointer',
             padding: '6px',
             borderRadius: '4px',

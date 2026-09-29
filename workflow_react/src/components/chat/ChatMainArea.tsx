@@ -73,7 +73,7 @@ export const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        background: '#313338',
+        background: 'var(--bg-main)',
         position: 'relative',
         minWidth: 0,
       }}

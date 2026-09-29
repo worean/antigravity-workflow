@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import { useChatbotStore } from '@/stores/useChatbotStore';
 import { ChatbotMessageItem } from './ChatbotMessageItem';
 import { SUGGESTED_PROMPTS } from '@/api/chatbot';
@@ -53,20 +53,20 @@ export const ChatbotMessageList: React.FC = () => {
                   textAlign: 'left',
                   padding: '7px 10px',
                   borderRadius: '6px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: 'var(--text-main, #ccc)',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-light)',
+                  color: 'var(--text-main)',
                   fontSize: '0.73rem',
                   cursor: 'pointer',
                   transition: 'background 0.15s, border-color 0.15s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 122, 204, 0.12)';
-                  e.currentTarget.style.borderColor = 'rgba(0, 122, 204, 0.3)';
+                  e.currentTarget.style.background = 'var(--bg-card)';
+                  e.currentTarget.style.borderColor = 'var(--primary)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.background = 'var(--bg-subtle)';
+                  e.currentTarget.style.borderColor = 'var(--border-light)';
                 }}
               >
                 {p.label}

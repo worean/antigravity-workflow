@@ -76,11 +76,11 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       <div
         style={{
           padding: '16px',
-          background: '#2b2d31',
-          borderTop: '1px solid #27272a',
+          background: 'var(--bg-card)',
+          borderTop: '1px solid var(--border-light)',
           textAlign: 'center',
           fontSize: '0.8rem',
-          color: '#8e9297',
+          color: 'var(--text-muted)',
         }}
       >
         <span>채팅에 참여하고 메시지를 보내려면 </span>
@@ -105,14 +105,14 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             position: 'absolute',
             bottom: '90px',
             left: '16px',
-            background: '#2b2d31',
-            border: '1px solid #1f2023',
+            background: 'var(--bg-modal)',
+            border: '1px solid var(--border-light)',
             borderRadius: '8px',
             padding: '6px',
             width: '240px',
             maxHeight: '180px',
             overflowY: 'auto',
-            boxShadow: '0 -4px 16px rgba(0,0,0,0.5)',
+            boxShadow: '0 -4px 16px rgba(0,0,0,0.2)',
             zIndex: 30,
             display: 'flex',
             flexDirection: 'column',
@@ -126,8 +126,8 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
               justifyContent: 'space-between',
               padding: '2px 6px',
               fontSize: '0.65rem',
-              color: '#8e9297',
-              borderBottom: '1px solid #35373c',
+              color: 'var(--text-muted)',
+              borderBottom: '1px solid var(--border-light)',
               marginBottom: '4px',
             }}
           >
@@ -138,7 +138,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                 setMentionQuery(null);
                 textareaRef.current?.focus();
               }}
-              style={{ background: 'none', border: 'none', color: '#8e9297', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
             >
               <X size={10} />
             </button>
@@ -156,19 +156,19 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                 borderRadius: '4px',
                 border: 'none',
                 background: 'transparent',
-                color: '#dcddde',
+                color: 'var(--text-main)',
                 cursor: 'pointer',
                 fontSize: '0.78rem',
                 textAlign: 'left',
                 width: '100%',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#35373c';
-                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.background = 'var(--bg-subtle)';
+                e.currentTarget.style.color = 'var(--text-bright)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = '#dcddde';
+                e.currentTarget.style.color = 'var(--text-main)';
               }}
             >
               <AtSign size={12} color="#3b82f6" />
@@ -182,7 +182,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       <form
         onSubmit={onSubmitForm}
         style={{
-          background: isSendingMessage ? '#2f3136' : '#383a40',
+          background: isSendingMessage ? 'var(--bg-subtle)' : 'var(--bg-card)',
           borderRadius: '8px',
           padding: '10px 12px',
           display: 'flex',
@@ -192,7 +192,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           transition: 'all 0.15s ease',
           minHeight: '74px',
           maxHeight: 'calc(50vh - 20px)',
-          border: '1px solid #3c3c3c',
+          border: '1px solid var(--border-light)',
         }}
       >
         {/* 📎 Left Action Buttons (Top-Aligned) */}
@@ -203,7 +203,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             style={{
               background: 'none',
               border: 'none',
-              color: '#b9bbbe',
+              color: 'var(--text-sub)',
               cursor: isSendingMessage ? 'not-allowed' : 'pointer',
               padding: '4px',
               display: 'flex',
@@ -215,7 +215,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             }}
             title="파일 첨부"
             onMouseEnter={(e) => {
-              if (!isSendingMessage) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+              if (!isSendingMessage) e.currentTarget.style.background = 'var(--bg-subtle)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'none';
@@ -247,7 +247,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             flex: 1,
             background: 'none',
             border: 'none',
-            color: '#fff',
+            color: 'var(--text-main)',
             fontSize: '0.82rem',
             resize: 'none', // 🚫 사용자 임의 크기 조절 금지
             outline: 'none',
@@ -267,9 +267,9 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             type="submit"
             disabled={isSendingMessage || !inputText.trim()}
             style={{
-              background: isSendingMessage ? '#2563eb' : inputText.trim() ? '#3b82f6' : 'rgba(255,255,255,0.06)',
-              border: 'none',
-              color: isSendingMessage ? '#fff' : inputText.trim() ? '#fff' : '#72767d',
+              background: isSendingMessage ? 'var(--primary)' : inputText.trim() ? 'var(--primary)' : 'var(--bg-subtle)',
+              border: '1px solid var(--border-light)',
+              color: isSendingMessage ? '#fff' : inputText.trim() ? '#fff' : 'var(--text-muted)',
               cursor: isSendingMessage ? 'wait' : inputText.trim() ? 'pointer' : 'default',
               padding: '6px 10px',
               borderRadius: '4px',

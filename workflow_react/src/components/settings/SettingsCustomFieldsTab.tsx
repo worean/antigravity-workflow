@@ -76,7 +76,7 @@ export const SettingsCustomFieldsTab: React.FC<SettingsCustomFieldsTabProps> = (
             flexDirection: 'column',
             gap: '10px',
             padding: '12px',
-            background: '#2d2d2d',
+            background: 'var(--bg-card)',
             border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-xs)',
           }}
@@ -175,7 +175,7 @@ export const SettingsCustomFieldsTab: React.FC<SettingsCustomFieldsTabProps> = (
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '8px 12px',
-                background: '#2d2d2d',
+                background: 'var(--bg-subtle)',
                 border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-xs)',
               }}
@@ -184,7 +184,7 @@ export const SettingsCustomFieldsTab: React.FC<SettingsCustomFieldsTabProps> = (
                 <span style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: '0.82rem' }}>
                   {field.name}
                 </span>
-                <code style={{ fontSize: '0.7rem', color: 'var(--primary)', background: '#1e1e1e', padding: '1px 5px', borderRadius: '2px' }}>
+                <code style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'var(--bg-card)', border: '1px solid var(--border-light)', padding: '1px 5px', borderRadius: '2px' }}>
                   {field.key}
                 </code>
                 <span style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', background: 'rgba(0,122,204,0.15)', padding: '1px 5px', borderRadius: '2px' }}>

@@ -331,7 +331,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
                 border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-xs)',
                 overflow: 'hidden',
-                background: '#1e1e1e',
+                background: 'var(--bg-dark)',
                 cursor: isDraggingPos ? 'move' : isDraggingResize ? 'nwse-resize' : 'crosshair',
                 boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
               }}
@@ -374,7 +374,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
               gap: '12px',
               minWidth: '160px',
               padding: '12px',
-              background: '#252526',
+              background: 'var(--bg-subtle)',
               borderRadius: 'var(--radius-xs)',
               border: '1px solid var(--border-light)',
             }}
@@ -392,8 +392,8 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
                   borderRadius: '50%',
                   overflow: 'hidden',
                   border: '2px solid var(--primary)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                  background: '#1e1e1e',
+                  boxShadow: 'var(--shadow-sm)',
+                  background: 'var(--bg-card)',
                 }}
               >
                 <canvas
@@ -451,7 +451,8 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
               style={{
                 fontSize: '0.65rem',
                 color: 'var(--text-sub)',
-                background: '#1e1e1e',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-light)',
                 padding: '6px',
                 borderRadius: '3px',
                 lineHeight: 1.3,

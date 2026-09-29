@@ -20,8 +20,8 @@ export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = memo(({
     <div
       style={{
         width: '200px',
-        background: '#2b2d31',
-        borderLeft: '1px solid #1f2023',
+        background: 'var(--bg-card)',
+        borderLeft: '1px solid var(--border-light)',
         display: 'flex',
         flexDirection: 'column',
         padding: '16px 12px',
@@ -30,7 +30,7 @@ export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = memo(({
         overflowY: 'auto',
       }}
     >
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8e9297', textTransform: 'uppercase' }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
         채널 멤버 ({currentChannel.members?.length || 0})
       </div>
 
@@ -52,7 +52,7 @@ export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = memo(({
                 <span
                   style={{
                     fontSize: '0.76rem',
-                    color: '#dcddde',
+                    color: 'var(--text-main)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -60,7 +60,7 @@ export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = memo(({
                 >
                   {m.user?.name || m.user?.email?.split('@')[0] || '사용자'}
                 </span>
-                {m.role === 'ADMIN' && <Crown size={11} color="#e6a23c" />}
+                {m.role === 'ADMIN' && <Crown size={11} color="var(--accent-yellow, #e6a23c)" />}
               </div>
             </div>
           </div>
@@ -68,11 +68,11 @@ export const ChatMemberSidebar: React.FC<ChatMemberSidebarProps> = memo(({
       </div>
 
       {currentChannel.topic && (
-        <div style={{ marginTop: '12px', borderTop: '1px solid #35373c', paddingTop: '12px' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8e9297', textTransform: 'uppercase', marginBottom: '4px' }}>
+        <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-light)', paddingTop: '12px' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
             채널 설명 / 토픽
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#b9bbbe', lineHeight: 1.4 }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-sub)', lineHeight: 1.4 }}>
             {currentChannel.topic}
           </div>
         </div>

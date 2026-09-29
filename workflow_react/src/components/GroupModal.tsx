@@ -130,9 +130,9 @@ export const GroupModal: React.FC<GroupModalProps> = ({
             overflowY: 'auto',
             margin: 'auto',
             borderRadius: '6px',
-            background: '#252526',
-            border: '1px solid #454545',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+            background: 'var(--bg-modal)',
+            border: '1px solid var(--border-light)',
+            boxShadow: 'var(--shadow-lg)',
           }}
           onClick={(e) => e.stopPropagation()}
         >

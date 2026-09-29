@@ -118,10 +118,10 @@ export const MemoIndicator: React.FC<MemoIndicatorProps> = ({
               maxWidth: '90vw',
               maxHeight: '260px',
               zIndex: 99999,
-              background: '#202022',
+              background: 'var(--bg-modal)',
               border: '1px solid #ef4444',
               borderRadius: '6px',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(239, 68, 68, 0.3)',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(239, 68, 68, 0.3)',
               padding: '8px 10px',
               display: 'flex',
               flexDirection: 'column',
@@ -136,7 +136,7 @@ export const MemoIndicator: React.FC<MemoIndicatorProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderBottom: '1px solid #333336',
+                borderBottom: '1px solid var(--border-light)',
                 paddingBottom: '4px',
               }}
             >

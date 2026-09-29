@@ -129,11 +129,11 @@ export const CountBadge: React.FC<CountBadgeProps> = ({
 
   const variantStyles: Record<string, React.CSSProperties> = {
     primary: { background: 'var(--primary)', color: '#fff' },
-    secondary: { background: '#3c3c3c', color: 'var(--text-sub)' },
+    secondary: { background: 'var(--bg-subtle)', color: 'var(--text-sub)', border: '1px solid var(--border-light)' },
     danger: { background: '#f43f5e', color: '#fff' },
     warning: { background: '#f59e0b', color: '#000' },
     amber: { background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)' },
-    muted: { background: 'transparent', color: 'var(--text-muted)', border: '1px solid #3c3c3c' },
+    muted: { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-light)' },
   };
 
   const isSmall = size === 'sm';

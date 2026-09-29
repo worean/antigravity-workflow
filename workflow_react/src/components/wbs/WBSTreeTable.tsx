@@ -158,7 +158,7 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
         display: 'flex',
         flexDirection: 'column',
         borderRight: '1px solid var(--border-light)',
-        background: '#252526',
+        background: 'var(--bg-card)',
         flexShrink: 0,
       }}
     >
@@ -169,7 +169,7 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
           display: 'flex',
           alignItems: 'center',
           borderBottom: '1px solid var(--border-light)',
-          background: '#1e1e1e',
+          background: 'var(--bg-card)',
           fontSize: '0.74rem',
           fontWeight: 600,
           color: 'var(--text-sub)',

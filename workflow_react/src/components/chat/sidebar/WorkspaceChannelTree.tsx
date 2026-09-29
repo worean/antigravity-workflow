@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+﻿import React, { memo } from 'react';
 import { ChevronDown, ChevronRight, Plus, Building2 } from 'lucide-react';
 import type { ChatChannel, ChannelType } from '@/types';
 import { ChannelItem } from './ChannelItem';
@@ -38,10 +38,11 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
           alignItems: 'center',
           gap: '6px',
           padding: '6px 8px',
-          background: '#232428',
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-light)',
           borderRadius: '4px',
           marginBottom: '8px',
-          color: '#ffffff',
+          color: 'var(--text-bright)',
           fontWeight: 700,
           fontSize: '0.82rem',
         }}
@@ -60,7 +61,7 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '3px 6px',
-            color: '#8e9297',
+            color: 'var(--text-muted)',
             fontSize: '0.7rem',
             fontWeight: 700,
             textTransform: 'uppercase',
@@ -72,9 +73,9 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
             type="button"
             onClick={(e) => handleOpenCreateForCategory('GLOBAL', e)}
             title="전체 채널 추가"
-            style={{ background: 'none', border: 'none', color: '#8e9297', cursor: 'pointer', padding: '2px' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#8e9297')}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-bright)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
           >
             <Plus size={13} />
           </button>
@@ -104,8 +105,8 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
           onClick={() => toggleCategoryCollapse('PROJECT')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {isProjectCollapsed ? <ChevronRight size={12} color="#8e9297" /> : <ChevronDown size={12} color="#8e9297" />}
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8e9297', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {isProjectCollapsed ? <ChevronRight size={12} color="var(--text-muted)" /> : <ChevronDown size={12} color="var(--text-muted)" />}
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               프로젝트 채널 ({projectChannels.length})
             </span>
           </div>
@@ -113,9 +114,9 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
             type="button"
             onClick={(e) => { e.stopPropagation(); handleOpenCreateForCategory('PROJECT', e); }}
             title="프로젝트 채널 추가"
-            style={{ background: 'none', border: 'none', color: '#8e9297', cursor: 'pointer', padding: '2px' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#8e9297')}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-bright)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
           >
             <Plus size={13} />
           </button>
@@ -124,7 +125,7 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
         {!isProjectCollapsed && (
           <div style={{ marginTop: '2px' }}>
             {projectChannels.length === 0 ? (
-              <div style={{ fontSize: '0.7rem', color: '#72767d', padding: '4px 18px' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px 18px' }}>
                 프로젝트 채널이 없습니다.
               </div>
             ) : (
@@ -156,8 +157,8 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
           onClick={() => toggleCategoryCollapse('GROUP')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {isGroupCollapsed ? <ChevronRight size={12} color="#8e9297" /> : <ChevronDown size={12} color="#8e9297" />}
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8e9297', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {isGroupCollapsed ? <ChevronRight size={12} color="var(--text-muted)" /> : <ChevronDown size={12} color="var(--text-muted)" />}
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               그룹 채널 ({groupChannels.length})
             </span>
           </div>
@@ -165,9 +166,9 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
             type="button"
             onClick={(e) => { e.stopPropagation(); handleOpenCreateForCategory('GROUP', e); }}
             title="그룹 채널 추가"
-            style={{ background: 'none', border: 'none', color: '#8e9297', cursor: 'pointer', padding: '2px' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#8e9297')}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-bright)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
           >
             <Plus size={13} />
           </button>
@@ -176,7 +177,7 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
         {!isGroupCollapsed && (
           <div style={{ marginTop: '2px' }}>
             {groupChannels.length === 0 ? (
-              <div style={{ fontSize: '0.7rem', color: '#72767d', padding: '4px 18px' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px 18px' }}>
                 그룹 채널이 없습니다.
               </div>
             ) : (

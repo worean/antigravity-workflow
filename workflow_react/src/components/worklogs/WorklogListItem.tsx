@@ -18,7 +18,7 @@ export const WorklogListItem: React.FC<WorklogListItemProps> = ({ worklog, curre
         alignItems: 'center',
         padding: '6px 10px',
         borderRadius: 'var(--radius-xs)',
-        background: '#252526',
+        background: 'var(--bg-subtle)',
         border: '1px solid var(--border-light)',
         fontSize: '0.78rem',
       }}

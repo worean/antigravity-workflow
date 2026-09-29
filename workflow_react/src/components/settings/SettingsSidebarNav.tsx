@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { User, Layers, Users, Sliders, Palette, Server, FlaskConical } from 'lucide-react';
 
 export type SettingsTabType = 'profile' | 'workspace' | 'organization' | 'customFields' | 'display' | 'system' | 'demo';
@@ -51,8 +51,8 @@ export const SettingsSidebarNav: React.FC<SettingsSidebarNavProps> = ({
               padding: '8px 10px',
               fontSize: '0.78rem',
               fontWeight: isActive ? 600 : 400,
-              background: isActive ? '#37373d' : 'transparent',
-              color: isActive ? '#ffffff' : 'var(--text-main)',
+              background: isActive ? 'var(--nav-item-active, rgba(0, 122, 204, 0.15))' : 'transparent',
+              color: isActive ? 'var(--primary)' : 'var(--text-main)',
               border: 'none',
               borderRadius: 'var(--radius-xs)',
               cursor: 'pointer',

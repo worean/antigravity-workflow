@@ -67,7 +67,7 @@ export const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
           flexDirection: 'column',
           gap: '12px',
           padding: '14px',
-          background: '#252526',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-xs)',
         }}
@@ -115,8 +115,8 @@ export const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
             style={{
               fontSize: '0.7rem',
               padding: '2px 8px',
-              background: '#333333',
-              border: '1px solid #444444',
+              background: 'var(--btn-secondary-bg)',
+              border: '1px solid var(--border-light)',
               borderRadius: '4px',
               color: 'var(--text-main)',
               cursor: 'pointer',
@@ -130,8 +130,8 @@ export const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
             style={{
               fontSize: '0.7rem',
               padding: '2px 8px',
-              background: '#333333',
-              border: '1px solid #444444',
+              background: 'var(--btn-secondary-bg)',
+              border: '1px solid var(--border-light)',
               borderRadius: '4px',
               color: 'var(--text-main)',
               cursor: 'pointer',
@@ -145,8 +145,8 @@ export const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
             style={{
               fontSize: '0.7rem',
               padding: '2px 8px',
-              background: '#333333',
-              border: '1px solid #444444',
+              background: 'var(--btn-secondary-bg)',
+              border: '1px solid var(--border-light)',
               borderRadius: '4px',
               color: 'var(--text-main)',
               cursor: 'pointer',
@@ -266,42 +266,42 @@ export const SettingsSystemTab: React.FC<SettingsSystemTabProps> = ({
         <Spinner centered label="서버 상태 진단 중..." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>애플리케이션 런타임</span>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: window.electronAPI?.isElectron ? '#4ec9b0' : 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Monitor size={13} /> {window.electronAPI?.isElectron ? 'Electron Desktop Framework (Active)' : 'Web Browser Client (Active)'}
             </span>
           </div>
 
-          <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>서버 헬스체크 상태</span>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: health?.status === 'OK' ? '#4ec9b0' : '#f14c4c', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Activity size={13} /> {health?.status || '연결 대기 중 (Offline)'}
             </span>
           </div>
 
-          <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>데이터베이스 (Prisma SQLite)</span>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <ShieldCheck size={13} /> 연결 정상 (Ready)
             </span>
           </div>
 
-          <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>현재 활성 API Base URL</span>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent-cyan)', fontFamily: 'monospace' }}>
               {getApiBaseUrl()}
             </span>
           </div>
 
-          <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>시스템 버전</span>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-bright)' }}>
               AntiGravity Workflow v2.5.0 (Universal Edition)
             </span>
           </div>
 
-          <div style={{ padding: '10px 12px', background: '#2d2d2d', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-xs)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>인증 방식</span>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-sub)' }}>
               JWT Bearer Token Signature Only

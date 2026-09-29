@@ -123,3 +123,47 @@ export const useFeatureStore = create<FeatureState>()(
 - 테마 상태는 `usePrefStore((s) => s.theme)` 및 `setTheme((s) => s.setTheme)`로 조회/변경합니다.
 - 최상위 `html`/`document.documentElement`의 `data-theme="dark" | "light"` 속성에 따라 토큰이 자동 전환됩니다.
 - 신규 테마를 확장하거나 색상을 변경할 때는 반드시 `src/styles/theme.css` 내의 토큰을 업데이트합니다.
+
+### 5.4 CSS Modules (`*.module.css`) 작성 규칙 및 테마 오염 방지
+- **문제점**: `*.module.css` 내부에 고정 색상값(hex, rgb 등)을 작성하면 CSS 모듈의 해시 클래스 스코핑 및 명시도로 인해 전역 테마 토큰(`[data-theme="light"]`) 오버라이드가 무력화되어 색상이 고정되는 결함이 발생합니다.
+- **구조와 색상의 분리**:
+  - `*.module.css`는 컴포넌트의 레이아웃, 여백(padding/margin), Flex/Grid 정렬, 크기(width/height), 위치(position) 등 **구조와 배치(Layout & Structure)**만 전담합니다.
+  - 색상(background-color, color, border-color, box-shadow 등)은 절대로 고정값을 적지 말고 반드시 전역 시맨틱 토큰(`var(--bg-card)`, `var(--text-main)`, `var(--border-light)` 등)을 참조하도록 작성합니다.
+- **예시**:
+```css
+/* ❌ 금지: *.module.css 내 고정 색상 하드코딩 (테마 전환 무력화) */
+.cardContainer {
+  display: flex;
+  background-color: #252526; /* 금지! */
+  color: #ffffff;            /* 금지! */
+  border: 1px solid #3c3c3c; /* 금지! */
+}
+
+/* ✅ 권장: 구조 배치 및 시맨틱 CSS 변수 바인딩 */
+.cardContainer {
+  display: flex;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-light);
+```
+
+### 5.5 태그 인라인 스타일(`style={{ ... }}`) 및 Tailwind 색상 직접 하드코딩 금지
+- **문제점**: JSX 태그에 직접 `style={{ background: '#2d2d2d', color: '#fff' }}` 또는 Tailwind 임의 값 `bg-[#2d2d2d]`를 작성하면, 라이트 모드 전환 시 CSS 변수의 동적 오버라이드가 무시되어 해당 요소가 어두운 상태로 고정되는 심각한 시각적 버그가 발생합니다.
+- **인라인 스타일 및 Tailwind 색상 제한 원칙**:
+  - JSX 태그 내 `style={{ ... }}` 속성에 실제 색상 코드(hex `#1e1e1e`, `#252526`, `#2d2d2d`, rgb/rgba 고정값) 직접 작성을 전면 금지합니다.
+  - Tailwind CSS 임의 값 색상 클래스(`bg-[#...]`, `text-[#...]`, `border-[#...]` 등) 사용을 금지합니다.
+  - 색상이 필요한 모든 인라인 스타일 및 클래스는 반드시 `var(--bg-card)`, `var(--bg-main)`, `var(--bg-subtle)`, `var(--border-light)`, `var(--text-main)`, `var(--text-muted)` 등 CSS 시맨틱 변수를 참조해야 합니다.
+- **예시**:
+```tsx
+// ❌ 금지: 태그에 직접 색상 코드 하드코딩
+<div style={{ background: '#252526', color: '#ffffff', border: '1px solid #3c3c3c' }}>
+<div className="bg-[#252526] text-[#ffffff] border-[#3c3c3c]">
+
+// ✅ 권장: CSS 시맨틱 변수 바인딩
+<div style={{ background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-light)' }}>
+<div className="glass-panel" style={{ color: 'var(--text-main)' }}>
+```
+
+

@@ -32,13 +32,13 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = memo(({
     <div
       style={{
         width: '60px',
-        background: '#18181b',
+        background: 'var(--bg-subtle)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         padding: '12px 0',
         gap: '12px',
-        borderRight: '1px solid #27272a',
+        borderRight: '1px solid var(--border-light)',
         flexShrink: 0,
       }}
     >
@@ -50,9 +50,9 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = memo(({
           width: '44px',
           height: '44px',
           borderRadius: activeCategory === 'ALL' ? '14px' : '22px',
-          background: activeCategory === 'ALL' ? 'var(--primary)' : '#27272a',
-          color: '#fff',
-          border: 'none',
+          background: activeCategory === 'ALL' ? 'var(--primary)' : 'var(--bg-card)',
+          color: activeCategory === 'ALL' ? '#fff' : 'var(--text-main)',
+          border: '1px solid var(--border-light)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -63,7 +63,7 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = memo(({
         <MessageSquare size={20} />
       </button>
 
-      <div style={{ width: '32px', height: '1px', background: '#27272a' }} />
+      <div style={{ width: '32px', height: '1px', background: 'var(--border-light)' }} />
 
       {CATEGORY_CONFIGS.map((cat) => {
         const isActive = activeCategory === cat.type;
@@ -77,8 +77,9 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = memo(({
               width: '44px',
               height: '44px',
               borderRadius: isActive ? '14px' : '22px',
-              background: isActive ? '#3b82f6' : '#27272a',
-              border: 'none',
+              background: isActive ? 'var(--primary)' : 'var(--bg-card)',
+              color: isActive ? '#fff' : 'var(--text-main)',
+              border: '1px solid var(--border-light)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -103,9 +104,9 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = memo(({
             width: '44px',
             height: '44px',
             borderRadius: '22px',
-            background: '#27272a',
-            color: '#10b981',
-            border: 'none',
+            background: 'var(--bg-card)',
+            color: 'var(--accent-green, #10b981)',
+            border: '1px solid var(--border-light)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -113,13 +114,13 @@ export const ChatCategoryNav: React.FC<ChatCategoryNavProps> = memo(({
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#10b981';
+            e.currentTarget.style.background = 'var(--accent-green, #10b981)';
             e.currentTarget.style.color = '#fff';
             e.currentTarget.style.borderRadius = '14px';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#27272a';
-            e.currentTarget.style.color = '#10b981';
+            e.currentTarget.style.background = 'var(--bg-card)';
+            e.currentTarget.style.color = 'var(--accent-green, #10b981)';
             e.currentTarget.style.borderRadius = '22px';
           }}
         >

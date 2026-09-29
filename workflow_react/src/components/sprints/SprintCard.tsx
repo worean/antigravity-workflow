@@ -55,7 +55,7 @@ export const SprintCard: React.FC<SprintCardProps> = ({
     <div
       key={sprint.id}
       style={{
-        background: localIsFav ? '#23221e' : '#252526',
+        background: localIsFav ? 'var(--bg-subtle)' : 'var(--bg-card)',
         border: localIsFav
           ? '1px solid rgba(234, 179, 8, 0.45)'
           : isActive
@@ -135,7 +135,8 @@ export const SprintCard: React.FC<SprintCardProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          background: '#1e1e1e',
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-light)',
           padding: '5px 8px',
           borderRadius: 'var(--radius-xs)',
           fontSize: '0.72rem',
@@ -157,7 +158,7 @@ export const SprintCard: React.FC<SprintCardProps> = ({
           <span>진척도 ({prog.done}/{prog.total}개 완료)</span>
           <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>{prog.rate}%</span>
         </div>
-        <div style={{ width: '100%', height: '5px', background: '#333', borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{ width: '100%', height: '5px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden' }}>
           <div
             style={{
               width: `${prog.rate}%`,

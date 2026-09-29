@@ -554,9 +554,9 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             overflowY: 'auto',
             margin: 'auto',
             borderRadius: '6px',
-            background: '#252526',
-            border: '1px solid #454545',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+            background: 'var(--bg-modal)',
+            border: '1px solid var(--border-light)',
+            boxShadow: 'var(--shadow-lg)',
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -623,26 +623,26 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               <MarkdownViewer content={selectedIssue.description} placeholder="작성된 상세 설명이 없습니다." style={{ marginBottom: '10px' }} />
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px', marginBottom: '10px' }}>
-                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
+                <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>프로젝트: </span>
                   <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{selectedProj?.name || `#${selectedIssue.projectId}`}</span>
                 </div>
-                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
+                <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>담당자: </span>
                   <UserBadge user={selectedIssue.assignee} currentUserId={user?.id} size="sm" />
                 </div>
-                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
+                <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>작성자: </span>
                   <UserBadge user={selectedIssue.author} currentUserId={user?.id} size="sm" fallbackText="작성자 정보 없음" />
                 </div>
-                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
+                <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 8px', borderRadius: 'var(--radius-xs)', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>진척도: </span>
                   <span style={{ fontWeight: 600, color: '#4ec9b0' }}>{selectedIssue.progress || 0}%</span>
                 </div>
               </div>
 
               {/* Schedule & Due Date Panel */}
-              <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+              <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
                 <h4 style={{ fontSize: '0.78rem', color: 'var(--accent-cyan)', marginBottom: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Calendar size={13} /> 일정 및 기한
                 </h4>
@@ -688,13 +688,13 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               </div>
 
               {Object.keys(customFieldsData).length > 0 && (
-                <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+                <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
                   <h4 style={{ fontSize: '0.78rem', color: 'var(--text-sub)', marginBottom: '6px', fontWeight: 600 }}>
                     ⚙️ 커스텀 필드
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.75rem' }}>
                     {Object.entries(customFieldsData).map(([k, val]) => (
-                      <div key={k} style={{ background: '#252526', border: '1px solid #383838', padding: '4px 6px', borderRadius: '2px' }}>
+                      <div key={k} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', padding: '4px 6px', borderRadius: '2px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>{k}: </span>
                         <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{String(val)}</span>
                       </div>
@@ -704,7 +704,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
               )}
 
               {/* Worklog & Time Tracking Panel */}
-              <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+              <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <h4 style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
                     <Clock size={13} /> 작업 로그 및 소요 시간
@@ -870,7 +870,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                             }
                           }
                         }}
-                        style={{ resize: 'vertical', minHeight: '32px', fontSize: '0.78rem', background: '#1e1e1e' }}
+                        style={{ resize: 'vertical', minHeight: '32px', fontSize: '0.78rem', background: 'var(--bg-input)' }}
                       />
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
                         {newComment.trim() && (
@@ -895,7 +895,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                     </div>
                   </form>
                 ) : (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', padding: '4px 0', borderBottom: '1px solid #383838' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', padding: '4px 0', borderBottom: '1px solid var(--border-light)' }}>
                     댓글을 작성하려면 로그인하세요.
                   </div>
                 )}
@@ -924,7 +924,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                                   width: 24,
                                   height: 24,
                                   borderRadius: '50%',
-                                  backgroundColor: '#383838',
+                                  backgroundColor: 'var(--bg-subtle)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1035,9 +1035,9 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                                 flexDirection: 'column',
                                 gap: '3px',
                                 padding: '5px 6px',
-                                background: '#1e1e1e',
+                                background: 'var(--bg-subtle)',
                                 borderRadius: 'var(--radius-xs)',
-                                border: '1px solid #3c3c3c',
+                                border: '1px solid var(--border-light)',
                               }}
                             >
                               <textarea
@@ -1058,7 +1058,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                                     }
                                   }
                                 }}
-                                style={{ resize: 'vertical', minHeight: '30px', fontSize: '0.75rem', background: '#252526' }}
+                                style={{ resize: 'vertical', minHeight: '30px', fontSize: '0.75rem', background: 'var(--bg-input)' }}
                               />
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '3px' }}>
                                 <button

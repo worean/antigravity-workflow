@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Layers, Users, ArrowRight, Trash2, Globe, ShieldCheck, Lock } from 'lucide-react';
 import type { Project, ProjectVisibility } from '@/types';
 import { FavoriteButton } from '@/components/common';
@@ -96,7 +96,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         justifyContent: 'space-between',
         cursor: 'pointer',
         borderRadius: 'var(--radius-xs)',
-        background: '#252526',
+        background: 'var(--bg-card)',
         border: '1px solid var(--border-light)',
         minHeight: '110px',
       }}

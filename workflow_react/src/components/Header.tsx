@@ -246,8 +246,8 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
                 transition: 'background-color 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#2a2d2e';
-                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.background = 'var(--bg-card-hover)';
+                e.currentTarget.style.color = 'var(--text-bright)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
@@ -273,8 +273,8 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
                 transition: 'background-color 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#2a2d2e';
-                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.background = 'var(--bg-card-hover)';
+                e.currentTarget.style.color = 'var(--text-bright)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';

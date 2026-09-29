@@ -28,6 +28,13 @@
   - 색상 하드코딩(`#1e1e1e`, `#252526`, `#2d2d2d`, `#ffffff` 등) 금지. 반드시 `src/styles/theme.css`의 시맨틱 CSS 변수(`var(--bg-card)`, `var(--bg-dark)`, `var(--text-main)`, `var(--border-light)` 등) 사용.
   - Light 테마 / Dark 테마 양방향 시각적 가독성 및 명도 대비 준수.
   - 테마 상태는 `usePrefStore`의 `theme`('dark' | 'light' | 'system')으로 관리하며 `document.documentElement[data-theme]`와 실시간 연동.
+- **CSS Modules (`*.module.css`) 작성 및 테마 색상 분리 원칙**:
+  - `*.module.css` 내 테마 고정 색상(hex, rgb 고정값) 작성 절대 금지. 모듈 CSS는 레이아웃, 크기, 마진/패딩, Flex/Grid 등 '구조와 배치(Layout & Structure)'만 전담.
+  - 색상이 필요한 경우 반드시 전역 CSS 변수(`var(--bg-card)`, `var(--text-main)` 등)를 참조하여 선언. 색상이 컴포넌트 모듈에 하드코딩되어 고정되는 현상을 원천 방지함.
+- **태그 인라인 스타일(`style={{ ... }}`) 및 Tailwind 색상 직접 하드코딩 금지 원칙**:
+  - JSX 태그 내 인라인 `style={{ ... }}`에 실제 색상 코드(`color: '#2d2d2d'`, `background: '#1e1e1e'`, `rgb(...)`, `rgba(...)`) 직접 입력 절대 금지.
+  - Tailwind CSS 임의 값 색상 클래스(`bg-[#...]`, `text-[#...]`, `border-[#...]` 등) 사용 절대 금지.
+  - 모든 색상 및 테마 관련 스타일은 반드시 `src/styles/theme.css`의 시맨틱 CSS 변수(`var(--bg-card)`, `var(--bg-main)`, `var(--bg-subtle)`, `var(--border-light)`, `var(--text-main)`, `var(--text-muted)` 등)를 바인딩하여 Light/Dark 테마 양방향 완벽 호환성을 보장해야 함.
 
 ---
 

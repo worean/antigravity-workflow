@@ -53,7 +53,7 @@ export const SprintToolbar: React.FC<SprintToolbarProps> = ({
         </div>
 
         {/* Status Tabs */}
-        <div style={{ display: 'flex', gap: '3px', background: '#1e1e1e', padding: '2px', borderRadius: 'var(--radius-xs)', border: '1px solid #383838' }}>
+        <div style={{ display: 'flex', gap: '3px', background: 'var(--bg-subtle)', padding: '2px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-light)' }}>
           {(['ALL', 'STARRED', 'PLANNED', 'ACTIVE', 'COMPLETED'] as SprintStatusFilter[]).map((st) => (
             <button
               key={st}

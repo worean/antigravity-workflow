@@ -19,7 +19,7 @@ export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
   const dmChannels = channels.filter((c) => c.type === 'DM');
 
   return (
-    <div style={{ marginTop: '12px', borderTop: '1px solid #1f2023', paddingTop: '12px' }}>
+    <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-light)', paddingTop: '12px' }}>
       <div
         style={{
           display: 'flex',
@@ -31,7 +31,7 @@ export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <MessageCircle size={13} color="var(--primary)" />
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8e9297', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             다이렉트 메시지 ({dmChannels.length})
           </span>
         </div>
@@ -39,16 +39,16 @@ export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
           type="button"
           onClick={onOpenCreateDm}
           title="새 다이렉트 메시지 시작"
-          style={{ background: 'none', border: 'none', color: '#8e9297', cursor: 'pointer', padding: '2px' }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#8e9297')}
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-bright)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
           <Plus size={13} />
         </button>
       </div>
 
       {dmChannels.length === 0 ? (
-        <div style={{ fontSize: '0.7rem', color: '#72767d', padding: '4px 8px' }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px 8px' }}>
           진행 중인 1:1 대화가 없습니다.
         </div>
       ) : (

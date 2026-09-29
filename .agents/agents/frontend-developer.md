@@ -53,4 +53,7 @@ flowchart TD
    - Ghost State(`const [, setX] = useState(...)`) 금지.
 4. **LocalStorage**: 네임스페이스 접두사 강제(예: `app_`, `ag_`), `safeStorage` 또는 Zustand `persist` 사용.
 5. **CSS Design Tokens & Theme 호환성**: 인라인 또는 클래스 스타일 작성 시 하드코딩 색상(`#1e1e1e`, `#252526`, `#ffffff` 등) 금지. 반드시 `src/styles/theme.css`의 시맨틱 토큰(`var(--bg-card)`, `var(--text-main)`, `var(--border-light)` 등) 사용 및 Dark/Light 테마 모두 가독성/대비 검증.
-6. **UTF-8 with BOM**: 소스 및 문서는 `utf-8-sig` 저장.
+6. **CSS Modules (`*.module.css`) 테마 색상 분리 원칙**: 모듈 CSS 파일 내에 고정 색상값(hex, rgb) 선언 절대 금지. 모듈 CSS는 레이아웃/구조(flex, grid, margin, padding 등)만 전담하며, 색상은 반드시 전역 시맨틱 토큰(`var(--bg-card)` 등)을 참조하여 컴포넌트별 색상 고정 버그 방지.
+7. **태그 인라인 스타일 및 Tailwind 색상 하드코딩 금지 원칙**: JSX 태그 내 `style={{ ... }}`에 실제 색상 코드(`color: '#2d2d2d'`, `background: '#1e1e1e'`, `rgb/rgba` 등) 직접 입력 및 Tailwind 임의 색상 클래스(`bg-[#...]`, `text-[#...]`) 사용 절대 금지. 모든 색상은 시맨틱 CSS 변수(`var(--bg-card)` 등)를 참조해야 함.
+8. **UTF-8 with BOM**: 소스 및 문서는 `utf-8-sig` 저장.
+

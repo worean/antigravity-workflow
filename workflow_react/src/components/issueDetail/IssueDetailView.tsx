@@ -87,7 +87,7 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
 
       {/* Main Metadata Badges */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '6px', marginBottom: '10px' }}>
-        <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+        <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
             <Layers size={11} style={{ display: 'inline', marginRight: '3px' }} /> 프로젝트
           </span>
@@ -96,28 +96,28 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
           </span>
         </div>
 
-        <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+        <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
             <UserIcon size={11} style={{ display: 'inline', marginRight: '3px' }} /> 담당자
           </span>
           <UserBadge user={issue.assignee} currentUserId={user?.id} size="sm" />
         </div>
 
-        <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+        <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
             <UserIcon size={11} style={{ display: 'inline', marginRight: '3px' }} /> 작성자 (보고자)
           </span>
           <UserBadge user={issue.author} currentUserId={user?.id} size="sm" fallbackText="작성자 정보 없음" />
         </div>
 
-        <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+        <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
             <Tag size={11} style={{ display: 'inline', marginRight: '3px' }} /> 우선순위
           </span>
           <PriorityBadge priority={issue.priorityId || issue.priority} size="sm" />
         </div>
 
-        <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+        <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
             <GitBranch size={11} style={{ display: 'inline', marginRight: '3px' }} /> 상위 이슈
           </span>
@@ -138,7 +138,7 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
           )}
         </div>
 
-        <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
+        <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '6px 10px', borderRadius: 'var(--radius-xs)' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
             <CheckCircle2 size={11} style={{ display: 'inline', marginRight: '3px' }} /> 진척도
           </span>
@@ -147,7 +147,7 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
       </div>
 
       {/* Schedule & Due Date Panel */}
-      <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+      <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
         <div style={{ fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Calendar size={13} /> 일정 및 기한
         </div>
@@ -204,7 +204,7 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
       </div>
 
       {/* Sub-tasks / Children Section */}
-      <div style={{ background: '#2d2d2d', border: '1px solid #3c3c3c', padding: '10px 12px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
+      <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '10px 12px', borderRadius: 'var(--radius-xs)', marginBottom: '10px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <CornerDownRight size={14} color="var(--accent-cyan)" />
@@ -242,8 +242,8 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
                   window.location.hash = `#issue-detail?projectId=${issue.projectId}&issueId=${sub.id}`;
                 }}
                 style={{
-                  background: '#252526',
-                  border: '1px solid #383838',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-light)',
                   borderRadius: '2px',
                   padding: '6px 8px',
                   display: 'flex',
@@ -252,8 +252,8 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
                   cursor: 'pointer',
                   transition: 'background 0.1s',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#323233')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '#252526')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-card-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-card)')}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -280,13 +280,13 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
 
       {/* Custom Fields Summary */}
       {Object.keys(customFieldsData).length > 0 && (
-        <div style={{ background: '#2d2d2d', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px', border: '1px solid #3c3c3c' }}>
+        <div style={{ background: 'var(--bg-subtle)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: '10px', border: '1px solid var(--border-light)' }}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-sub)', marginBottom: '6px', fontWeight: 600 }}>
             ⚙️ 커스텀 필드
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '6px' }}>
             {Object.entries(customFieldsData).map(([k, val]) => (
-              <div key={k} style={{ background: '#252526', border: '1px solid #383838', padding: '4px 6px', borderRadius: '2px', fontSize: '0.75rem' }}>
+              <div key={k} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', padding: '4px 6px', borderRadius: '2px', fontSize: '0.75rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>{k}: </span>
                 <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{String(val)}</span>
               </div>
