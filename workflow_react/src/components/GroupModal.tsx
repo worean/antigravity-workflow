@@ -78,8 +78,8 @@ export const GroupModal: React.FC<GroupModalProps> = ({
           return await updateGroup(group.id, {
             name: name.trim(),
             code: code.trim() || undefined,
-            description: description.trim() || undefined,
-            parentId: selectedParentId || undefined,
+            description: description.trim(),
+            parentId: selectedParentId ? Number(selectedParentId) : null,
           });
         } else {
           return await createGroup({

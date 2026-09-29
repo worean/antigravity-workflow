@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import type { Group, GroupMember, User as UserType } from '@/types';
 import {
   Building2,
@@ -9,6 +9,7 @@ import {
   Trash2,
   Users,
   X,
+  Edit3,
 } from 'lucide-react';
 import { Button, Spinner, Avatar } from '@/components/common';
 import { GroupModal } from '@/components/GroupModal';
@@ -74,6 +75,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
   handleUpdateMemberRole,
   handleRemoveMember,
 }) => {
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const selectedGroup = flatGroups.find((g) => g.id === selectedGroupId) || flatGroups[0] || null;
 
   const toggleGroupExpand = (groupId: number) => {
@@ -163,26 +165,50 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                   </span>
 
                   {isAuthenticated && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setGroupParentId(group.id);
-                        setShowGroupForm(true);
-                      }}
-                      title="하위 서브그룹 추가"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <FolderPlus size={12} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingGroup(group);
+                          setGroupParentId(group.parentId || null);
+                          setShowGroupForm(true);
+                        }}
+                        title="그룹 정보 수정"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingGroup(null);
+                          setGroupParentId(group.id);
+                          setShowGroupForm(true);
+                        }}
+                        title="하위 서브그룹 추가"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <FolderPlus size={12} />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -218,6 +244,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
             size="sm"
             icon={<FolderPlus size={13} />}
             onClick={() => {
+              setEditingGroup(null);
               setGroupParentId(null);
               setShowGroupForm(true);
             }}
@@ -301,6 +328,18 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
 
                   {isAuthenticated && (
                     <div style={{ display: 'flex', gap: '6px' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<Edit3 size={13} />}
+                        onClick={() => {
+                          setEditingGroup(selectedGroup);
+                          setGroupParentId(selectedGroup.parentId || null);
+                          setShowGroupForm(true);
+                        }}
+                      >
+                        그룹 수정
+                      </Button>
                       <Button
                         variant="secondary"
                         size="sm"
@@ -471,12 +510,15 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
         onClose={() => {
           setShowGroupForm(false);
           setGroupParentId(null);
+          setEditingGroup(null);
         }}
         parentId={groupParentId}
+        group={editingGroup}
         flatGroups={flatGroups}
         onSuccess={(saved) => {
           setShowGroupForm(false);
           setGroupParentId(null);
+          setEditingGroup(null);
           if (saved?.id) {
             setSelectedGroupId(saved.id);
           }
