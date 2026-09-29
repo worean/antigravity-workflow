@@ -28,12 +28,6 @@ interface SettingsOrgTabProps {
   setShowGroupForm: (show: boolean) => void;
   groupParentId: number | null;
   setGroupParentId: (id: number | null) => void;
-  newGroupName: string;
-  setNewGroupName: (name: string) => void;
-  newGroupCode: string;
-  setNewGroupCode: (code: string) => void;
-  newGroupDesc: string;
-  setNewGroupDesc: (desc: string) => void;
   showMemberForm: boolean;
   setShowMemberForm: (show: boolean) => void;
   newMemberUserId: number | '';
@@ -43,7 +37,7 @@ interface SettingsOrgTabProps {
   newMemberTitle: string;
   setNewMemberTitle: (title: string) => void;
   isPending: boolean;
-  handleCreateGroup: (e: React.FormEvent) => void;
+  onGroupCreated?: (saved?: Group) => void;
   handleDeleteGroup: (groupId: number, groupName: string) => void;
   handleAddMember: (e: React.FormEvent) => void;
   handleUpdateMemberRole: (member: GroupMember, newRole: string) => void;
@@ -65,12 +59,6 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
   setShowGroupForm,
   groupParentId,
   setGroupParentId,
-  newGroupName: _newGroupName,
-  setNewGroupName,
-  newGroupCode: _newGroupCode,
-  setNewGroupCode,
-  newGroupDesc: _newGroupDesc,
-  setNewGroupDesc,
   showMemberForm,
   setShowMemberForm,
   newMemberUserId,
@@ -80,7 +68,7 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
   newMemberTitle,
   setNewMemberTitle,
   isPending,
-  handleCreateGroup,
+  onGroupCreated,
   handleDeleteGroup,
   handleAddMember,
   handleUpdateMemberRole,
@@ -180,9 +168,6 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         setGroupParentId(group.id);
-                        setNewGroupName('');
-                        setNewGroupCode('');
-                        setNewGroupDesc('');
                         setShowGroupForm(true);
                       }}
                       title="하위 서브그룹 추가"
@@ -234,9 +219,6 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
             icon={<FolderPlus size={13} />}
             onClick={() => {
               setGroupParentId(null);
-              setNewGroupName('');
-              setNewGroupCode('');
-              setNewGroupDesc('');
               setShowGroupForm(true);
             }}
           >
@@ -486,12 +468,20 @@ export const SettingsOrgTab: React.FC<SettingsOrgTabProps> = ({
       {/* 1. Group Create / Edit Modal (IssueModal 표준) */}
       <GroupModal
         isOpen={showGroupForm}
-        onClose={() => setShowGroupForm(false)}
+        onClose={() => {
+          setShowGroupForm(false);
+          setGroupParentId(null);
+        }}
         parentId={groupParentId}
         flatGroups={flatGroups}
-        onSuccess={() => {
-          if (handleCreateGroup) {
-            handleCreateGroup({ preventDefault: () => {} } as any);
+        onSuccess={(saved) => {
+          setShowGroupForm(false);
+          setGroupParentId(null);
+          if (saved?.id) {
+            setSelectedGroupId(saved.id);
+          }
+          if (onGroupCreated) {
+            onGroupCreated(saved);
           }
         }}
       />

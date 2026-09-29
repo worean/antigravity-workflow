@@ -12,6 +12,7 @@ import { createGroup, updateGroup } from '@/services/api';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { useUIStore } from '@/stores/useUIStore';
 
 export interface GroupModalProps {
   isOpen: boolean;
@@ -92,6 +93,9 @@ export const GroupModal: React.FC<GroupModalProps> = ({
       {
         onSuccess: (saved) => {
           queryClient.invalidateQueries({ queryKey: ['groups'] });
+          useUIStore
+            .getState()
+            .showToast(group ? '그룹 정보가 수정되었습니다.' : '그룹이 성공적으로 생성되었습니다.', 'success');
           if (onSuccess) onSuccess(saved);
           onClose();
         },

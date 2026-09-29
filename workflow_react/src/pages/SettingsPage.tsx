@@ -8,7 +8,6 @@ import {
   deleteCustomField,
   checkHealth,
   getGroups,
-  createGroup,
   deleteGroup,
   addGroupMember,
   updateGroupMember,
@@ -75,9 +74,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   // Create Group Form State
   const [showGroupForm, setShowGroupForm] = useState<boolean>(false);
   const [groupParentId, setGroupParentId] = useState<number | null>(null);
-  const [newGroupName, setNewGroupName] = useState<string>('');
-  const [newGroupCode, setNewGroupCode] = useState<string>('');
-  const [newGroupDesc, setNewGroupDesc] = useState<string>('');
 
   // Add Member to Group Form State
   const [showMemberForm, setShowMemberForm] = useState<boolean>(false);
@@ -241,33 +237,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   };
 
   // Group Handlers
-  const handleCreateGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newGroupName.trim() || !newGroupCode.trim()) {
-      return alert('그룹명과 그룹 코드는 필수입니다.');
+  const handleGroupCreated = (saved?: Group) => {
+    if (saved?.id) {
+      setSelectedGroupId(saved.id);
     }
-
-    await executeAction(
-      async () => {
-        return await createGroup({
-          name: newGroupName.trim(),
-          code: newGroupCode.trim().toUpperCase(),
-          description: newGroupDesc.trim() || undefined,
-          parentId: groupParentId || undefined,
-        });
-      },
-      {
-        onSuccess: (newGrp) => {
-          setShowGroupForm(false);
-          setNewGroupName('');
-          setNewGroupCode('');
-          setNewGroupDesc('');
-          setGroupParentId(null);
-          setSelectedGroupId(newGrp.id);
-          loadGroupsData();
-        },
-      }
-    );
+    loadGroupsData();
   };
 
   const handleDeleteGroup = async (groupId: number, groupName: string) => {
@@ -548,12 +522,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               setShowGroupForm={setShowGroupForm}
               groupParentId={groupParentId}
               setGroupParentId={setGroupParentId}
-              newGroupName={newGroupName}
-              setNewGroupName={setNewGroupName}
-              newGroupCode={newGroupCode}
-              setNewGroupCode={setNewGroupCode}
-              newGroupDesc={newGroupDesc}
-              setNewGroupDesc={setNewGroupDesc}
               showMemberForm={showMemberForm}
               setShowMemberForm={setShowMemberForm}
               newMemberUserId={newMemberUserId}
@@ -563,7 +531,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               newMemberTitle={newMemberTitle}
               setNewMemberTitle={setNewMemberTitle}
               isPending={isPending}
-              handleCreateGroup={handleCreateGroup}
+              onGroupCreated={handleGroupCreated}
               handleDeleteGroup={handleDeleteGroup}
               handleAddMember={handleAddMemberToGroup}
               handleUpdateMemberRole={handleUpdateMemberRole}
