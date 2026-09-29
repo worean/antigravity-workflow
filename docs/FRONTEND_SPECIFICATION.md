@@ -30,6 +30,7 @@ AntiGravity Workflow 프론트엔드는 **React 18 + TypeScript + Vite + TanStac
 | **전역 모달 & 레이아웃 (12종)** | [`11_GLOBAL_MODALS_LAYOUT.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/11_GLOBAL_MODALS_LAYOUT.md) | `Header`, `Sidebar`, `ProfileCard`, `AuthModal`, `ActionFeedbackModal`, `AvatarCropModal`, `ConfirmModal`, `CustomFieldsModal`, `GroupModal`, `IssueModal`, `ProjectModal`, `SprintModal`, `WorkspaceCreateModal`, `WorkspaceInviteModal` |
 | **캘린더 & 구글 연동 (5종)** | [`12_CALENDAR_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/12_CALENDAR_COMPONENTS.md) | `CalendarPage`, `CalendarGoogleSyncBanner`, `CalendarHeader`, `CalendarMonthGrid`, `CalendarWeekGrid` |
 | **AI 챗봇 & 플로팅 팝업 (6종)** | [`chatbot_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/chatbot_COMPONENTS.md) | `ChatbotPopup`, `ChatbotHeader`, `ChatbotMessageList`, `ChatbotMessageItem`, `ChatbotInputArea`, `ChatbotLauncher`, `ChatbotActionCard` |
+| **개인 메모 (7종)** | [`Memo_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/Memo_COMPONENTS.md) | `MemosPage`, `MemoIndicator`, `MemoCard`, `MemoEditorModal`, `MemoFilterBar`, `MemoGrid`, `MemoQuickAdd` |
 
 ---
 
@@ -48,6 +49,16 @@ AntiGravity Workflow 프론트엔드는 **React 18 + TypeScript + Vite + TanStac
 - **깜빡임 없는 전환**: `placeholderData: (previousData) => previousData`를 기본 적용하여 탭 전환이나 필터링 시 로딩 스피너로 인한 화면 번쩍거림을 제거합니다.
 - **In-place 캐시 갱신 (Smooth Optimistic Updates)**: Mutation 성공 시 불필요한 전체 Refetch 대신 `queryClient.setQueriesData`를 통해 메모리 상의 캐시 데이터를 즉시 동기화합니다.
 - **Draft Persistence**: `draftStorage.ts`를 통해 작성 중인 폼 데이터(이슈/프로젝트 생성 및 편집)를 600ms 디바운스로 로컬 영속화하여 이탈 시 복원을 지원합니다.
+
+### 3.4 CSS Design Tokens & Theme System (Dark / Light 테마 표준)
+- **시맨틱 CSS 토큰 기반 (`src/styles/theme.css`)**: 모든 컴포넌트 및 페이지는 인라인/CSS 하드코딩 색상(`#1e1e1e`, `#252526`, `#ffffff` 등) 사용을 배제하고, `var(--bg-card)`, `var(--bg-dark)`, `var(--text-main)`, `var(--border-light)` 등의 시맨틱 변수를 참조합니다.
+- **Dark & Light 모드 지원**:
+  - 기본 다크 테마(VS Code Dark Compact) 및 모던 라이트 테마(VS Code Light Modern)를 완벽 지원합니다.
+  - 시스템 OS 다크/라이트 테마 자동 동기화(`ThemeMode: 'system'`)를 지원합니다.
+- **테마 상태 관리**:
+  - `src/stores/usePrefStore.ts`: `theme: 'dark' | 'light' | 'system'` (기본값: `'dark'`)
+  - `src/utils/themeUtils.ts`: `applyTheme()`, `initTheme()`, OS 변경 감지 리스너 내장.
+  - 최상단 네비게이션 헤더(`Header.tsx`)의 테마 원클릭 토글 버튼 및 환경설정(`SettingsDisplayTab.tsx`) 테마 선택 카드를 제공합니다.
 
 ---
 

@@ -2,6 +2,7 @@
 import { AlertCircle, ExternalLink } from 'lucide-react';
 import type { Sprint } from '@/types';
 import { Button, StatusBadge, PriorityBadge } from '@/components/common';
+import { MemoIndicator } from '@/components/memos';
 
 interface SprintIssuesTabProps {
   sprint: Sprint;
@@ -66,6 +67,8 @@ export const SprintIssuesTab: React.FC<SprintIssuesTabProps> = ({
               key={iss.id}
               onClick={() => onOpenIssueDetail && onOpenIssueDetail(iss.id)}
               style={{
+                position: 'relative',
+                overflow: 'hidden',
                 background: 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-xs)',
@@ -77,6 +80,7 @@ export const SprintIssuesTab: React.FC<SprintIssuesTabProps> = ({
                 transition: 'all 0.15s ease',
               }}
             >
+              <MemoIndicator issueId={iss.id} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary)' }}>
                   #{iss.issueNumber || iss.id}

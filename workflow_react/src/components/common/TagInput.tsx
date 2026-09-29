@@ -133,10 +133,10 @@ export const TagInput: React.FC<TagInputProps> = ({
             top: 'calc(100% + 4px)',
             left: 0,
             right: 0,
-            background: 'var(--bg-card, #252526)',
-            border: '1px solid var(--border-light, #3c3c3c)',
-            borderRadius: 'var(--radius-xs, 4px)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-xs)',
+            boxShadow: 'var(--shadow-md)',
             zIndex: 1000,
             padding: '4px',
             display: 'flex',
@@ -162,7 +162,7 @@ export const TagInput: React.FC<TagInputProps> = ({
                 color: 'var(--text-main)',
                 transition: 'background 0.1s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-card-hover)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

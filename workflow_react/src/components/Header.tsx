@@ -7,9 +7,12 @@ import {
   Square,
   Copy,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { DotIndicator, Avatar } from './common';
 import { WorkspaceDropdown } from './workspace';
+import { usePrefStore } from '@/stores/usePrefStore';
 
 export interface BreadcrumbItem {
   label: string;
@@ -23,9 +26,16 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
   const { user, isAuthenticated } = useAuth();
+  const currentTheme = usePrefStore((s) => s.theme);
+  const setTheme = usePrefStore((s) => s.setTheme);
   const [isServerHealthy, setIsServerHealthy] = useState<boolean | null>(null);
   const [lastCheckTime, setLastCheckTime] = useState<string>('');
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
+
+  const toggleTheme = () => {
+    const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+  };
 
   const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
 
@@ -183,6 +193,40 @@ export const Header: React.FC<HeaderProps> = ({ breadcrumbs }) => {
           <DotIndicator color={isServerHealthy === null ? 'amber' : isServerHealthy ? 'green' : 'red'} />
           <span style={{ color: 'var(--text-sub)' }}>API</span>
         </div>
+
+        {/* Theme Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          title={currentTheme === 'light' ? '다크 모드로 전환 (현재: 라이트)' : '라이트 모드로 전환 (현재: 다크)'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '24px',
+            height: '24px',
+            borderRadius: 'var(--radius-xs)',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--text-sub)',
+            cursor: 'pointer',
+            transition: 'background-color 0.1s, color 0.1s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-card-hover)';
+            e.currentTarget.style.color = 'var(--text-bright)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--text-sub)';
+          }}
+        >
+          {currentTheme === 'light' ? (
+            <Sun size={13} color="var(--accent-amber)" />
+          ) : (
+            <Moon size={13} color="var(--accent-cyan)" />
+          )}
+        </button>
 
         {/* Electron Window Controls */}
         {isElectron && (

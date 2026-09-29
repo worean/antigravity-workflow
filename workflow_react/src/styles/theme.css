@@ -1,0 +1,230 @@
+﻿/* AntiGravity Workflow - Design Tokens & Theme Specification */
+
+/* =======================================================================
+   1. Default & Dark Theme Tokens (:root & [data-theme="dark"])
+   ======================================================================= */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --bg-dark: #1e1e1e;
+  --bg-app: #1e1e1e;
+  --bg-sidebar: #252526;
+  --bg-header: #2d2d2d;
+  --bg-card: #252526;
+  --bg-card-hover: #2a2d2e;
+  --bg-card-active: #37373d;
+  --bg-input: #3c3c3c;
+  --bg-input-focus: #3c3c3c;
+  --bg-subtle: #2d2d2d;
+  --bg-elevated: #2d2d2d;
+  --bg-modal: #252526;
+
+  /* Borders */
+  --border-light: #3c3c3c;
+  --border-subtle: #2d2d2d;
+  --border-focus: #007acc;
+  --border-divider: #333333;
+  --border-card: #3c3c3c;
+
+  /* VS Code Syntax & Brand Accents */
+  --primary: #007acc;
+  --primary-hover: #0062a3;
+  --primary-subtle: rgba(0, 122, 204, 0.15);
+
+  --secondary: #4ec9b0;
+  --accent-cyan: #9cdcfe;
+  --accent-amber: #dcdcaa;
+  --accent-rose: #f14c4c;
+  --accent-purple: #c586c0;
+  --accent-emerald: #4ec9b0;
+
+  /* Text Colors */
+  --text-main: #cccccc;
+  --text-bright: #ffffff;
+  --text-sub: #969696;
+  --text-muted: #6e6e6e;
+  --text-inverse: #1e1e1e;
+  --text-placeholder: #767676;
+
+  /* Border Radii */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-full: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 3px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.65);
+
+  /* Overlays */
+  --modal-backdrop: rgba(0, 0, 0, 0.65);
+
+  /* Scrollbars */
+  --scrollbar-thumb: #424242;
+  --scrollbar-thumb-hover: #5a5a5a;
+  --scrollbar-thumb-active: #6e6e6e;
+  --scrollbar-track: transparent;
+
+  /* Secondary Button */
+  --btn-secondary-bg: #333333;
+  --btn-secondary-hover: #3c3c3c;
+  --btn-secondary-border: #3c3c3c;
+  --btn-secondary-text: #cccccc;
+
+  /* Badges */
+  --badge-todo-bg: #2d2d2d;
+  --badge-todo-text: #9cdcfe;
+  --badge-todo-border: #3c3c3c;
+
+  --badge-progress-bg: rgba(0, 122, 204, 0.2);
+  --badge-progress-text: #70b7ff;
+  --badge-progress-border: rgba(0, 122, 204, 0.4);
+
+  --badge-review-bg: rgba(220, 220, 170, 0.15);
+  --badge-review-text: #dcdcaa;
+  --badge-review-border: rgba(220, 220, 170, 0.3);
+
+  --badge-done-bg: rgba(78, 201, 176, 0.15);
+  --badge-done-text: #4ec9b0;
+  --badge-done-border: rgba(78, 201, 176, 0.3);
+
+  /* Priorities */
+  --priority-urgent-bg: rgba(241, 76, 76, 0.18);
+  --priority-urgent-text: #f14c4c;
+  --priority-urgent-border: rgba(241, 76, 76, 0.4);
+
+  --priority-high-bg: rgba(245, 158, 11, 0.18);
+  --priority-high-text: #f59e0b;
+  --priority-high-border: rgba(245, 158, 11, 0.4);
+
+  --priority-medium-bg: rgba(0, 122, 204, 0.18);
+  --priority-medium-text: #007acc;
+  --priority-medium-border: rgba(0, 122, 204, 0.4);
+
+  --priority-low-bg: rgba(110, 110, 110, 0.18);
+  --priority-low-text: #969696;
+  --priority-low-border: rgba(110, 110, 110, 0.4);
+
+  /* Calendar */
+  --calendar-cell-other-bg: rgba(22, 22, 22, 0.95);
+  --calendar-cell-other-hover: rgba(32, 32, 32, 0.95);
+
+  /* Shimmer */
+  --shimmer-start: rgba(255, 255, 255, 0.04);
+  --shimmer-mid: rgba(255, 255, 255, 0.12);
+  --shimmer-end: rgba(255, 255, 255, 0.04);
+}
+
+/* =======================================================================
+   2. Light Modern Theme Tokens ([data-theme="light"])
+   ======================================================================= */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Backgrounds */
+  --bg-dark: #f8fafc;
+  --bg-app: #f8fafc;
+  --bg-sidebar: #f1f5f9;
+  --bg-header: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-card-active: #e2e8f0;
+  --bg-input: #ffffff;
+  --bg-input-focus: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-modal: #ffffff;
+
+  /* Borders */
+  --border-light: #e2e8f0;
+  --border-subtle: #edf2f7;
+  --border-focus: #007acc;
+  --border-divider: #e2e8f0;
+  --border-card: #e2e8f0;
+
+  /* Brand Accents */
+  --primary: #007acc;
+  --primary-hover: #0062a3;
+  --primary-subtle: rgba(0, 122, 204, 0.12);
+
+  --secondary: #0d9488;
+  --accent-cyan: #0284c7;
+  --accent-amber: #b45309;
+  --accent-rose: #dc2626;
+  --accent-purple: #7c3aed;
+  --accent-emerald: #059669;
+
+  /* Text Colors */
+  --text-main: #334155;
+  --text-bright: #0f172a;
+  --text-sub: #64748b;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+  --text-placeholder: #94a3b8;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Overlays */
+  --modal-backdrop: rgba(15, 23, 42, 0.45);
+
+  /* Scrollbars */
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --scrollbar-thumb-active: #64748b;
+  --scrollbar-track: transparent;
+
+  /* Secondary Button */
+  --btn-secondary-bg: #f1f5f9;
+  --btn-secondary-hover: #e2e8f0;
+  --btn-secondary-border: #cbd5e1;
+  --btn-secondary-text: #334155;
+
+  /* Badges */
+  --badge-todo-bg: #f1f5f9;
+  --badge-todo-text: #0284c7;
+  --badge-todo-border: #cbd5e1;
+
+  --badge-progress-bg: rgba(0, 122, 204, 0.12);
+  --badge-progress-text: #0062a3;
+  --badge-progress-border: rgba(0, 122, 204, 0.28);
+
+  --badge-review-bg: rgba(180, 83, 9, 0.1);
+  --badge-review-text: #b45309;
+  --badge-review-border: rgba(180, 83, 9, 0.25);
+
+  --badge-done-bg: rgba(5, 150, 105, 0.12);
+  --badge-done-text: #059669;
+  --badge-done-border: rgba(5, 150, 105, 0.28);
+
+  /* Priorities */
+  --priority-urgent-bg: rgba(220, 38, 38, 0.1);
+  --priority-urgent-text: #dc2626;
+  --priority-urgent-border: rgba(220, 38, 38, 0.25);
+
+  --priority-high-bg: rgba(217, 119, 6, 0.1);
+  --priority-high-text: #d97706;
+  --priority-high-border: rgba(217, 119, 6, 0.25);
+
+  --priority-medium-bg: rgba(0, 122, 204, 0.1);
+  --priority-medium-text: #007acc;
+  --priority-medium-border: rgba(0, 122, 204, 0.25);
+
+  --priority-low-bg: rgba(100, 116, 139, 0.1);
+  --priority-low-text: #64748b;
+  --priority-low-border: rgba(100, 116, 139, 0.25);
+
+  /* Calendar */
+  --calendar-cell-other-bg: #f8fafc;
+  --calendar-cell-other-hover: #f1f5f9;
+
+  /* Shimmer */
+  --shimmer-start: rgba(0, 0, 0, 0.04);
+  --shimmer-mid: rgba(0, 0, 0, 0.08);
+  --shimmer-end: rgba(0, 0, 0, 0.04);
+}

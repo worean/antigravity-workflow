@@ -2,6 +2,9 @@
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User } from '@/types';
 
+import type { ThemeMode } from '@/utils/themeUtils';
+import { applyTheme } from '@/utils/themeUtils';
+
 export interface PrefSchema {
   isSundayStart: boolean;
   defaultPriority: number;
@@ -10,6 +13,7 @@ export interface PrefSchema {
   backendApiUrl: string;
   activeWorkspaceId: number | null;
   activeTab: string;
+  theme: ThemeMode;
 }
 
 export const DEFAULT_PREFS: PrefSchema = {
@@ -20,6 +24,7 @@ export const DEFAULT_PREFS: PrefSchema = {
   backendApiUrl: '',
   activeWorkspaceId: null,
   activeTab: 'dashboard',
+  theme: 'dark',
 };
 
 export interface PrefStoreState extends PrefSchema {
@@ -35,6 +40,7 @@ export interface PrefStoreState extends PrefSchema {
   setBackendApiUrl: (value: string) => void;
   setActiveWorkspaceId: (value: number | null) => void;
   setActiveTab: (value: string) => void;
+  setTheme: (theme: ThemeMode) => void;
 
   // 인증 세터
   setAuthToken: (token: string | null) => void;
@@ -62,13 +68,25 @@ export const usePrefStore = create<PrefStoreState>()(
       setBackendApiUrl: (backendApiUrl) => set({ backendApiUrl }),
       setActiveWorkspaceId: (activeWorkspaceId) => set({ activeWorkspaceId }),
       setActiveTab: (activeTab) => set({ activeTab }),
+      setTheme: (theme) => {
+        applyTheme(theme);
+        set({ theme });
+      },
 
       setAuthToken: (authToken) => set({ authToken }),
       setCurrentUser: (currentUser) => set({ currentUser }),
       clearAuth: () => set({ authToken: null, currentUser: null }),
 
-      updatePrefs: (partial) => set((state) => ({ ...state, ...partial })),
-      resetToDefaults: () => set({ ...DEFAULT_PREFS }),
+      updatePrefs: (partial) => {
+        if (partial.theme) {
+          applyTheme(partial.theme);
+        }
+        set((state) => ({ ...state, ...partial }));
+      },
+      resetToDefaults: () => {
+        applyTheme(DEFAULT_PREFS.theme);
+        set({ ...DEFAULT_PREFS });
+      },
 
       syncFromUserProfile: (userPreferencesJsonOrObj) => {
         if (!userPreferencesJsonOrObj) return;
@@ -83,6 +101,10 @@ export const usePrefStore = create<PrefStoreState>()(
           if (typeof prefs.defaultPriority === 'number') updates.defaultPriority = prefs.defaultPriority;
           if (typeof prefs.compactCards === 'boolean') updates.compactCards = prefs.compactCards;
           if (typeof prefs.desktopNotifications === 'boolean') updates.desktopNotifications = prefs.desktopNotifications;
+          if (prefs.theme === 'dark' || prefs.theme === 'light' || prefs.theme === 'system') {
+            updates.theme = prefs.theme;
+            applyTheme(prefs.theme);
+          }
 
           set((state) => ({ ...state, ...updates }));
         } catch (e) {
@@ -97,12 +119,20 @@ export const usePrefStore = create<PrefStoreState>()(
           defaultPriority: state.defaultPriority,
           compactCards: state.compactCards,
           desktopNotifications: state.desktopNotifications,
+          theme: state.theme,
         });
       },
     }),
     {
       name: 'ag_preferences',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.theme) {
+          applyTheme(state.theme);
+        } else {
+          applyTheme(DEFAULT_PREFS.theme);
+        }
+      },
     }
   )
 );

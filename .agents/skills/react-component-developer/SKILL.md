@@ -59,3 +59,4 @@ flowchart LR
 - [ ] **상태 분리**: DB 데이터는 TanStack Query, UI 전역은 Zustand, 정적 세션은 Context.
 - [ ] **Zustand 구독 최적화**: `(state) => state.x` 개별 셀렉터 또는 `useShallow` 강제 (전체 비구조화 금지).
 - [ ] **LocalStorage 안전 사용**: 키 접두사 `ag_` 강제, raw `localStorage` 직접 호출 금지 (`safeStorage` 또는 Zustand `persist` 활용).
+- [ ] **CSS 디자인 토큰 & 테마(Dark/Light) 호환성**: 색상 하드코딩(`#1e1e1e`, `#252526` 등) 금지, `src/styles/theme.css`의 시맨틱 토큰(`var(--bg-card)`, `var(--text-main)`, `var(--border-light)` 등) 필수 사용 및 테마 전환 시 정상 표시 검증.

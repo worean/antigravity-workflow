@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 import os
 import re
 import sys
@@ -81,6 +81,22 @@ def review_component_file(file_path):
                 'line': 1,
                 'msg': "모달 컴포넌트에서 `ModalWrapper` 또는 `Portal` 사용이 탐지되지 않았습니다. CSS Stacking Context 격리를 위해 Portal 기반 래퍼 사용을 권장합니다."
             })
+
+    # 6. 테마 호환성 검사: JSX style 내 하드코딩 테마 컬러(#1e1e1e, #252526, #2d2d2d, #37373d, #3c3c3c) 검사
+    if not norm_path.endswith(('.css', '.scss')) and '/styles/' not in norm_path:
+        theme_color_regex = re.compile(r'(background|backgroundColor|color|borderColor|borderTop|borderBottom|borderLeft|borderRight)\s*:\s*[\'"`](#(1e1e1e|252526|2d2d2d|37373d|3c3c3c))[\'"`]', re.IGNORECASE)
+        for idx, line in enumerate(lines, start=1):
+            if line.strip().startswith('//') or line.strip().startswith('/*'):
+                continue
+            match = theme_color_regex.search(line)
+            if match:
+                prop = match.group(1)
+                color_val = match.group(2)
+                issues.append({
+                    'type': 'WARNING',
+                    'line': idx,
+                    'msg': f"하드코딩된 테마 색상 `{color_val}`({prop}) 사용 감지: Light/Dark 테마 호환성을 위해 `src/styles/theme.css`의 CSS 변수(`var(--bg-card)`, `var(--bg-dark)`, `var(--text-main)`, `var(--border-light)` 등) 사용을 권장합니다."
+                })
 
     return issues
 

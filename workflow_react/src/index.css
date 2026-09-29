@@ -1,48 +1,6 @@
-﻿/* AntiGravity Workflow - VS Code Dark IDE Compact Theme */
+﻿@import './styles/theme.css';
 
 :root {
-  /* VS Code Core Colors */
-  --bg-dark: #1e1e1e;
-  --bg-sidebar: #252526;
-  --bg-header: #2d2d2d;
-  --bg-card: #252526;
-  --bg-card-hover: #2a2d2e;
-  --bg-card-active: #37373d;
-  --bg-input: #3c3c3c;
-  --bg-input-focus: #3c3c3c;
-
-  --border-light: #3c3c3c;
-  --border-subtle: #2d2d2d;
-  --border-focus: #007acc;
-
-  /* VS Code Muted Syntax & Accent Colors */
-  --primary: #007acc;
-  --primary-hover: #0062a3;
-  --primary-subtle: rgba(0, 122, 204, 0.15);
-
-  --secondary: #4ec9b0;
-  --accent-cyan: #9cdcfe;
-  --accent-amber: #dcdcaa;
-  --accent-rose: #f14c4c;
-  --accent-purple: #c586c0;
-
-  /* Text Colors (High Contrast, Low Saturation) */
-  --text-main: #cccccc;
-  --text-bright: #ffffff;
-  --text-sub: #969696;
-  --text-muted: #6e6e6e;
-
-  /* Dense Radii */
-  --radius-xs: 2px;
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-full: 12px;
-
-  /* Shadows (Flat, Minimal) */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 3px 8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.65);
-
   /* Layout Custom Properties */
   --main-padding: 12px 16px;
 }
@@ -75,10 +33,10 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
 }
 
-/* 🌟 Global Rounded Modern Dark Scrollbar */
+/* 🌟 Global Rounded Modern Scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #4a4a4a transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -87,23 +45,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
   border: 1px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
+  background: var(--scrollbar-thumb-hover);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background: #6e6e6e;
+  background: var(--scrollbar-thumb-active);
   border-radius: 4px;
 }
 
@@ -114,7 +72,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Custom Scrollbar Utility */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #4a4a4a transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 /* 📱 Main Content Area with CSS Variable Controlled Padding */
@@ -161,7 +119,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .glass-panel-hover:hover {
   background: var(--bg-card-hover);
-  border-color: #555555;
+  border-color: var(--border-light);
 }
 
 /* Compact Buttons */
@@ -194,15 +152,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary {
-  background: #333333;
-  color: var(--text-main);
-  border: 1px solid var(--border-light);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--btn-secondary-border);
 }
 
 .btn-secondary:hover {
-  background: #3c3c3c;
+  background: var(--btn-secondary-hover);
   color: var(--text-bright);
-  border-color: #555555;
+  border-color: var(--border-light);
 }
 
 .btn-emerald {
@@ -243,7 +201,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   padding: 4px 8px;
   background: var(--bg-input);
-  border: 1px solid #3c3c3c;
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-xs);
   color: var(--text-bright);
   font-size: 0.8rem;
@@ -294,46 +252,46 @@ textarea.input-field {
 }
 
 .badge-todo {
-  background: #2d2d2d;
-  color: #9cdcfe;
-  border: 1px solid #3c3c3c;
+  background: var(--badge-todo-bg);
+  color: var(--badge-todo-text);
+  border: 1px solid var(--badge-todo-border);
 }
 
 .badge-in-progress {
-  background: rgba(0, 122, 204, 0.2);
-  color: #70b7ff;
-  border: 1px solid rgba(0, 122, 204, 0.4);
+  background: var(--badge-progress-bg);
+  color: var(--badge-progress-text);
+  border: 1px solid var(--badge-progress-border);
 }
 
 .badge-in-review {
-  background: rgba(220, 220, 170, 0.15);
-  color: #dcdcaa;
-  border: 1px solid rgba(220, 220, 170, 0.3);
+  background: var(--badge-review-bg);
+  color: var(--badge-review-text);
+  border: 1px solid var(--badge-review-border);
 }
 
 .badge-done {
-  background: rgba(78, 201, 176, 0.15);
-  color: #4ec9b0;
-  border: 1px solid rgba(78, 201, 176, 0.3);
+  background: var(--badge-done-bg);
+  color: var(--badge-done-text);
+  border: 1px solid var(--badge-done-border);
 }
 
 /* Priority Badges */
 .priority-HIGH, .priority-URGENT {
-  color: #f14c4c;
-  background: rgba(241, 76, 76, 0.15);
-  border: 1px solid rgba(241, 76, 76, 0.3);
+  color: var(--priority-urgent-text);
+  background: var(--priority-urgent-bg);
+  border: 1px solid var(--priority-urgent-border);
 }
 
 .priority-MEDIUM {
-  color: #cca700;
-  background: rgba(204, 167, 0, 0.15);
-  border: 1px solid rgba(204, 167, 0, 0.3);
+  color: var(--priority-high-text);
+  background: var(--priority-high-bg);
+  border: 1px solid var(--priority-high-border);
 }
 
 .priority-LOW {
-  color: #4ec9b0;
-  background: rgba(78, 201, 176, 0.12);
-  border: 1px solid rgba(78, 201, 176, 0.25);
+  color: var(--priority-low-text);
+  background: var(--priority-low-bg);
+  border: 1px solid var(--priority-low-border);
 }
 
 /* Modal Overlay */
@@ -343,7 +301,7 @@ textarea.input-field {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -352,8 +310,8 @@ textarea.input-field {
 }
 
 .modal-content {
-  background: #252526;
-  border: 1px solid #454545;
+  background: var(--bg-modal);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   padding: 16px 20px;
   width: 92%;
@@ -456,9 +414,9 @@ textarea.input-field {
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.04) 75%
+    var(--shimmer-start) 25%,
+    var(--shimmer-mid) 50%,
+    var(--shimmer-end) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
@@ -511,7 +469,7 @@ textarea.input-field {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: var(--modal-backdrop);
   backdrop-filter: blur(2px);
   z-index: 1100;
   display: flex;
@@ -523,9 +481,9 @@ textarea.input-field {
   width: 820px;
   max-width: 95vw;
   height: 100vh;
-  background-color: var(--bg-dark);
+  background-color: var(--bg-card);
   border-left: 1px solid var(--border-light);
-  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.65);
+  box-shadow: var(--shadow-lg);
   z-index: 1101;
   display: flex;
   flex-direction: column;
@@ -582,7 +540,7 @@ textarea.input-field {
 }
 
 .calendar-month-cell {
-  background: var(--bg-dark);
+  background: var(--bg-card);
   padding: 6px 8px;
   display: flex;
   flex-direction: column;
@@ -597,12 +555,12 @@ textarea.input-field {
 }
 
 .calendar-month-cell.other-month {
-  background: rgba(22, 22, 22, 0.95);
+  background: var(--calendar-cell-other-bg);
   color: var(--text-muted);
 }
 
 .calendar-month-cell.other-month:hover {
-  background: rgba(32, 32, 32, 0.95);
+  background: var(--calendar-cell-other-hover);
 }
 
 .calendar-event-chip {

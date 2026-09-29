@@ -20,6 +20,7 @@ import { WorklogsPage } from '@/pages/WorklogsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { StateDemoPage } from '@/pages/StateDemoPage';
+import { MemosPage } from '@/pages/MemosPage';
 import { GlobalModalManager } from '@/components/GlobalModalManager';
 import { useUIStore } from '@/stores/useUIStore';
 import { useProjects, projectKeys } from '@/api/projects';
@@ -315,6 +316,9 @@ const AppContent: React.FC = () => {
       case 'worklogs':
         baseCrumbs.push({ label: '작업 로그' });
         break;
+      case 'memo':
+        baseCrumbs.push({ label: '개인 메모' });
+        break;
       case 'settings':
         baseCrumbs.push({ label: '환경 설정' });
         break;
@@ -461,6 +465,17 @@ const AppContent: React.FC = () => {
             <WorklogsPage
               key={`tab-worklogs-${isAuthenticated ? user?.id : 'guest'}`}
               onOpenAuth={openAuthModal}
+            />
+          )}
+
+          {activeTab === 'memo' && (
+            <MemosPage
+              key={`tab-memo-${isAuthenticated ? user?.id : 'guest'}`}
+              onOpenAuth={openAuthModal}
+              onSelectIssue={(issueId: number) => {
+                setSelectedIssueIdState(issueId);
+                openIssueDetail(issueId);
+              }}
             />
           )}
 

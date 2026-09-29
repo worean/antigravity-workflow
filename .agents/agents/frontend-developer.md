@@ -52,4 +52,5 @@ flowchart TD
    - 페이지 모달: 컴포넌트 내부 `useState` (Colocation) + `ModalWrapper` (Portal).
    - Ghost State(`const [, setX] = useState(...)`) 금지.
 4. **LocalStorage**: 네임스페이스 접두사 강제(예: `app_`, `ag_`), `safeStorage` 또는 Zustand `persist` 사용.
-5. **UTF-8 with BOM**: 소스 및 문서는 `utf-8-sig` 저장.
+5. **CSS Design Tokens & Theme 호환성**: 인라인 또는 클래스 스타일 작성 시 하드코딩 색상(`#1e1e1e`, `#252526`, `#ffffff` 등) 금지. 반드시 `src/styles/theme.css`의 시맨틱 토큰(`var(--bg-card)`, `var(--text-main)`, `var(--border-light)` 등) 사용 및 Dark/Light 테마 모두 가독성/대비 검증.
+6. **UTF-8 with BOM**: 소스 및 문서는 `utf-8-sig` 저장.

@@ -20,9 +20,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       <div
         style={{
           padding: '10px 14px',
-          background: '#282828',
+          background: 'var(--bg-subtle)',
           borderRadius: 'var(--radius-xs)',
-          border: '1px dashed #3c3c3c',
+          border: '1px dashed var(--border-light)',
           fontSize: '0.8rem',
           color: 'var(--text-muted)',
           fontStyle: 'italic',
@@ -39,9 +39,9 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
       className={`markdown-body ${className}`}
       style={{
         padding: '12px 14px',
-        background: '#2d2d2d',
+        background: 'var(--bg-card)',
         borderRadius: 'var(--radius-xs)',
-        border: '1px solid #3c3c3c',
+        border: '1px solid var(--border-light)',
         fontSize: '0.82rem',
         lineHeight: '1.5',
         color: 'var(--text-bright)',
@@ -53,12 +53,12 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h1 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '10px 0 6px', color: 'var(--primary)', borderBottom: '1px solid #3c3c3c', paddingBottom: '4px' }}>
+            <h1 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '10px 0 6px', color: 'var(--primary)', borderBottom: '1px solid var(--border-light)', paddingBottom: '4px' }}>
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '8px 0 4px', color: 'var(--text-bright)', borderBottom: '1px solid #383838', paddingBottom: '3px' }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '8px 0 4px', color: 'var(--text-bright)', borderBottom: '1px solid var(--border-light)', paddingBottom: '3px' }}>
               {children}
             </h2>
           ),
@@ -77,7 +77,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                 margin: '8px 0',
                 padding: '6px 10px',
                 borderLeft: '3px solid var(--primary)',
-                background: 'rgba(0, 122, 204, 0.1)',
+                background: 'var(--primary-subtle)',
                 borderRadius: '0 2px 2px 0',
                 color: 'var(--text-sub)',
                 fontSize: '0.8rem',
@@ -90,12 +90,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             return inline ? (
               <code
                 style={{
-                  background: '#3c3c3c',
-                  color: '#9cdcfe',
+                  background: 'var(--bg-input)',
+                  color: 'var(--accent-cyan)',
                   padding: '1px 5px',
                   borderRadius: '2px',
                   fontSize: '0.85em',
                   fontFamily: 'Consolas, monospace',
+                  border: '1px solid var(--border-light)',
                 }}
                 {...props}
               >
@@ -104,14 +105,14 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             ) : (
               <pre
                 style={{
-                  background: '#1e1e1e',
+                  background: 'var(--bg-subtle)',
                   padding: '8px 12px',
                   borderRadius: 'var(--radius-xs)',
-                  border: '1px solid #383838',
+                  border: '1px solid var(--border-light)',
                   overflowX: 'auto',
                   fontSize: '0.78rem',
                   fontFamily: 'Consolas, monospace',
-                  color: '#d4d4d4',
+                  color: 'var(--text-main)',
                   margin: '8px 0',
                 }}
               >
@@ -126,9 +127,10 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
                   width: '100%',
                   borderCollapse: 'collapse',
                   fontSize: '0.78rem',
-                  background: '#252526',
+                  background: 'var(--bg-card)',
                   borderRadius: '2px',
                   overflow: 'hidden',
+                  border: '1px solid var(--border-light)',
                 }}
               >
                 {children}
@@ -138,11 +140,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
           th: ({ children }) => (
             <th
               style={{
-                background: '#333333',
+                background: 'var(--bg-subtle)',
                 color: 'var(--text-bright)',
                 padding: '5px 8px',
                 textAlign: 'left',
-                borderBottom: '1px solid #3c3c3c',
+                borderBottom: '1px solid var(--border-light)',
                 fontWeight: 600,
               }}
             >
@@ -153,7 +155,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
             <td
               style={{
                 padding: '5px 8px',
-                borderBottom: '1px solid #383838',
+                borderBottom: '1px solid var(--border-light)',
                 color: 'var(--text-main)',
               }}
             >
@@ -165,7 +167,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#9cdcfe', textDecoration: 'underline' }}
+              style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}
             >
               {children}
             </a>

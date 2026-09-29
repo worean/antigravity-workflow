@@ -5,8 +5,13 @@ import {
   Sliders,
   Palette,
   Calendar,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import { Button, PrioritySelect } from '@/components/common';
+import { usePrefStore } from '@/stores/usePrefStore';
+import type { ThemeMode } from '@/utils/themeUtils';
 
 interface SettingsDisplayTabProps {
   desktopNotifications: boolean;
@@ -37,15 +42,97 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
   handleWeekStartChange,
   weekStartSavedFeedback,
 }) => {
+  const theme = usePrefStore((s) => s.theme);
+  const setTheme = usePrefStore((s) => s.setTheme);
+
+  const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; desc: string }[] = [
+    {
+      mode: 'dark',
+      label: '다크 테마 (Dark)',
+      icon: <Moon size={14} color="var(--accent-cyan)" />,
+      desc: 'VS Code 스타일의 어두운 테마로 눈의 피로를 최소화합니다.',
+    },
+    {
+      mode: 'light',
+      label: '라이트 테마 (Light)',
+      icon: <Sun size={14} color="var(--accent-amber)" />,
+      desc: '밝고 깨끗한 모던 라이트 테마로 가독성을 높입니다.',
+    },
+    {
+      mode: 'system',
+      label: '시스템 설정 동기화',
+      icon: <Monitor size={14} color="var(--primary)" />,
+      desc: '운영체제(OS)의 다크/라이트 모드 설정에 자동으로 연동됩니다.',
+    },
+  ];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px' }}>
       <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '10px' }}>
         <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-          디스플레이 및 데스크톱 알림 설정
+          디스플레이 및 테마 설정
         </h3>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-          이슈 칸반 보드 스타일 및 Electron 데스크톱 OS 네이티브 알림 설정을 관리합니다.
+          화면 테마(Light/Dark), 이슈 칸반 보드 스타일 및 Electron 데스크톱 OS 네이티브 알림 설정을 관리합니다.
         </p>
+      </div>
+
+      {/* 🎨 Theme Selection Option */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          padding: '12px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-xs)',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Palette size={14} color="var(--primary)" />
+            화면 테마 (Theme Mode)
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+            원하는 화면 테마를 선택하세요. 상단 헤더 우측 아이콘으로도 즉시 전환할 수 있습니다.
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+          {themeOptions.map((opt) => {
+            const isSelected = theme === opt.mode;
+            return (
+              <button
+                key={opt.mode}
+                type="button"
+                onClick={() => setTheme(opt.mode)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '10px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                  background: isSelected ? 'var(--primary-subtle)' : 'var(--bg-input)',
+                  color: isSelected ? 'var(--text-bright)' : 'var(--text-main)',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', fontWeight: isSelected ? 600 : 500 }}>
+                  {opt.icon}
+                  <span>{opt.label.split(' ')[0]}</span>
+                </div>
+                <span style={{ fontSize: '0.67rem', color: isSelected ? 'var(--text-main)' : 'var(--text-muted)', lineHeight: 1.2 }}>
+                  {opt.mode === 'dark' ? '다크 모드' : opt.mode === 'light' ? '라이트 모드' : 'OS 자동 연동'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Desktop OS Notification Option */}
@@ -55,7 +142,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           flexDirection: 'column',
           gap: '10px',
           padding: '12px',
-          background: '#2d2d2d',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-xs)',
         }}
@@ -77,14 +164,14 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
               checked={desktopNotifications}
               onChange={(e) => handleToggleDesktopNotifications(e.target.checked)}
             />
-            <span style={{ fontSize: '0.78rem', color: desktopNotifications ? '#4ec9b0' : 'var(--text-muted)', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.78rem', color: desktopNotifications ? 'var(--accent-emerald)' : 'var(--text-muted)', fontWeight: 600 }}>
               {desktopNotifications ? 'ON' : 'OFF'}
             </span>
           </label>
         </div>
 
         {desktopNotifications && (
-          <div style={{ borderTop: '1px solid #3c3c3c', paddingTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               알림이 정상적으로 동작하는지 테스트합니다.
             </span>
@@ -102,7 +189,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
         )}
 
         {testNotificationSent && (
-          <div style={{ fontSize: '0.7rem', color: '#4ec9b0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <CheckCircle2 size={12} />
             테스트 알림이 발송되었습니다. 데스크톱 우측 하단 알림 센터를 확인하세요.
           </div>
@@ -116,7 +203,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '12px',
-          background: '#2d2d2d',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-xs)',
         }}
@@ -150,7 +237,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '12px',
-          background: '#2d2d2d',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-xs)',
         }}
@@ -172,7 +259,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
             style={{ width: '110px' }}
           />
           {prioritySavedFeedback && (
-            <span style={{ fontSize: '0.7rem', color: '#4ec9b0', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <CheckCircle2 size={12} /> 저장됨
             </span>
           )}
@@ -186,7 +273,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '12px',
-          background: '#2d2d2d',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-light)',
           borderRadius: 'var(--radius-xs)',
         }}
@@ -212,7 +299,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
             <option value="monday">월요일 시작</option>
           </select>
           {weekStartSavedFeedback && (
-            <span style={{ fontSize: '0.7rem', color: '#4ec9b0', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <CheckCircle2 size={12} /> 저장됨
             </span>
           )}

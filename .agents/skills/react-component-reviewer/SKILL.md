@@ -25,6 +25,8 @@ React 컴포넌트 개발 및 수정 시 **컴포넌트 모듈화 아키텍처**
    - 도메인 하위 컴포넌트들은 `src/components/{domain}/index.ts`를 통해 깔끔하게 re-export 되어야 합니다.
 7. **설계 사양서 동기화 검증**:
    - 컴포넌트 수정/추가 시 해당 도메인의 사양서(`docs/components/{domain}_COMPONENTS.md`) 및 마스터 사양서(`docs/FRONTEND_SPECIFICATION.md`)가 함께 갱신되었는지 점검합니다.
+8. **테마 호환성 및 하드코딩 색상 검사**:
+   - 컴포넌트 내 JSX style에 하드코딩된 테마 색상(`#1e1e1e`, `#252526`, `#2d2d2d`, `#37373d`, `#3c3c3c`)이 직접 사용되었는지 검사하여, Light/Dark 테마 호환성을 위해 `src/styles/theme.css`의 시맨틱 CSS 변수(`var(--bg-card)`, `var(--bg-dark)`, `var(--text-bright)` 등) 사용을 강제/권장합니다.
 
 ---
 

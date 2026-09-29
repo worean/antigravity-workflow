@@ -10,6 +10,7 @@ import {
   Plus,
   ChevronRight,
 } from 'lucide-react';
+import { IssueMemoSection } from '@/components/memos';
 import type { Issue, User } from '@/types';
 import {
   StatusBadge,
@@ -190,6 +191,9 @@ export const IssueDetailView: React.FC<IssueDetailViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 📌 Private Memo Section (개인 메모 포스트잇) */}
+      <IssueMemoSection issueId={issue.id} onOpenAuth={onOpenAuth} />
 
       {/* Detailed Description */}
       <div style={{ marginBottom: '10px' }}>

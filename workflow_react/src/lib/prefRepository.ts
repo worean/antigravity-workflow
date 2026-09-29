@@ -125,6 +125,13 @@ export class PrefRepository {
     usePrefStore.getState().setActiveTab(value);
   }
 
+  public get theme(): 'dark' | 'light' | 'system' {
+    return usePrefStore.getState().theme;
+  }
+  public set theme(value: 'dark' | 'light' | 'system') {
+    usePrefStore.getState().setTheme(value);
+  }
+
   // --- 🔐 인증 및 세션 관리 ---
   public get authToken(): string | null {
     return usePrefStore.getState().authToken;
@@ -168,6 +175,7 @@ export class PrefRepository {
       backendApiUrl: s.backendApiUrl,
       activeWorkspaceId: s.activeWorkspaceId,
       activeTab: s.activeTab,
+      theme: s.theme,
     };
   }
 

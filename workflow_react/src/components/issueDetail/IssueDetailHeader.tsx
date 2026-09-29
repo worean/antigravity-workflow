@@ -6,8 +6,11 @@ import {
   Edit3,
   Trash2,
   Lock,
+  StickyNote,
 } from 'lucide-react';
 import type { Issue } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { useMemoStore } from '@/stores/useMemoStore';
 
 interface IssueDetailHeaderProps {
   issue: Issue | null;
@@ -38,6 +41,26 @@ export const IssueDetailHeader: React.FC<IssueDetailHeaderProps> = ({
   setShowDeleteConfirm,
   onOpenAuth,
 }) => {
+  const { user } = useAuth();
+  const memos = useMemoStore((s) => s.memos);
+  const currentMemo = React.useMemo(() => (issue ? memos.find((m) => m.issueId === issue.id) : undefined), [memos, issue?.id]);
+  const createMemo = useMemoStore((s) => s.createMemo);
+  const setActiveMemoId = useMemoStore((s) => s.setActiveMemoId);
+
+  const handleOpenMemo = () => {
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (!issue) return;
+    if (currentMemo) {
+      setActiveMemoId(currentMemo.id);
+    } else {
+      const created = createMemo(user?.id || 1, { issueId: issue.id, color: 'yellow', content: '' });
+      setActiveMemoId(created.id);
+    }
+  };
+
   return (
     <div
       style={{
@@ -111,6 +134,25 @@ export const IssueDetailHeader: React.FC<IssueDetailHeaderProps> = ({
             <Lock size={13} /> 로그인 후 수정
           </button>
         )}
+
+        {/* Private Memo Button */}
+        <button
+          type="button"
+          onClick={handleOpenMemo}
+          className="btn btn-secondary btn-sm"
+          style={{
+            color: currentMemo ? '#eab308' : 'var(--text-sub)',
+            borderColor: currentMemo ? 'rgba(234, 179, 8, 0.4)' : undefined,
+            background: currentMemo ? 'rgba(234, 179, 8, 0.12)' : undefined,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+          title={currentMemo ? '내 개인 메모 확인/편집' : '이 이슈에 개인 메모 작성'}
+        >
+          <StickyNote size={13} fill={currentMemo ? '#eab308' : 'none'} />
+          <span>{currentMemo ? '내 메모' : '메모 추가'}</span>
+        </button>
 
         {isAuthenticated && (
           <button

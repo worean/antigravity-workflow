@@ -50,8 +50,8 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
           minHeight: '30px',
           borderRadius: 'var(--radius-xs)',
           border: 'none',
-          background: isActive ? '#37373d' : 'transparent',
-          color: isActive ? '#ffffff' : 'var(--text-main)',
+          background: isActive ? 'var(--bg-card-active)' : 'transparent',
+          color: isActive ? 'var(--text-bright)' : 'var(--text-main)',
           fontWeight: isActive ? 600 : 400,
           fontSize: '0.8rem',
           cursor: 'pointer',
@@ -60,7 +60,7 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
           borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
         }}
         onMouseEnter={(e) => {
-          if (!isActive) e.currentTarget.style.background = '#2a2d2e';
+          if (!isActive) e.currentTarget.style.background = 'var(--bg-card-hover)';
         }}
         onMouseLeave={(e) => {
           if (!isActive) e.currentTarget.style.background = 'transparent';
@@ -125,10 +125,10 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
                 justifyContent: 'center',
                 padding: '2px',
                 borderRadius: '2px',
-                color: '#949ba4',
+                color: 'var(--text-sub)',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#ffffff')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#949ba4')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-bright)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-sub)')}
             >
               {isSubmenuOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
             </div>
@@ -145,7 +145,7 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
             gap: '1px',
             marginLeft: '14px',
             paddingLeft: '6px',
-            borderLeft: '2px solid rgba(255,255,255,0.08)',
+            borderLeft: '2px solid var(--border-subtle)',
             marginTop: '2px',
             marginBottom: '2px',
           }}
@@ -165,8 +165,8 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
                   minHeight: '26px',
                   borderRadius: 'var(--radius-xs)',
                   border: 'none',
-                  background: isSubActive ? 'rgba(0, 122, 204, 0.22)' : 'transparent',
-                  color: isSubActive ? 'var(--accent-cyan)' : '#9ca3af',
+                  background: isSubActive ? 'var(--primary-subtle)' : 'transparent',
+                  color: isSubActive ? 'var(--accent-cyan)' : 'var(--text-sub)',
                   fontWeight: isSubActive ? 600 : 400,
                   fontSize: '0.74rem',
                   cursor: 'pointer',

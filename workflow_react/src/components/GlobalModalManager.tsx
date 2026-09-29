@@ -10,6 +10,8 @@ import { SprintModal } from '@/components/SprintModal';
 import { IssueDetailDrawer } from '@/components/issueDetail';
 import { ChatbotPopup, ChatbotLauncher } from '@/components/chatbot';
 import { GlobalToast } from '@/components/common';
+import { useMemoStore } from '@/stores/useMemoStore';
+import { MemoEditorModal } from '@/components/memos';
 
 /**
  * GlobalModalManager - 전역 UI 모달 & 오버레이 집중 관리자
@@ -47,6 +49,10 @@ export const GlobalModalManager: React.FC = () => {
   const issueDetailMode = useUIStore((s) => s.issueDetailMode);
   const closeIssueDetail = useUIStore((s) => s.closeIssueDetail);
   const setIssueDetailMode = useUIStore((s) => s.setIssueDetailMode);
+
+  // 6. 전역 개인 메모 에디터 모달 상태
+  const activeMemoId = useMemoStore((s) => s.activeMemoId);
+  const setActiveMemoId = useMemoStore((s) => s.setActiveMemoId);
 
   // 프로젝트 목록 캐시 조회 (모달 셀렉트박스용)
   const { data: projects = [] } = useProjects();
@@ -128,6 +134,13 @@ export const GlobalModalManager: React.FC = () => {
       {/* 🤖 AI Chatbot 플로팅 어시스턴트 & 런처 버튼 */}
       <ChatbotPopup />
       <ChatbotLauncher />
+
+      {/* 📝 전역 개인 메모 확대 편집 모달 (칸반, 스프린트, WBS, 이슈 상세 등 어디서나 호출 가능) */}
+      <MemoEditorModal
+        isOpen={!!activeMemoId}
+        memoId={activeMemoId}
+        onClose={() => setActiveMemoId(null)}
+      />
 
       {/* 🍞 앱 전역 실시간 토스트 피드백 (3초 자동 소멸) */}
       <GlobalToast />

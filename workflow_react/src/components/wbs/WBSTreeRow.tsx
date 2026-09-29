@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, TreeDropTarget } from '@/types/wbs';
 import {
@@ -7,6 +7,7 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { StatusBadge, Avatar } from '@/components/common';
+import { MemoIndicator } from '@/components/memos';
 
 interface WBSTreeRowProps {
   item: WBSItem;
@@ -80,6 +81,8 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
         if (onSelectIssue) onSelectIssue(iss);
       }}
       style={{
+        position: 'relative',
+        overflow: 'hidden',
         height: '38px',
         display: 'flex',
         alignItems: 'center',
@@ -110,6 +113,9 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
         if (!isTarget) e.currentTarget.style.background = rowBg;
       }}
     >
+      {/* 개인 메모 인디케이터 (좌측 상단 붉은색 삼각형) */}
+      <MemoIndicator issueId={iss.id} />
+
       {/* Drag Grip Handle */}
       <div
         style={{

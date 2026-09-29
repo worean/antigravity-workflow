@@ -17,7 +17,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
   return (
     <div
       style={{
-        background: '#252526',
+        background: 'var(--bg-card)',
         border: '1px solid var(--border-light)',
         borderRadius: 'var(--radius-xs)',
         padding: '10px',
@@ -36,7 +36,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
                 width: '26px',
                 height: '26px',
                 borderRadius: 'var(--radius-xs)',
-                background: '#3c3c3c',
+                background: 'var(--bg-input)',
                 color: 'var(--text-sub)',
                 display: 'flex',
                 alignItems: 'center',
@@ -108,10 +108,10 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
               lineHeight: 1.35,
             }}
           >
-            <Mail size={12} color="#858585" style={{ marginTop: '2px', flexShrink: 0 }} />
+            <Mail size={12} color="var(--text-muted)" style={{ marginTop: '2px', flexShrink: 0 }} />
             <span
               style={{
-                color: '#969696',
+                color: 'var(--text-sub)',
                 wordBreak: 'break-all',
                 fontSize: '0.72rem',
               }}
@@ -128,7 +128,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
               justifyContent: 'flex-end',
               gap: '4px',
               paddingTop: '6px',
-              borderTop: '1px solid #333333',
+              borderTop: '1px solid var(--border-light)',
               marginTop: '2px',
             }}
           >
@@ -142,8 +142,8 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: '#2d2d2d',
-                border: '1px solid #3c3c3c',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-light)',
                 color: 'var(--text-main)',
                 borderRadius: 'var(--radius-xs)',
                 cursor: 'pointer',
@@ -163,8 +163,8 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: '#2d2d2d',
-                border: '1px solid #3c3c3c',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-light)',
                 color: 'var(--text-muted)',
                 borderRadius: 'var(--radius-xs)',
                 cursor: 'pointer',
@@ -172,12 +172,12 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
               }}
               title="로그아웃"
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#f14c4c';
-                e.currentTarget.style.borderColor = 'rgba(241, 76, 76, 0.4)';
+                e.currentTarget.style.color = 'var(--accent-rose)';
+                e.currentTarget.style.borderColor = 'var(--accent-rose)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = 'var(--text-muted)';
-                e.currentTarget.style.borderColor = '#3c3c3c';
+                e.currentTarget.style.borderColor = 'var(--border-light)';
               }}
             >
               <LogOut size={12} />

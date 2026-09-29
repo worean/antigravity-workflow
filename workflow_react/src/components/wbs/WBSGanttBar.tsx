@@ -1,8 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, DragState } from '@/types/wbs';
 import { formatDateOnly, diffDays } from '@/utils/dateUtils';
 import { Calendar } from 'lucide-react';
+import { MemoIndicator } from '@/components/memos';
 
 interface WBSGanttBarProps {
   item: WBSItem;
@@ -139,6 +140,9 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
             }
           }}
         >
+          {/* 개인 메모 인디케이터 (간트 바 좌측 상단 붉은색 삼각형) */}
+          <MemoIndicator issueId={iss.id} size={10} />
+
           {/* Left Resize Handle */}
           {!item.isParent && (
             <div
