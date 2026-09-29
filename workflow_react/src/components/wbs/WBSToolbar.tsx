@@ -154,7 +154,7 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
               fontWeight: currentViewScale === 'day' ? 600 : 400,
             }}
           >
-            일단위
+            일
           </button>
           <button
             type="button"
@@ -170,7 +170,7 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
               fontWeight: currentViewScale === 'week' ? 600 : 400,
             }}
           >
-            주단위
+            주
           </button>
           <button
             type="button"
@@ -186,7 +186,7 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
               fontWeight: currentViewScale === 'month' ? 600 : 400,
             }}
           >
-            월단위
+            월
           </button>
         </div>
 

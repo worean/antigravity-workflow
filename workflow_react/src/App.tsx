@@ -19,7 +19,6 @@ import { CalendarPage } from '@/pages/CalendarPage';
 import { WorklogsPage } from '@/pages/WorklogsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ChatPage } from '@/pages/ChatPage';
-import { StateDemoPage } from '@/pages/StateDemoPage';
 import { MemosPage } from '@/pages/MemosPage';
 import { GlobalModalManager } from '@/components/GlobalModalManager';
 import { useUIStore } from '@/stores/useUIStore';
@@ -322,9 +321,6 @@ const AppContent: React.FC = () => {
       case 'settings':
         baseCrumbs.push({ label: '환경 설정' });
         break;
-      case 'demo-state':
-        baseCrumbs.push({ label: '상태 관리 실습 (Zustand)' });
-        break;
       default:
         baseCrumbs.push({ label: '대시보드' });
         break;
@@ -484,10 +480,6 @@ const AppContent: React.FC = () => {
               key={`tab-settings-${isAuthenticated ? user?.id : 'guest'}`}
               onOpenAuth={openAuthModal}
             />
-          )}
-
-          {activeTab === 'demo-state' && (
-            <StateDemoPage key="tab-demo-state" />
           )}
         </main>
       </div>

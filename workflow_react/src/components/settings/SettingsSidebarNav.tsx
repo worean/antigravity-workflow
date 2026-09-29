@@ -1,7 +1,7 @@
 ﻿import React from 'react';
-import { User, Layers, Users, Sliders, Palette, Server, FlaskConical } from 'lucide-react';
+import { User, Layers, Users, Sliders, Palette, Server } from 'lucide-react';
 
-export type SettingsTabType = 'profile' | 'workspace' | 'organization' | 'customFields' | 'display' | 'system' | 'demo';
+export type SettingsTabType = 'profile' | 'workspace' | 'organization' | 'customFields' | 'display' | 'system';
 
 interface SettingsSidebarNavProps {
   activeSubTab: SettingsTabType;
@@ -19,7 +19,6 @@ export const SettingsSidebarNav: React.FC<SettingsSidebarNavProps> = ({
     { id: 'customFields' as const, label: '이슈 커스텀 필드', icon: Sliders },
     { id: 'display' as const, label: '디스플레이 & 테마', icon: Palette },
     { id: 'system' as const, label: '시스템 상태 & 정보', icon: Server },
-    { id: 'demo' as const, label: '🔬 Zustand 상태 실습', icon: FlaskConical },
   ];
 
   return (

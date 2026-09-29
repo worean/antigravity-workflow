@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   updateUser,
@@ -39,7 +39,6 @@ import {
   SettingsSystemTab,
   type SettingsTabType,
 } from '@/components/settings';
-import { StateDemoPage } from './StateDemoPage';
 
 interface SettingsPageProps {
   onOpenAuth?: () => void;
@@ -626,8 +625,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               healthLoading={healthLoading}
             />
           )}
-
-          {activeSubTab === 'demo' && <StateDemoPage />}
         </div>
       </div>
 
