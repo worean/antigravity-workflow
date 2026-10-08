@@ -4,6 +4,7 @@ import { getChannelsService } from './services/getChannels.service.js';
 import { sendMessageService } from './services/sendMessage.service.js';
 import { getMessagesService } from './services/getMessages.service.js';
 import { markAsReadService } from './services/markAsRead.service.js';
+import { markAllAsReadService } from './services/markAllAsRead.service.js';
 import { createChannelService } from './services/createChannel.service.js';
 import { toggleReactionService } from './services/toggleReaction.service.js';
 import { updateMemberSettingsService } from './services/updateMemberSettings.service.js';
@@ -87,6 +88,17 @@ export const markAsRead = async (req: Request, res: Response) => {
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message, errorCode: ErrorCode.INVALID_INPUT });
+  }
+};
+
+export const markAllAsRead = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized: Login required', errorCode: ErrorCode.UNAUTHORIZED });
+    const currentWorkspace = req.workspace;
+    const result = await markAllAsReadService(req.user.id, currentWorkspace);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message, errorCode: ErrorCode.INTERNAL_SERVER_ERROR });
   }
 };
 

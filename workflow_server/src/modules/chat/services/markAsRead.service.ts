@@ -24,5 +24,10 @@ export const markAsReadService = async (channelId: number, userId: number, custo
     });
   } catch {}
 
+  try {
+    const { sendToUser } = await import('#lib/socket.js');
+    sendToUser(userId, 'channel_read', { channelId, lastReadAt: now });
+  } catch {}
+
   return { success: true, channelId, userId, lastReadAt: now };
 };

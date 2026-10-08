@@ -1,4 +1,6 @@
 ﻿import { prisma } from '#lib/prisma.js';
+import { globalPrisma } from '#lib/globalPrisma.js';
+import { broadcastGlobal } from '#lib/socket.js';
 
 export const deleteGroupService = async (id: number, currentUser?: any) => {
   if (!id) throw new Error('Group ID is required');
@@ -19,7 +21,29 @@ export const deleteGroupService = async (id: number, currentUser?: any) => {
     }
   }
 
-  return await prisma.group.delete({
+  // 1. Workspace DB에서 그룹 삭제
+  const deletedGroup = await prisma.group.delete({
     where: { id },
   });
+
+  // 2. Global DB에서 연관된 GROUP 채팅방 동시 삭제 (Dual DB Cascade)
+  try {
+    const deletedChannels = await globalPrisma.chatChannel.findMany({
+      where: { type: 'GROUP', groupId: id },
+      select: { id: true },
+    });
+
+    if (deletedChannels.length > 0) {
+      await globalPrisma.chatChannel.deleteMany({
+        where: { type: 'GROUP', groupId: id },
+      });
+      for (const ch of deletedChannels) {
+        broadcastGlobal('chat:channel_deleted', { channelId: ch.id, groupId: id, type: 'GROUP' });
+      }
+    }
+  } catch (err) {
+    console.error('Failed to cascade delete group chat channels:', err);
+  }
+
+  return deletedGroup;
 };

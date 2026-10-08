@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 import { getSocket } from '@/lib/socketClient';
+import { queryClient } from '@/lib/queryClient';
 import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel } from '@/types';
 
 // ----------------------------------------------------
@@ -47,6 +48,15 @@ export const sendMessage = async (
 
 export const markAsRead = async (channelId: number): Promise<{ success: boolean; channelId: number }> => {
   const res = await apiClient.post(`/chat/channels/${channelId}/read`);
+  queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
+  queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
+  return res.data;
+};
+
+export const markAllAsRead = async (): Promise<{ success: boolean; updatedCount: number }> => {
+  const res = await apiClient.post('/chat/read-all');
+  queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
+  queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
   return res.data;
 };
 
@@ -101,12 +111,21 @@ export const useChatChannels = (options?: { enabled?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
     };
 
+    const handleRead = () => {
+      queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
+    };
+
     socket.on('new_message', handleNewMessage);
     socket.on('reaction_updated', handleReaction);
+    socket.on('channel_read', handleRead);
+    socket.on('chat:all_read', handleRead);
 
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('reaction_updated', handleReaction);
+      socket.off('channel_read', handleRead);
+      socket.off('chat:all_read', handleRead);
     };
   }, [queryClient, activeWorkspaceId]);
 

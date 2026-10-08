@@ -109,6 +109,57 @@ export const createChannelService = async (
     });
   }
 
+  // 1-1. PROJECT 채널 중복 체크: 동일 워크스페이스 내 동일 프로젝트 채널이 이미 존재하면 기존 채널 반환
+  if (rawType === 'PROJECT' && numericProjectId) {
+    const existingProjectChan = await gdb.chatChannel.findFirst({
+      where: {
+        workspaceId: effectiveWorkspaceId,
+        type: 'PROJECT',
+        projectId: numericProjectId,
+      },
+      include: {
+        members: { include: { user: true } },
+      },
+    });
+    if (existingProjectChan) {
+      return existingProjectChan;
+    }
+  }
+
+  // 1-2. GROUP 채널 중복 체크: 동일 워크스페이스 내 동일 그룹 채널(groupId 기준)이 이미 존재하면 기존 채널 반환
+  if (rawType === 'GROUP' && numericGroupId) {
+    const existingGroupChan = await gdb.chatChannel.findFirst({
+      where: {
+        workspaceId: effectiveWorkspaceId,
+        type: 'GROUP',
+        groupId: numericGroupId,
+      },
+      include: {
+        members: { include: { user: true } },
+      },
+    });
+    if (existingGroupChan) {
+      return existingGroupChan;
+    }
+  }
+
+  // 1-3. GENERAL / GLOBAL 기본 채널 중복 체크: 시스템 기본 채널(전체-공지사항, 자유-수다방 등) 중복 생성 방지
+  if ((rawType === 'GENERAL' || rawType === 'GLOBAL') && ['전체-공지사항', '자유-수다방'].includes(finalName)) {
+    const existingGeneralChan = await gdb.chatChannel.findFirst({
+      where: {
+        workspaceId: effectiveWorkspaceId,
+        type: { in: ['GENERAL', 'GLOBAL'] },
+        name: finalName,
+      },
+      include: {
+        members: { include: { user: true } },
+      },
+    });
+    if (existingGeneralChan) {
+      return existingGeneralChan;
+    }
+  }
+
   // 2. PROJECT 채널 처리 (이름/토픽/아이콘 자동 보정)
   if (rawType === 'PROJECT') {
     if (!finalIcon) finalIcon = '📁';

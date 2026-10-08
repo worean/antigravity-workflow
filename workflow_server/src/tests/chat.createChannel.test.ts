@@ -1,4 +1,4 @@
-﻿﻿﻿﻿import { describe, it, expect, beforeEach } from 'vitest';
+﻿﻿﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { prisma as workspacePrisma } from '#lib/prisma.js';
 import { createUserService } from '../modules/users/services/createUser.service.js';
@@ -134,5 +134,44 @@ describe('💬 [Chat: createChannel - Robustness & Name Fallback] Unit Tests', (
     });
     expect(projChan.type).toBe('PROJECT');
     expect(projChan.name).toBe('Custom Project Channel');
+  });
+
+  it('6. 동일한 프로젝트 또는 그룹 채널 생성 요청 시 신규 생성 없이 기존 채널을 반환해야 합니다.', async () => {
+    // 1) PROJECT 채널 첫 생성
+    const proj1 = await createChannelService({
+      userId: user1.id,
+      type: 'PROJECT',
+      projectId: testProject.id,
+      workspaceId: testWorkspace.id,
+    });
+
+    // 2) 동일 프로젝트 채널 재요청 -> 기존 채널 반환 확인
+    const proj2 = await createChannelService({
+      userId: user1.id,
+      type: 'PROJECT',
+      projectId: testProject.id,
+      workspaceId: testWorkspace.id,
+    });
+
+    expect(proj1.id).toBe(proj2.id);
+
+    // 3) GROUP 채널 중복 방지 확인
+    const group1 = await createChannelService({
+      userId: user1.id,
+      type: 'GROUP',
+      groupId: 99999,
+      workspaceId: testWorkspace.id,
+      name: '테스트 중복 방지 그룹',
+    });
+
+    const group2 = await createChannelService({
+      userId: user2.id,
+      type: 'GROUP',
+      groupId: 99999,
+      workspaceId: testWorkspace.id,
+      name: '테스트 중복 방지 그룹 다른 이름',
+    });
+
+    expect(group1.id).toBe(group2.id);
   });
 });

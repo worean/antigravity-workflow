@@ -23,6 +23,9 @@ model User {
   avatarColor  String?   // 기본 아바타 색상
   pushToken    String?   // APNs / FCM 푸시 토큰
   preferences  String?   @default("{}") // 전역 UI 설정 JSON 문자열
+  bio          String?   // 자기 설명 / 소개
+  department   String?   // 소속 부서
+  jobTitle     String?   // 직책 / 포지션
 
   // 이메일 인증 상태 및 토큰
   isEmailVerified         Boolean   @default(false)

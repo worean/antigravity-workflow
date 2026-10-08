@@ -117,7 +117,7 @@ export const getChannelsService = async (
   }
 
   // 4. 해당 워크스페이스에 속한 채널 목록 필터링
-  const channels = await gdb.chatChannel.findMany({
+  const rawChannels = await gdb.chatChannel.findMany({
     where: {
       workspaceId,
       OR: [
@@ -131,7 +131,7 @@ export const getChannelsService = async (
       members: {
         include: {
           user: {
-            select: { id: true, name: true, email: true, avatar: true, avatarColor: true },
+            select: { id: true, name: true, email: true, avatar: true, avatarColor: true, department: true, jobTitle: true, bio: true },
           },
         },
       },
@@ -147,6 +147,46 @@ export const getChannelsService = async (
     },
     orderBy: { createdAt: 'asc' },
   });
+
+  // 4-1. 고아 프로젝트/그룹 채널 필터링 & 중복 채널 완벽 제거 (Deduplication)
+  const validChannels = rawChannels.filter((ch: any) => {
+    // 삭제된 프로젝트나 접근 권한 없는 고아 프로젝트 채널 배제
+    if (ch.type === 'PROJECT' && ch.projectId && !projectIds.includes(ch.projectId)) {
+      return false;
+    }
+    // 삭제된 그룹이나 접근 권한 없는 고아 그룹 채널 배제
+    if (ch.type === 'GROUP' && ch.groupId && !groupIds.includes(ch.groupId)) {
+      return false;
+    }
+    return true;
+  });
+
+  const dedupedChannelsMap = new Map<string, any>();
+  for (const ch of validChannels) {
+    let key = `ID_${ch.id}`;
+    if (ch.type === 'PROJECT' && ch.projectId) {
+      key = `PROJECT_${ch.workspaceId}_${ch.projectId}`;
+    } else if (ch.type === 'GROUP' && ch.groupId) {
+      key = `GROUP_${ch.workspaceId}_${ch.groupId}`;
+    } else if (ch.type === 'GLOBAL' || ch.type === 'GENERAL') {
+      key = `GENERAL_${ch.workspaceId}_${ch.name}`;
+    } else if (ch.type === 'DM') {
+      const otherMember = ch.members?.find((m: any) => m.userId !== userId);
+      const otherId = otherMember?.userId || 0;
+      key = `DM_${ch.workspaceId}_${Math.min(userId, otherId)}_${Math.max(userId, otherId)}`;
+    }
+
+    if (dedupedChannelsMap.has(key)) {
+      const prev = dedupedChannelsMap.get(key);
+      if ((ch.messages?.length || 0) > (prev.messages?.length || 0)) {
+        dedupedChannelsMap.set(key, ch);
+      }
+    } else {
+      dedupedChannelsMap.set(key, ch);
+    }
+  }
+
+  const channels = Array.from(dedupedChannelsMap.values());
 
   // 5. Unread Count & Notification Level 계산
   const result = await Promise.all(
@@ -183,12 +223,29 @@ export const getChannelsService = async (
             }
           : null,
         members: channel.members.map((m: any) => ({
+          id: m.id,
           userId: m.userId,
           role: m.role,
-          name: m.user.name,
-          email: m.user.email,
-          avatar: m.user.avatar,
-          avatarColor: m.user.avatarColor,
+          notificationLevel: m.notificationLevel,
+          user: m.user
+            ? {
+                id: m.user.id,
+                name: m.user.name,
+                email: m.user.email,
+                avatar: m.user.avatar,
+                avatarColor: m.user.avatarColor,
+                department: m.user.department,
+                jobTitle: m.user.jobTitle,
+                bio: m.user.bio,
+              }
+            : undefined,
+          name: m.user?.name,
+          email: m.user?.email,
+          avatar: m.user?.avatar,
+          avatarColor: m.user?.avatarColor,
+          department: m.user?.department,
+          jobTitle: m.user?.jobTitle,
+          bio: m.user?.bio,
         })),
         createdAt: channel.createdAt,
       };

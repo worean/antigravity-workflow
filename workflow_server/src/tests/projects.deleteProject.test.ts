@@ -9,6 +9,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { app } from '../app.js';
 import { prisma } from '#lib/prisma.js';
+import { globalPrisma } from '#lib/globalPrisma.js';
 
 describe('🧪 [projects.deleteProject] Service & REST API Unit Tests', () => {
   const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
@@ -47,6 +48,15 @@ describe('🧪 [projects.deleteProject] Service & REST API Unit Tests', () => {
         role: 'ADMIN'
       }
     });
+
+    // 프로젝트 연관 채팅방 생성 (Global DB)
+    await globalPrisma.chatChannel.create({
+      data: {
+        name: proj.name,
+        type: 'PROJECT',
+        projectId: proj.id,
+      }
+    });
   });
 
   afterAll(async () => {
@@ -54,7 +64,11 @@ describe('🧪 [projects.deleteProject] Service & REST API Unit Tests', () => {
   });
 
   describe('Case 1: 🗑️ 프로젝트 삭제 기능', () => {
-    it('프로젝트 삭제 성공 시 200 OK 응답 및 DB 삭제가 완료되어야 한다', async () => {
+    it('프로젝트 삭제 성공 시 200 OK 응답 및 DB 삭제와 연관 채팅방까지 함께 삭제되어야 한다', async () => {
+      // 삭제 전 채팅방 존재 확인
+      const chanBefore = await globalPrisma.chatChannel.findFirst({ where: { type: 'PROJECT', projectId: targetProjectId } });
+      expect(chanBefore).not.toBeNull();
+
       const response = await request(app)
         .delete(`/api/projects/${targetProjectId}`)
         .set('Authorization', `Bearer ${authToken}`);
@@ -63,6 +77,10 @@ describe('🧪 [projects.deleteProject] Service & REST API Unit Tests', () => {
 
       const checkProj = await prisma.project.findUnique({ where: { id: targetProjectId } });
       expect(checkProj).toBeNull();
+
+      // 프로젝트 삭제 후 연관 채팅방도 Global DB에서 캐스케이드 삭제되었는지 확인
+      const chanAfter = await globalPrisma.chatChannel.findFirst({ where: { type: 'PROJECT', projectId: targetProjectId } });
+      expect(chanAfter).toBeNull();
     });
 
     it('존재하지 않는 프로젝트 ID 삭제 시 404/400 Error를 반환해야 한다', async () => {

@@ -14,6 +14,7 @@ chatRouter.get('/channels/:channelId/messages', requireAuth, requireWorkspaceAcc
 chatRouter.post('/channels/:channelId/messages', requireAuth, requireWorkspaceAccess, chatController.sendMessage);
 
 // 3. 채널 읽음 처리 및 알림 설정
+chatRouter.post('/read-all', requireAuth, requireWorkspaceAccess, chatController.markAllAsRead);
 chatRouter.post('/channels/:channelId/read', requireAuth, requireWorkspaceAccess, chatController.markAsRead);
 chatRouter.put('/channels/:channelId/settings', requireAuth, requireWorkspaceAccess, chatController.updateMemberSettings);
 

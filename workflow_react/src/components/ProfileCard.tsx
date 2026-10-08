@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { User as UserIcon, LogOut, LogIn, Mail, Settings } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
@@ -80,20 +80,57 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ onOpenAuth, onOpenSett
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
             <Avatar user={user} size={28} shape="rounded" />
 
-            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-              <span
-                style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: 'var(--text-bright)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-                title={user.name || user.email}
-              >
-                {user.name || user.email}
-              </span>
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
+                <span
+                  style={{
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: 'var(--text-bright)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={user.name || user.email}
+                >
+                  {user.name || user.email}
+                </span>
+                {(user.department || user.jobTitle) && (
+                  <span
+                    style={{
+                      fontSize: '0.64rem',
+                      padding: '1px 5px',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: '3px',
+                      color: 'var(--text-muted)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      flexShrink: 0,
+                    }}
+                    title={[user.department, user.jobTitle].filter(Boolean).join(' · ')}
+                  >
+                    {[user.department, user.jobTitle].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </div>
+              {user.bio && (
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    color: 'var(--text-muted)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: 1.2,
+                    marginTop: '2px',
+                  }}
+                  title={user.bio}
+                >
+                  {user.bio}
+                </span>
+              )}
             </div>
           </div>
 

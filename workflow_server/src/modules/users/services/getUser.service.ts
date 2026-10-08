@@ -1,4 +1,4 @@
-﻿import { prisma } from '#lib/prisma.js';
+import { prisma } from '#lib/prisma.js';
 
 export const getUserService = async (id: number) => {
   if (!id) throw new Error('User ID is required');
@@ -12,6 +12,9 @@ export const getUserService = async (id: number) => {
       avatar: true,
       avatarColor: true,
       preferences: true,
+      bio: true,
+      department: true,
+      jobTitle: true,
       createdAt: true,
       updatedAt: true,
       groupMemberships: {
