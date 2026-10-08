@@ -164,6 +164,11 @@ const AppContent: React.FC = () => {
       setSelectedIssueIdState(tab === 'issue-detail' ? issueId : null);
       setIssueDetailModeState(mode);
 
+      // 다른 페이지(탭)로 전환 시 이전 페이지의 이슈 상세 드로어 상태 닫기 (자동 팝업 방지)
+      if (tab !== 'issue-detail') {
+        useUIStore.getState().closeIssueDetail();
+      }
+
       // Build RESTful Hierarchical Hash URL
       const newHash = buildHashFromRoute({
         tab: tab as ActiveTabType,
@@ -201,6 +206,11 @@ const AppContent: React.FC = () => {
       setSelectedSprintIdState(route.sprintId);
       setSelectedChannelIdState(route.channelId);
       setIssueDetailModeState(route.mode);
+
+      // 페이지 전환 시 이전 드로어 닫기
+      if (route.tab !== 'issue-detail') {
+        useUIStore.getState().closeIssueDetail();
+      }
     };
 
     window.addEventListener('popstate', handleUrlChange);
@@ -450,6 +460,7 @@ const AppContent: React.FC = () => {
               onFilterChange={(pId) => navigate('wbs', pId, selectedIssueId, 'view', true)}
               onSelectIssue={handleSelectIssue}
               onOpenAuth={openAuthModal}
+              refreshKey={issueRefreshKey}
             />
           )}
 
