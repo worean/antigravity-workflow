@@ -194,7 +194,7 @@ export const SprintNotesTab: React.FC<SprintNotesTabProps> = ({
         <div
           style={{
             minHeight: '300px',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: 'var(--bg-subtle)',
             border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-xs)',
             padding: '16px',

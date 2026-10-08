@@ -1,7 +1,7 @@
 ﻿import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-import type { Sprint } from '@/types';
+import type { Sprint, Issue } from '@/types';
 
 export interface ToastState {
   id: number;
@@ -31,7 +31,13 @@ export interface UIStoreState {
   // 2) 전역 빠른 일감 생성 모달
   isIssueModalOpen: boolean;
   issueModalInitialProjectId: number | null;
-  openIssueModal: (projectId?: number | null) => void;
+  issueModalInitialParentId: number | null;
+  issueModalInitialParentIssue: Issue | null;
+  openIssueModal: (
+    projectId?: number | null,
+    initialParentIssue?: Issue | null,
+    parentId?: number | null
+  ) => void;
   closeIssueModal: () => void;
   setIsIssueModalOpen: (open: boolean) => void;
 
@@ -56,7 +62,18 @@ export interface UIStoreState {
   closeIssueDetail: () => void;
   setIssueDetailMode: (mode: 'view' | 'edit') => void;
 
-  // 6) 🍞 전역 토스트 알림 상태 (3초 자동 소멸 & 신규 알림 시 즉시 리셋)
+  // 6) 📝 전역 메모 상세 및 에디터 모달 상태 (@멘션 링크 대응)
+  isMemoDetailOpen: boolean;
+  memoDetailTarget: number | string | null; // ID(number) 또는 제목(string)
+  openMemoDetail: (target: number | string) => void;
+  closeMemoDetail: () => void;
+
+  isMemoEditorOpen: boolean;
+  memoEditorTargetId: number | null;
+  openMemoEditor: (memoId?: number | null) => void;
+  closeMemoEditor: () => void;
+
+  // 7) 🍞 전역 토스트 알림 상태 (3초 자동 소멸 & 신규 알림 시 즉시 리셋)
   toast: ToastState | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   hideToast: () => void;
@@ -99,10 +116,22 @@ export const useUIStore = create<UIStoreState>()(
       // 이슈 모달 제어
       isIssueModalOpen: false,
       issueModalInitialProjectId: null,
-      openIssueModal: (projectId = null) =>
-        set({ isIssueModalOpen: true, issueModalInitialProjectId: projectId }),
+      issueModalInitialParentId: null,
+      issueModalInitialParentIssue: null,
+      openIssueModal: (projectId = null, initialParentIssue = null, parentId = null) =>
+        set({
+          isIssueModalOpen: true,
+          issueModalInitialProjectId: projectId ?? initialParentIssue?.projectId ?? null,
+          issueModalInitialParentIssue: initialParentIssue,
+          issueModalInitialParentId: parentId ?? initialParentIssue?.id ?? null,
+        }),
       closeIssueModal: () =>
-        set({ isIssueModalOpen: false, issueModalInitialProjectId: null }),
+        set({
+          isIssueModalOpen: false,
+          issueModalInitialProjectId: null,
+          issueModalInitialParentIssue: null,
+          issueModalInitialParentId: null,
+        }),
       setIsIssueModalOpen: (isIssueModalOpen) => set({ isIssueModalOpen }),
 
       // 프로젝트 모달 제어
@@ -136,6 +165,21 @@ export const useUIStore = create<UIStoreState>()(
         set({ selectedIssueId: issueId, issueDetailMode: mode }),
       closeIssueDetail: () => set({ selectedIssueId: null }),
       setIssueDetailMode: (issueDetailMode) => set({ issueDetailMode }),
+
+      // 📝 전역 메모 모달 제어 (@멘션 링크 대응)
+      isMemoDetailOpen: false,
+      memoDetailTarget: null,
+      openMemoDetail: (target) =>
+        set({ isMemoDetailOpen: true, memoDetailTarget: target }),
+      closeMemoDetail: () =>
+        set({ isMemoDetailOpen: false, memoDetailTarget: null }),
+
+      isMemoEditorOpen: false,
+      memoEditorTargetId: null,
+      openMemoEditor: (memoId = null) =>
+        set({ isMemoEditorOpen: true, memoEditorTargetId: memoId }),
+      closeMemoEditor: () =>
+        set({ isMemoEditorOpen: false, memoEditorTargetId: null }),
 
       // 🍞 전역 토스트 알림 제어
       toast: null,

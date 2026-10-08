@@ -101,7 +101,7 @@ export const SprintDiscussionsTab: React.FC<SprintDiscussionsTabProps> = ({
           style={{
             padding: '40px 20px',
             textAlign: 'center',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: 'var(--bg-subtle)',
             borderRadius: 'var(--radius-xs)',
             border: '1px dashed var(--border-light)',
             color: 'var(--text-muted)',
@@ -128,7 +128,7 @@ export const SprintDiscussionsTab: React.FC<SprintDiscussionsTabProps> = ({
               <div
                 key={item.id}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: 'var(--bg-subtle)',
                   border: '1px solid var(--border-light)',
                   borderRadius: 'var(--radius-xs)',
                   padding: '12px 14px',
@@ -265,12 +265,12 @@ export const SprintDiscussionsTab: React.FC<SprintDiscussionsTabProps> = ({
                       }}
                       style={{
                         flex: 1,
-                        background: 'var(--bg-input, #1e1f22)',
+                        background: 'var(--bg-input)',
                         border: '1px solid var(--border-light)',
                         borderRadius: 'var(--radius-xs)',
                         padding: '6px 10px',
                         fontSize: '0.76rem',
-                        color: '#fff',
+                        color: 'var(--text-main)',
                       }}
                     />
                     <Button

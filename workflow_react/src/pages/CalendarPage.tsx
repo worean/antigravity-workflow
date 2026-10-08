@@ -2,6 +2,7 @@
 import { useCalendarEvents, useGoogleCalendarStatus } from '@/api/calendar';
 import { useProjects } from '@/api/projects';
 import { useUIStore } from '@/stores/useUIStore';
+import { usePrefStore } from '@/stores/usePrefStore';
 import { Spinner } from '@/components/common';
 import {
   CalendarHeader,
@@ -23,6 +24,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
   const [onlyMyEvents, setOnlyMyEvents] = useState<boolean>(false);
   const [selectedGoogleEvent, setSelectedGoogleEvent] = useState<CalendarEvent | null>(null);
 
+  const isSundayStart = usePrefStore((state) => state.isSundayStart);
   const openIssueModal = useUIStore((state) => state.openIssueModal);
   const openIssueDetail = useUIStore((state) => state.openIssueDetail);
 
@@ -41,7 +43,8 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
     } else {
       const startOfWeek = new Date(currentDate);
       const day = startOfWeek.getDay();
-      startOfWeek.setDate(startOfWeek.getDate() - day - 1);
+      const diff = isSundayStart ? day : (day + 6) % 7;
+      startOfWeek.setDate(startOfWeek.getDate() - diff - 1);
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(endOfWeek.getDate() + 8);
 
@@ -50,7 +53,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
         endDate: endOfWeek.toISOString(),
       };
     }
-  }, [currentDate, viewMode]);
+  }, [currentDate, viewMode, isSundayStart]);
 
   // 3. 캘린더 일정 데이터 및 구글 연동 상태 조회
   const { data: events = [], isLoading: eventsLoading } = useCalendarEvents({
@@ -136,6 +139,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
         onProjectChange={setSelectedProjectId}
         onlyMyEvents={onlyMyEvents}
         onOnlyMyEventsChange={setOnlyMyEvents}
+        isSundayStart={isSundayStart}
         onNewIssue={() =>
           openIssueModal(
             selectedProjectId !== 'ALL' && typeof selectedProjectId === 'number'
@@ -156,6 +160,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
           events={events}
           onSelectEvent={handleSelectEvent}
           onDateClick={handleDateClick}
+          isSundayStart={isSundayStart}
         />
       ) : (
         <CalendarWeekGrid
@@ -163,6 +168,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
           events={events}
           onSelectEvent={handleSelectEvent}
           onDateClick={handleDateClick}
+          isSundayStart={isSundayStart}
         />
       )}
 

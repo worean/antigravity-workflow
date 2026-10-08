@@ -70,6 +70,7 @@ interface IssueModalProps {
   projects?: Project[];
   initialProjectId?: number;
   initialParentId?: number | null;
+  initialParentIssue?: Issue | null;
   onSuccess?: (savedIssue?: Issue) => void;
   onIssueCreated?: () => void;
 }
@@ -85,6 +86,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
   projects = [],
   initialProjectId,
   initialParentId,
+  initialParentIssue,
   onSuccess,
   onIssueCreated,
 }) => {
@@ -254,15 +256,33 @@ export const IssueModal: React.FC<IssueModalProps> = ({
         setWorklogHoursInput('');
         setWorklogDescInput('');
         setComments([]);
-        setParentId(initialParentId ?? null);
+        const effectiveParentId = initialParentIssue?.id ?? initialParentId ?? null;
+        setParentId(effectiveParentId);
 
-        // 하위 이슈로 새로 생성 시 상위 이슈의 시작계획일/기한 정보를 그대로 복사 (UI에서만)
-        if (initialParentId) {
+        // 하위 이슈로 새로 생성 시 상위 이슈의 프로젝트 및 4개 기간 정보(계획시작/완료기한/실제시작/실제완료)를 그대로 복사 (UI에서만)
+        if (initialParentIssue) {
+          if (initialParentIssue.projectId) setProjectId(initialParentIssue.projectId);
+          if (initialParentIssue.plannedStartDate) setPlannedStartDate(formatDateOnly(initialParentIssue.plannedStartDate) || '');
+          if (initialParentIssue.dueDate) setDueDate(formatDateOnly(initialParentIssue.dueDate) || '');
+          if (initialParentIssue.actualStartDate) setActualStartDate(formatDateOnly(initialParentIssue.actualStartDate) || '');
+          if (initialParentIssue.actualEndDate) setActualEndDate(formatDateOnly(initialParentIssue.actualEndDate) || '');
+          setCandidateParentIssues((prev) => {
+            if (prev.some((p) => p.id === initialParentIssue.id)) return prev;
+            return [initialParentIssue, ...prev];
+          });
+        } else if (initialParentId) {
           getIssue(initialParentId)
             .then((pIssue) => {
               if (pIssue) {
+                if (pIssue.projectId) setProjectId(pIssue.projectId);
                 if (pIssue.plannedStartDate) setPlannedStartDate(formatDateOnly(pIssue.plannedStartDate) || '');
                 if (pIssue.dueDate) setDueDate(formatDateOnly(pIssue.dueDate) || '');
+                if (pIssue.actualStartDate) setActualStartDate(formatDateOnly(pIssue.actualStartDate) || '');
+                if (pIssue.actualEndDate) setActualEndDate(formatDateOnly(pIssue.actualEndDate) || '');
+                setCandidateParentIssues((prev) => {
+                  if (prev.some((p) => p.id === pIssue.id)) return prev;
+                  return [pIssue, ...prev];
+                });
               }
             })
             .catch((err) => console.error('Parent issue fetch failed:', err));
@@ -277,7 +297,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
         setDraftBanner(null);
       }
     }
-  }, [selectedIssue, isOpen, initialParentId, projects, draftKey, getIssueDraft]);
+  }, [selectedIssue, isOpen, initialParentId, initialParentIssue, projects, draftKey, getIssueDraft]);
 
   // 사용자가 폼을 편집할 때 실시간 드래프트 자동 보존 (쿠키/스토리지)
   useEffect(() => {
@@ -1360,6 +1380,12 @@ export const IssueModal: React.FC<IssueModalProps> = ({
                         }
                         if (!dueDate && parentItem.dueDate) {
                           setDueDate(formatDateOnly(parentItem.dueDate));
+                        }
+                        if (!actualStartDate && parentItem.actualStartDate) {
+                          setActualStartDate(formatDateOnly(parentItem.actualStartDate));
+                        }
+                        if (!actualEndDate && parentItem.actualEndDate) {
+                          setActualEndDate(formatDateOnly(parentItem.actualEndDate));
                         }
                       }
                     }

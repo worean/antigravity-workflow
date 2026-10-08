@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   getChannels,
   getMessages,
   sendMessage,
   markAsRead,
+  markAllAsRead,
   updateMemberSettings,
   toggleReaction,
 } from '@/api/chat';
@@ -72,12 +73,14 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
   const fetchChannels = useCallback(async () => {
     try {
       const data = await getChannels();
-      setChannels(data);
-      if (data.length > 0) {
+      // 중복 채널 방어 (고유 ID 기준 고유화)
+      const uniqueChannels = Array.from(new Map(data.map((c) => [c.id, c])).values());
+      setChannels(uniqueChannels);
+      if (uniqueChannels.length > 0) {
         setSelectedChannelId((prev) => {
           const currentTarget = prev ?? wsChannelId;
-          const exists = data.some((c) => c.id === currentTarget);
-          const resolvedId = exists ? (currentTarget as number) : data[0].id;
+          const exists = uniqueChannels.some((c) => c.id === currentTarget);
+          const resolvedId = exists ? (currentTarget as number) : uniqueChannels[0].id;
           setWsChannelId(resolvedId);
           return resolvedId;
         });
@@ -196,12 +199,24 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
       }
     };
 
+    const handleChannelRead = (data: { channelId: number }) => {
+      setChannels((prev) =>
+        prev.map((c) => (c.id === data.channelId ? { ...c, unreadCount: 0 } : c))
+      );
+    };
+
+    const handleAllRead = () => {
+      setChannels((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })));
+    };
+
     socket.on('chat:new_message', handleNewMessage);
     socket.on('chat:reaction_updated', handleReactionUpdated);
     socket.on('chat:message_reaction', handleReactionUpdated);
     socket.on('chat:message_pinned', handleMessagePinned);
     socket.on('chat:typing', handleTyping);
     socket.on('chat:stop_typing', handleStopTyping);
+    socket.on('channel_read', handleChannelRead);
+    socket.on('chat:all_read', handleAllRead);
 
     return () => {
       if (selectedChannelId) {
@@ -213,6 +228,8 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
       socket.off('chat:message_pinned', handleMessagePinned);
       socket.off('chat:typing', handleTyping);
       socket.off('chat:stop_typing', handleStopTyping);
+      socket.off('channel_read', handleChannelRead);
+      socket.off('chat:all_read', handleAllRead);
     };
   }, [token, selectedChannelId, currentUserId]);
 
@@ -377,6 +394,15 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     }
   }, [selectedChannelId, currentUserId]);
 
+  const handleMarkAllAsRead = useCallback(async () => {
+    try {
+      await markAllAsRead();
+      setChannels((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })));
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  }, []);
+
   const currentChannel = useMemo(() => {
     return channels.find((c) => c.id === selectedChannelId) || null;
   }, [channels, selectedChannelId]);
@@ -447,6 +473,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     handleTogglePin,
     handleReplyToMessage,
     handleSetNotificationLevel,
+    handleMarkAllAsRead,
     mentionSuggestions,
     mentionQuery,
     setMentionQuery,

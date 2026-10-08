@@ -95,8 +95,8 @@ export const ChannelItem: React.FC<ChannelItemProps> = memo(({
         {channel.unreadCount > 0 && (
           <span
             style={{
-              background: '#f43f5e',
-              color: '#fff',
+              background: 'var(--accent-rose)',
+              color: 'var(--text-inverse)',
               fontSize: '0.65rem',
               fontWeight: 700,
               padding: '1px 5px',

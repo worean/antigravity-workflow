@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
+import { ServerHealthBadge } from '@/components/common';
 
 export const SettingsHeaderToolbar: React.FC = () => {
   return (
@@ -20,6 +21,8 @@ export const SettingsHeaderToolbar: React.FC = () => {
           시스템 및 환경 설정 (Settings)
         </span>
       </div>
+
+      <ServerHealthBadge />
     </div>
   );
 };

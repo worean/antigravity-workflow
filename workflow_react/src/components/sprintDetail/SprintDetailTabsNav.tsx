@@ -45,8 +45,8 @@ export const SprintDetailTabsNav: React.FC<SprintDetailTabsNavProps> = ({
               padding: '8px 16px',
               fontSize: '0.82rem',
               fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#fff' : 'var(--text-muted)',
-              background: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+              background: isActive ? 'var(--primary-subtle)' : 'transparent',
               border: 'none',
               borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
               borderRadius: 'var(--radius-xs) var(--radius-xs) 0 0',
@@ -62,8 +62,8 @@ export const SprintDetailTabsNav: React.FC<SprintDetailTabsNavProps> = ({
                   fontSize: '0.68rem',
                   padding: '1px 6px',
                   borderRadius: '10px',
-                  background: isActive ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
-                  color: '#fff',
+                  background: isActive ? 'var(--primary)' : 'var(--bg-subtle)',
+                  color: isActive ? 'var(--text-on-primary)' : 'var(--text-sub)',
                 }}
               >
                 {tab.count}

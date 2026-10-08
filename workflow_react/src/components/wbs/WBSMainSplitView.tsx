@@ -12,6 +12,8 @@ interface WBSMainSplitViewProps {
   onToggleCollapse: (issueId: number) => void;
   setCollapsedIds: React.Dispatch<React.SetStateAction<Set<number>>>;
   onSelectIssue?: (issue: Issue) => void;
+  onAddSubIssue?: (parentIssue: Issue) => void;
+  onAddNewRootIssue?: () => void;
   tableBodyRef: RefObject<HTMLDivElement | null>;
   onTableScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   leftWidth?: number;
@@ -49,6 +51,8 @@ export const WBSMainSplitView: React.FC<WBSMainSplitViewProps> = ({
   onToggleCollapse,
   setCollapsedIds,
   onSelectIssue,
+  onAddSubIssue,
+  onAddNewRootIssue,
   tableBodyRef,
   onTableScroll,
   leftWidth = 440,
@@ -92,6 +96,8 @@ export const WBSMainSplitView: React.FC<WBSMainSplitViewProps> = ({
         onToggleCollapse={onToggleCollapse}
         setCollapsedIds={setCollapsedIds}
         onSelectIssue={onSelectIssue}
+        onAddSubIssue={onAddSubIssue}
+        onAddNewRootIssue={onAddNewRootIssue}
         tableBodyRef={tableBodyRef}
         onScroll={onTableScroll}
         leftWidth={leftWidth}

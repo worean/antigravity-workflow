@@ -63,6 +63,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     handleTogglePin,
     handleReplyToMessage,
     handleSetNotificationLevel,
+    handleMarkAllAsRead,
     mentionSuggestions,
     mentionQuery,
     setMentionQuery,
@@ -92,6 +93,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         toggleCategoryCollapse={toggleCategoryCollapse}
         handleOpenCreateForCategory={handleOpenCreateForCategory}
         fetchChannels={fetchChannels}
+        onMarkAllAsRead={handleMarkAllAsRead}
         onOpenAuth={onOpenAuth}
       />
 

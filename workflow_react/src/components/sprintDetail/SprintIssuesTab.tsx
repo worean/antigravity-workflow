@@ -39,7 +39,7 @@ export const SprintIssuesTab: React.FC<SprintIssuesTabProps> = ({
           style={{
             padding: '50px 20px',
             textAlign: 'center',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: 'var(--bg-subtle)',
             borderRadius: 'var(--radius-xs)',
             border: '1px dashed var(--border-light)',
             color: 'var(--text-muted)',
@@ -69,7 +69,7 @@ export const SprintIssuesTab: React.FC<SprintIssuesTabProps> = ({
               style={{
                 position: 'relative',
                 overflow: 'hidden',
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: 'var(--bg-subtle)',
                 border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-xs)',
                 padding: '10px 14px',

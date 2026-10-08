@@ -144,7 +144,7 @@ export const SprintWorklogsTab: React.FC<SprintWorklogsTabProps> = ({
           style={{
             padding: '40px 20px',
             textAlign: 'center',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: 'var(--bg-subtle)',
             borderRadius: 'var(--radius-xs)',
             border: '1px dashed var(--border-light)',
             color: 'var(--text-muted)',
@@ -171,7 +171,7 @@ export const SprintWorklogsTab: React.FC<SprintWorklogsTabProps> = ({
               <div
                 key={w.id}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: 'var(--bg-subtle)',
                   border: '1px solid var(--border-light)',
                   borderRadius: 'var(--radius-xs)',
                   padding: '10px 14px',

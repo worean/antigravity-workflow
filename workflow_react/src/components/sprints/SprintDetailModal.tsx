@@ -57,7 +57,7 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
         {/* Sprint Header Banner */}
         <div
           style={{
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(30, 31, 34, 0.6) 100%)',
+            background: 'var(--bg-card)',
             border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-xs)',
             padding: '12px 16px',
@@ -88,16 +88,16 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
                   borderRadius: '4px',
                   background:
                     sprint.status === 'ACTIVE'
-                      ? 'rgba(59, 130, 246, 0.2)'
+                      ? 'var(--badge-progress-bg)'
                       : sprint.status === 'COMPLETED'
-                      ? 'rgba(16, 185, 129, 0.2)'
-                      : 'rgba(148, 163, 184, 0.2)',
+                      ? 'var(--badge-done-bg)'
+                      : 'var(--bg-subtle)',
                   color:
                     sprint.status === 'ACTIVE'
-                      ? '#60a5fa'
+                      ? 'var(--badge-progress-text)'
                       : sprint.status === 'COMPLETED'
-                      ? '#34d399'
-                      : '#94a3b8',
+                      ? 'var(--badge-done-text)'
+                      : 'var(--text-muted)',
                 }}
               >
                 {sprint.status === 'ACTIVE' ? '진행 중' : sprint.status === 'COMPLETED' ? '완료됨' : '계획됨'}
@@ -111,7 +111,7 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
               style={{
                 fontSize: '0.76rem',
                 color: 'var(--text-main)',
-                background: 'rgba(0, 0, 0, 0.2)',
+                background: 'var(--bg-subtle)',
                 padding: '6px 10px',
                 borderRadius: '4px',
               }}
@@ -131,7 +131,7 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
                 style={{
                   width: `${progressPercent}%`,
                   height: '100%',
-                  background: progressPercent === 100 ? '#10b981' : 'var(--primary)',
+                  background: progressPercent === 100 ? 'var(--accent-emerald)' : 'var(--primary)',
                   borderRadius: '3px',
                   transition: 'width 0.3s ease',
                 }}
@@ -163,8 +163,8 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
                   padding: '7px 12px',
                   fontSize: '0.78rem',
                   fontWeight: isActive ? 600 : 400,
-                  color: isActive ? '#fff' : 'var(--text-muted)',
-                  background: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                  color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                  background: isActive ? 'var(--primary-subtle)' : 'transparent',
                   border: 'none',
                   borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
                   borderRadius: 'var(--radius-xs) var(--radius-xs) 0 0',
@@ -180,8 +180,8 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
                       fontSize: '0.66rem',
                       padding: '1px 5px',
                       borderRadius: '10px',
-                      background: isActive ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
-                      color: '#fff',
+                      background: isActive ? 'var(--primary)' : 'var(--bg-subtle)',
+                      color: isActive ? 'var(--text-on-primary)' : 'var(--text-sub)',
                     }}
                   >
                     {tab.count}
@@ -251,7 +251,7 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
                   style={{
                     padding: '40px 20px',
                     textAlign: 'center',
-                    background: 'rgba(255, 255, 255, 0.02)',
+                    background: 'var(--bg-subtle)',
                     borderRadius: 'var(--radius-xs)',
                     border: '1px dashed var(--border-light)',
                     color: 'var(--text-muted)',
@@ -282,7 +282,7 @@ export const SprintDetailModal: React.FC<SprintDetailModalProps> = ({
                       key={iss.id}
                       onClick={() => onOpenIssueDetail && onOpenIssueDetail(iss.id)}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
+                        background: 'var(--bg-subtle)',
                         border: '1px solid var(--border-light)',
                         borderRadius: 'var(--radius-xs)',
                         padding: '8px 12px',

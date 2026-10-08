@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   updateUser,
@@ -55,6 +55,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
   const [email, setEmail] = useState<string>('');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [avatarColor, setAvatarColor] = useState<string | null>(null);
+  const [bio, setBio] = useState<string>('');
+  const [department, setDepartment] = useState<string>('');
+  const [jobTitle, setJobTitle] = useState<string>('');
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
 
@@ -130,6 +133,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
         setEmail(u.email || '');
         setAvatar(u.avatar || null);
         setAvatarColor(u.avatarColor || null);
+        setBio(u.bio || '');
+        setDepartment(u.department || '');
+        setJobTitle(u.jobTitle || '');
         if (updateUserLocal) {
           updateUserLocal(u);
         }
@@ -226,6 +232,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
           name: name.trim(),
           avatar: avatar ?? null,
           avatarColor: avatarColor ?? null,
+          bio: bio.trim() || null,
+          department: department.trim() || null,
+          jobTitle: jobTitle.trim() || null,
         });
         if (updated && updateUserLocal) {
           updateUserLocal(updated);
@@ -500,6 +509,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               setAvatar={setAvatar}
               avatarColor={avatarColor}
               setAvatarColor={setAvatarColor}
+              bio={bio}
+              setBio={setBio}
+              department={department}
+              setDepartment={setDepartment}
+              jobTitle={jobTitle}
+              setJobTitle={setJobTitle}
               profileSuccessMsg={profileSuccessMsg}
               loadingProfile={loadingProfile}
               isPending={isPending}

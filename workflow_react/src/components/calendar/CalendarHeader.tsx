@@ -2,6 +2,7 @@
 import { ChevronLeft, ChevronRight, Plus, UserCheck } from 'lucide-react';
 import type { CalendarViewMode, Project } from '@/types';
 import { useUIStore } from '@/stores/useUIStore';
+import { usePrefStore } from '@/stores/usePrefStore';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -16,6 +17,7 @@ interface CalendarHeaderProps {
   onNewIssue?: () => void;
   onlyMyEvents?: boolean;
   onOnlyMyEventsChange?: (onlyMy: boolean) => void;
+  isSundayStart?: boolean;
 }
 
 export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
@@ -31,18 +33,23 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
   onNewIssue,
   onlyMyEvents = false,
   onOnlyMyEventsChange,
+  isSundayStart: isSundayStartProp,
 }) => {
   const openIssueModal = useUIStore((s) => s.openIssueModal);
   const handleNewIssue = onNewIssue || (() => openIssueModal(selectedProjectId === 'ALL' ? undefined : selectedProjectId));
 
+  const storeSundayStart = usePrefStore((s) => s.isSundayStart);
+  const isSunday = isSundayStartProp !== undefined ? isSundayStartProp : storeSundayStart;
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
 
-  // 주간 뷰일 경우 해당 주의 시작일과 종료일 계산
+  // 주간 뷰일 경우 해당 주의 시작일과 종료일 계산 (설정에 따라 일요일 또는 월요일 시작)
   const getWeekRangeLabel = () => {
     const startOfWeek = new Date(currentDate);
     const day = startOfWeek.getDay();
-    startOfWeek.setDate(startOfWeek.getDate() - day);
+    const diff = isSunday ? day : (day + 6) % 7;
+    startOfWeek.setDate(startOfWeek.getDate() - diff);
 
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);

@@ -18,7 +18,7 @@ export const SprintDetailBanner: React.FC<SprintDetailBannerProps> = ({ sprint }
   return (
     <div
       style={{
-        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 31, 34, 0.6) 100%)',
+        background: 'var(--bg-card)',
         border: '1px solid var(--border-light)',
         borderRadius: 'var(--radius-xs)',
         padding: '14px 18px',
@@ -31,7 +31,7 @@ export const SprintDetailBanner: React.FC<SprintDetailBannerProps> = ({ sprint }
       {/* Top: Goal & Dates */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', flex: 1, minWidth: '260px' }}>
-          <Target size={16} color="#cca700" style={{ marginTop: '2px', flexShrink: 0 }} />
+          <Target size={16} color="var(--accent-amber)" style={{ marginTop: '2px', flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>스프린트 목표 (Goal)</div>
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
@@ -54,7 +54,7 @@ export const SprintDetailBanner: React.FC<SprintDetailBannerProps> = ({ sprint }
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '10px',
-          background: 'rgba(0, 0, 0, 0.2)',
+          background: 'var(--bg-subtle)',
           padding: '10px 14px',
           borderRadius: 'var(--radius-xs)',
         }}
@@ -68,18 +68,18 @@ export const SprintDetailBanner: React.FC<SprintDetailBannerProps> = ({ sprint }
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <CheckCircle2 size={18} color="#10b981" />
+          <CheckCircle2 size={18} color="var(--accent-emerald)" />
           <div>
             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>완료된 이슈</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#10b981' }}>{done}개</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>{done}개</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Clock size={18} color="#3b82f6" />
+          <Clock size={18} color="var(--primary)" />
           <div>
             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>진행 중</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#60a5fa' }}>{inProgress}개</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--primary)' }}>{inProgress}개</div>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export const SprintDetailBanner: React.FC<SprintDetailBannerProps> = ({ sprint }
             style={{
               width: `${rate}%`,
               height: '100%',
-              background: rate === 100 ? '#10b981' : 'var(--primary)',
+              background: rate === 100 ? 'var(--accent-emerald)' : 'var(--primary)',
               borderRadius: '3px',
               transition: 'width 0.3s ease',
             }}

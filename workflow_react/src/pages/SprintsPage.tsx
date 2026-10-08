@@ -287,10 +287,10 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
 
   const getDDayBadge = (sprint: Sprint) => {
     if (sprint.status === 'COMPLETED') {
-      return <span style={{ fontSize: '0.68rem', color: '#89d185', background: 'rgba(137,209,133,0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>완료됨</span>;
+      return <span style={{ fontSize: '0.68rem', color: 'var(--badge-done-text)', background: 'var(--badge-done-bg)', border: '1px solid var(--badge-done-border)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>완료됨</span>;
     }
     if (!sprint.endDate) {
-      return <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '1px 6px', borderRadius: '3px' }}>기한 미설정</span>;
+      return <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', padding: '1px 6px', borderRadius: '3px' }}>기한 미설정</span>;
     }
 
     const end = new Date(sprint.endDate);
@@ -299,12 +299,12 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     const diffDays = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return <span style={{ fontSize: '0.68rem', color: '#f14c4c', background: 'rgba(241,76,76,0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>{Math.abs(diffDays)}일 초과</span>;
+      return <span style={{ fontSize: '0.68rem', color: 'var(--badge-bug-text)', background: 'var(--badge-bug-bg)', border: '1px solid var(--badge-bug-border)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>{Math.abs(diffDays)}일 초과</span>;
     }
     if (diffDays === 0) {
-      return <span style={{ fontSize: '0.68rem', color: '#cca700', background: 'rgba(204,167,0,0.18)', padding: '1px 6px', borderRadius: '3px', fontWeight: 700 }}>D-Day (오늘 마감)</span>;
+      return <span style={{ fontSize: '0.68rem', color: 'var(--priority-high-text)', background: 'var(--priority-high-bg)', border: '1px solid var(--priority-high-border)', padding: '1px 6px', borderRadius: '3px', fontWeight: 700 }}>D-Day (오늘 마감)</span>;
     }
-    return <span style={{ fontSize: '0.68rem', color: '#9cdcfe', background: 'rgba(0,122,204,0.15)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>D-{diffDays}일 남음</span>;
+    return <span style={{ fontSize: '0.68rem', color: 'var(--badge-progress-text)', background: 'var(--badge-progress-bg)', border: '1px solid var(--badge-progress-border)', padding: '1px 6px', borderRadius: '3px', fontWeight: 600 }}>D-{diffDays}일 남음</span>;
   };
 
   const filteredSprints = sprints.filter((s) => {

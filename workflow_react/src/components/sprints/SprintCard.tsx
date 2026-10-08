@@ -199,7 +199,7 @@ export const SprintCard: React.FC<SprintCardProps> = ({
             <button
               onClick={() => handleQuickStatusChange(sprint.id, 'ACTIVE')}
               className="btn btn-sm"
-              style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-sub)', border: '1px solid #444', height: '22px', fontSize: '0.68rem', padding: '0 6px', display: 'flex', alignItems: 'center', gap: '3px' }}
+              style={{ background: 'var(--bg-subtle)', color: 'var(--text-sub)', border: '1px solid var(--border-light)', height: '22px', fontSize: '0.68rem', padding: '0 6px', display: 'flex', alignItems: 'center', gap: '3px' }}
               title="다시 진행 중으로 변경"
             >
               <RotateCcw size={10} /> 다시 열기

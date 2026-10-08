@@ -10,8 +10,7 @@ import { SprintModal } from '@/components/SprintModal';
 import { IssueDetailDrawer } from '@/components/issueDetail';
 import { ChatbotPopup, ChatbotLauncher } from '@/components/chatbot';
 import { GlobalToast } from '@/components/common';
-import { useMemoStore } from '@/stores/useMemoStore';
-import { MemoEditorModal } from '@/components/memos';
+import { MemoDetailModal, MemoEditorModal } from '@/components/memos';
 
 /**
  * GlobalModalManager - 전역 UI 모달 & 오버레이 집중 관리자
@@ -32,6 +31,8 @@ export const GlobalModalManager: React.FC = () => {
   // 2. 빠른 이슈 생성 모달 상태
   const isIssueModalOpen = useUIStore((s) => s.isIssueModalOpen);
   const initialProjectId = useUIStore((s) => s.issueModalInitialProjectId);
+  const initialParentId = useUIStore((s) => s.issueModalInitialParentId);
+  const initialParentIssue = useUIStore((s) => s.issueModalInitialParentIssue);
   const closeIssueModal = useUIStore((s) => s.closeIssueModal);
 
   // 3. 프로젝트 생성 모달 상태
@@ -50,9 +51,14 @@ export const GlobalModalManager: React.FC = () => {
   const closeIssueDetail = useUIStore((s) => s.closeIssueDetail);
   const setIssueDetailMode = useUIStore((s) => s.setIssueDetailMode);
 
-  // 6. 전역 개인 메모 에디터 모달 상태
-  const activeMemoId = useMemoStore((s) => s.activeMemoId);
-  const setActiveMemoId = useMemoStore((s) => s.setActiveMemoId);
+  // 6. 전역 공유 메모 상세/에디터 모달 상태 (@멘션 링크 대응)
+  const isMemoDetailOpen = useUIStore((s) => s.isMemoDetailOpen);
+  const memoDetailTarget = useUIStore((s) => s.memoDetailTarget);
+  const closeMemoDetail = useUIStore((s) => s.closeMemoDetail);
+  const isMemoEditorOpen = useUIStore((s) => s.isMemoEditorOpen);
+  const memoEditorTargetId = useUIStore((s) => s.memoEditorTargetId);
+  const closeMemoEditor = useUIStore((s) => s.closeMemoEditor);
+  const openMemoEditor = useUIStore((s) => s.openMemoEditor);
 
   // 프로젝트 목록 캐시 조회 (모달 셀렉트박스용)
   const { data: projects = [] } = useProjects();
@@ -103,6 +109,8 @@ export const GlobalModalManager: React.FC = () => {
         onClose={closeIssueModal}
         projects={projects}
         initialProjectId={initialProjectId || undefined}
+        initialParentId={initialParentId || undefined}
+        initialParentIssue={initialParentIssue || undefined}
         onIssueCreated={handleIssueCreated}
       />
 
@@ -135,11 +143,22 @@ export const GlobalModalManager: React.FC = () => {
       <ChatbotPopup />
       <ChatbotLauncher />
 
-      {/* 📝 전역 개인 메모 확대 편집 모달 (칸반, 스프린트, WBS, 이슈 상세 등 어디서나 호출 가능) */}
+      {/* 📝 전역 공유 메모 상세 조회 모달 (@멘션 하이퍼링크 및 팝업 대응) */}
+      <MemoDetailModal
+        isOpen={isMemoDetailOpen}
+        target={memoDetailTarget}
+        onClose={closeMemoDetail}
+        onEdit={(id) => {
+          closeMemoDetail();
+          openMemoEditor(id);
+        }}
+      />
+
+      {/* 📝 전역 메모 작성/수정 모달 */}
       <MemoEditorModal
-        isOpen={!!activeMemoId}
-        memoId={activeMemoId}
-        onClose={() => setActiveMemoId(null)}
+        isOpen={isMemoEditorOpen}
+        memoId={memoEditorTargetId}
+        onClose={closeMemoEditor}
       />
 
       {/* 🍞 앱 전역 실시간 토스트 피드백 (3초 자동 소멸) */}

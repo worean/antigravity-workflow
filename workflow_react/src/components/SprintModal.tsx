@@ -238,7 +238,7 @@ export const SprintModal: React.FC<SprintModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                color: 'var(--text-bright, #fff)',
+                color: 'var(--text-bright)',
               }}
             >
               {sprint ? (

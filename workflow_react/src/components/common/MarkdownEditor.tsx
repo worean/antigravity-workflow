@@ -179,7 +179,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         flexDirection: 'column',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-light)',
-        background: 'rgba(15, 23, 42, 0.4)',
+        background: 'var(--bg-card)',
         overflow: 'hidden',
       }}
     >
@@ -190,7 +190,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           flexWrap: 'wrap',
           gap: '4px',
           padding: '6px 8px',
-          background: 'rgba(255, 255, 255, 0.03)',
+          background: 'var(--bg-subtle)',
           borderBottom: '1px solid var(--border-light)',
         }}
       >
@@ -215,7 +215,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               }}
               title={btn.label}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)';
+                e.currentTarget.style.background = 'var(--primary-subtle)';
                 e.currentTarget.style.color = 'var(--primary)';
               }}
               onMouseLeave={(e) => {
@@ -245,7 +245,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           width: '100%',
           border: 'none',
           borderRadius: 0,
-          background: 'transparent',
+          background: 'var(--bg-input)',
+          color: 'var(--text-main)',
           minHeight,
           resize: 'vertical',
           fontSize: '0.88rem',

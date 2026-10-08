@@ -22,7 +22,7 @@ export const WorkspaceChannelTree: React.FC<WorkspaceChannelTreeProps> = memo(({
   toggleCategoryCollapse,
   handleOpenCreateForCategory,
 }) => {
-  const globalChannels = channels.filter((c) => c.type === 'GLOBAL');
+  const globalChannels = channels.filter((c) => c.type === 'GLOBAL' || c.type === 'GENERAL');
   const projectChannels = channels.filter((c) => c.type === 'PROJECT');
   const groupChannels = channels.filter((c) => c.type === 'GROUP');
 

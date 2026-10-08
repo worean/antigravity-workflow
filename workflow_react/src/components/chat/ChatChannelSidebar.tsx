@@ -1,5 +1,5 @@
 ﻿import React, { memo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, CheckCheck } from 'lucide-react';
 import type { ChatChannel, ChannelType } from '@/types';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { WorkspaceChannelTree, DirectMessageList } from './sidebar';
@@ -15,6 +15,7 @@ interface ChatChannelSidebarProps {
   toggleCategoryCollapse: (cat: ChannelType) => void;
   handleOpenCreateForCategory: (cat: ChannelType, e: React.MouseEvent) => void;
   fetchChannels: () => Promise<void>;
+  onMarkAllAsRead?: () => void;
   onOpenAuth?: () => void;
 }
 
@@ -28,17 +29,26 @@ export const ChatChannelSidebar: React.FC<ChatChannelSidebarProps> = memo(({
   collapsedCategories,
   toggleCategoryCollapse,
   handleOpenCreateForCategory,
+  onMarkAllAsRead,
 }) => {
   const { currentWorkspace } = useWorkspace();
 
   const filteredChannels = channels.filter((c) => {
-    if (activeCategory !== 'ALL' && c.type !== activeCategory) return false;
+    if (activeCategory !== 'ALL') {
+      if (activeCategory === 'GLOBAL') {
+        if (c.type !== 'GLOBAL' && c.type !== 'GENERAL') return false;
+      } else if (c.type !== activeCategory) {
+        return false;
+      }
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return c.name.toLowerCase().includes(q) || (c.topic && c.topic.toLowerCase().includes(q));
     }
     return true;
   });
+
+  const totalUnread = channels.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   return (
     <div
@@ -63,6 +73,35 @@ export const ChatChannelSidebar: React.FC<ChatChannelSidebarProps> = memo(({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-bright)' }}>채팅 채널</span>
+          {onMarkAllAsRead && totalUnread > 0 && (
+            <button
+              type="button"
+              onClick={onMarkAllAsRead}
+              title="모든 채널 읽음 처리"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                padding: '2px 4px',
+                borderRadius: '4px',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+            >
+              <CheckCheck size={14} />
+              <span>모두 읽음</span>
+            </button>
+          )}
         </div>
 
         <div

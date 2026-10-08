@@ -1,11 +1,14 @@
 ﻿import React, { useMemo } from 'react';
 import type { CalendarEvent } from '@/types';
+import { usePrefStore } from '@/stores/usePrefStore';
+import { formatDateOnly } from '@/utils/dateUtils';
 
 interface CalendarMonthGridProps {
   currentDate: Date;
   events: CalendarEvent[];
   onSelectEvent: (event: CalendarEvent) => void;
   onDateClick: (dateStr: string) => void;
+  isSundayStart?: boolean;
 }
 
 interface DayInfo {
@@ -27,20 +30,25 @@ interface EventSegment {
   trackIndex: number; // 수직 위치 슬롯 (0, 1, 2...)
 }
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
 export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
   currentDate,
   events,
   onSelectEvent,
   onDateClick,
+  isSundayStart: isSundayStartProp,
 }) => {
+  const storeSundayStart = usePrefStore((s) => s.isSundayStart);
+  const isSunday = isSundayStartProp !== undefined ? isSundayStartProp : storeSundayStart;
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth(); // 0-indexed
 
-  // 1. 달력 일자 매트릭스 계산 (주 단위 7일 청크로 분할)
+  // 1. 달력 일자 매트릭스 계산 (주 단위 7일 청크로 분할, 일요일/월요일 시작 옵션 반영)
   const weeks = useMemo<DayInfo[][]>(() => {
     const firstDayOfWeek = new Date(year, month, 1).getDay();
+    const prevDaysCount = isSunday ? firstDayOfWeek : (firstDayOfWeek + 6) % 7;
     const lastDateOfMonth = new Date(year, month + 1, 0).getDate();
     const lastDateOfPrevMonth = new Date(year, month, 0).getDate();
 
@@ -51,14 +59,14 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
     const allDays: DayInfo[] = [];
 
     // 이전 달 날짜들
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    for (let i = prevDaysCount - 1; i >= 0; i--) {
       const d = lastDateOfPrevMonth - i;
       const prevDate = new Date(year, month - 1, d);
       const dayOfWeek = prevDate.getDay();
       allDays.push({
         date: d,
         monthOffset: -1,
-        dateStr: prevDate.toISOString().split('T')[0],
+        dateStr: formatDateOnly(prevDate),
         isToday: false,
         isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
         dayOfWeek,
@@ -72,7 +80,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
       allDays.push({
         date: i,
         monthOffset: 0,
-        dateStr: curDate.toISOString().split('T')[0],
+        dateStr: formatDateOnly(curDate),
         isToday: isCurrentMonth && i === todayDate,
         isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
         dayOfWeek,
@@ -87,7 +95,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
       allDays.push({
         date: i,
         monthOffset: 1,
-        dateStr: nextDate.toISOString().split('T')[0],
+        dateStr: formatDateOnly(nextDate),
         isToday: false,
         isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
         dayOfWeek,
@@ -100,42 +108,32 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
       weekChunks.push(allDays.slice(i, i + 7));
     }
     return weekChunks;
-  }, [year, month]);
+  }, [year, month, isSunday]);
 
   // 이벤트 스타일 클래스 매핑
   const getEventClass = (evt: CalendarEvent) => {
     if (evt.type === 'google') return 'calendar-event-google google';
     if (evt.type === 'sprint') return 'calendar-event-sprint';
-    switch (evt.priority?.toUpperCase()) {
-      case 'URGENT':
-      case 'CRITICAL':
-        return 'calendar-event-urgent';
-      case 'HIGH':
-        return 'calendar-event-high';
-      case 'MEDIUM':
-        return 'calendar-event-medium';
-      case 'LOW':
-      default:
-        return 'calendar-event-low';
-    }
+    const p = evt.priority?.toUpperCase();
+    if (p === 'URGENT' || p === 'CRITICAL') return 'calendar-event-urgent';
+    if (p === 'HIGH') return 'calendar-event-high';
+    if (p === 'MEDIUM') return 'calendar-event-medium';
+    return 'calendar-event-low';
   };
 
   // 주(Week) 단위 세그먼트 계산 (다일정 Bar 연속 렌더링 & 충돌 방지 Greedy Slot Allocation)
   const getWeekSegments = (week: DayInfo[]): EventSegment[] => {
     const weekStart = week[0].dateStr;
     const weekEnd = week[6].dateStr;
-
     const rawSegments: Omit<EventSegment, 'trackIndex'>[] = [];
 
     events.forEach((evt) => {
       const evtStart = evt.startDate.split('T')[0];
       const evtEnd = evt.endDate.split('T')[0];
 
-      // 이번 주와 겹치는지 확인
       if (evtStart <= weekEnd && evtEnd >= weekStart) {
         const effectiveStart = evtStart < weekStart ? weekStart : evtStart;
         const effectiveEnd = evtEnd > weekEnd ? weekEnd : evtEnd;
-
         const startIdx = week.findIndex((d) => d.dateStr === effectiveStart);
         const endIdx = week.findIndex((d) => d.dateStr === effectiveEnd);
 
@@ -169,8 +167,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
     rawSegments.forEach((seg) => {
       let assignedTrack = -1;
       for (let i = 0; i < slots.length; i++) {
-        const lastInSlot = slots[i][slots[i].length - 1];
-        if (lastInSlot.endCol < seg.startCol) {
+        if (slots[i][slots[i].length - 1].endCol < seg.startCol) {
           slots[i].push(seg);
           assignedTrack = i;
           break;
@@ -188,23 +185,21 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
 
   return (
     <div className="calendar-month-grid">
-      {/* 1. 상단 요일 헤더 */}
+      {/* 1. 상단 요일 헤더 (일요일 또는 월요일 시작) */}
       <div className="calendar-month-weekdays">
-        {WEEKDAYS.map((w, idx) => (
-          <div
-            key={w}
-            style={{
-              color:
-                idx === 0
-                  ? '#f14c4c'
-                  : idx === 6
-                  ? '#9cdcfe'
-                  : 'var(--text-sub)',
-            }}
-          >
-            {w}
-          </div>
-        ))}
+        {[0, 1, 2, 3, 4, 5, 6].map((offset) => {
+          const dayOfWeek = isSunday ? offset : (offset + 1) % 7;
+          return (
+            <div
+              key={dayOfWeek}
+              style={{
+                color: dayOfWeek === 0 ? '#f14c4c' : dayOfWeek === 6 ? '#9cdcfe' : 'var(--text-sub)',
+              }}
+            >
+              {WEEKDAY_NAMES[dayOfWeek]}
+            </div>
+          );
+        })}
       </div>
 
       {/* 2. 주(Week) 단위 행 렌더링 (연속 Bar Overlay 지원) */}

@@ -1,9 +1,11 @@
-﻿import { useState, useEffect, useMemo, useRef, useCallback, type RefObject } from 'react';
+﻿﻿import { useState, useEffect, useMemo, useCallback, type RefObject } from 'react';
 import type { Issue } from '@/types';
 import type { DragState } from '@/types/wbs';
 import { updateIssue, batchUpdateIssueSchedules } from '@/services/api';
 import { formatDateOnly, parseLocalDate, addDays, diffDays } from '@/utils/dateUtils';
+import { calculateSnapDates } from '@/utils/wbs';
 import { useUIStore } from '@/stores/useUIStore';
+import { useWBSAutoScroll } from './useWBSAutoScroll';
 
 interface UseWBSGanttDragProps {
   issues: Issue[];
@@ -29,10 +31,8 @@ export const useWBSGanttDrag = ({
   ganttHeaderRef,
 }: UseWBSGanttDragProps) => {
   const [dragState, setDragState] = useState<DragState | null>(null);
-  const lastMousePosRef = useRef<{ clientX: number; clientY: number } | null>(null);
-  const autoScrollFrameRef = useRef<number | null>(null);
 
-  // Helper to find all descendants of an issue (모든 자손 하위 이슈 ID 집합 구하기)
+  // Helper: 모든 자손 하위 이슈 ID 집합 구하기
   const getDescendantIssueIds = useCallback(
     (parentIssueId: number): Set<number> => {
       const descSet = new Set<number>();
@@ -51,6 +51,37 @@ export const useWBSGanttDrag = ({
     [issues]
   );
 
+  // 스크롤 발생 시 드래그 상태 날짜 재계산 콜백
+  const handleScrollTick = useCallback(
+    (clientX: number, targetScroll: number) => {
+      if (!dragState) return;
+      const { nextStart, nextDue } = calculateSnapDates(dragState, clientX, targetScroll, dayWidth);
+      setDragState((prev) => {
+        if (!prev) return null;
+        if (
+          prev.currentStartDate.getTime() === nextStart.getTime() &&
+          prev.currentDueDate.getTime() === nextDue.getTime()
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          currentStartDate: nextStart,
+          currentDueDate: nextDue,
+        };
+      });
+    },
+    [dragState, dayWidth]
+  );
+
+  // 엣지 오토스크롤 전담 훅
+  const { updateMousePos, clearMousePos } = useWBSAutoScroll({
+    isDragging: !!dragState,
+    scrollContainerRef: ganttBodyRef,
+    headerContainerRef: ganttHeaderRef,
+    onScrollTick: handleScrollTick,
+  });
+
   // 드래그 시작 핸들러
   const handleMouseDownOnBar = (
     e: React.MouseEvent,
@@ -63,7 +94,7 @@ export const useWBSGanttDrag = ({
     if (updatingIssueId) return;
 
     const initialScrollLeft = ganttBodyRef.current?.scrollLeft || 0;
-    lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
+    updateMousePos(e.clientX, e.clientY);
 
     setDragState({
       issueId: iss.id,
@@ -77,7 +108,7 @@ export const useWBSGanttDrag = ({
     });
   };
 
-  // Live Date Map (드래그 상태를 실시간 반영한 이슈별 유효 시작일/기한 및 상위 이슈 자동 롤업 계산)
+  // Live Date Map (실시간 계산 롤업)
   const liveDateMap = useMemo(() => {
     const map = new Map<number, { start: Date | null; end: Date | null; isAffected: boolean }>();
     const issueMap = new Map<number, Issue>();
@@ -177,65 +208,14 @@ export const useWBSGanttDrag = ({
     return map;
   }, [issues, dragState, getDescendantIssueIds]);
 
-  // 날짜 계산 헬퍼 함수
-  const updateDatesFromMouseAndScroll = useCallback(
-    (
-      currentDrag: DragState,
-      clientX: number,
-      scrollLeft: number
-    ): { nextStart: Date; nextDue: Date } => {
-      const deltaMouse = clientX - currentDrag.startX;
-      const deltaScroll = scrollLeft - currentDrag.initialScrollLeft;
-      const totalDeltaX = deltaMouse + deltaScroll;
-      const snapDays = Math.round(totalDeltaX / dayWidth);
-
-      let nextStart = currentDrag.originalStartDate;
-      let nextDue = currentDrag.originalDueDate;
-
-      if (currentDrag.type === 'move') {
-        nextStart = addDays(currentDrag.originalStartDate, snapDays);
-        nextDue = addDays(currentDrag.originalDueDate, snapDays);
-      } else if (currentDrag.type === 'resize-left') {
-        const candidateStart = addDays(currentDrag.originalStartDate, snapDays);
-        if (candidateStart <= currentDrag.originalDueDate) {
-          nextStart = candidateStart;
-        } else {
-          nextStart = currentDrag.originalDueDate;
-        }
-        nextDue = currentDrag.originalDueDate;
-      } else if (currentDrag.type === 'resize-right') {
-        const candidateDue = addDays(currentDrag.originalDueDate, snapDays);
-        if (candidateDue >= currentDrag.originalStartDate) {
-          nextDue = candidateDue;
-        } else {
-          nextDue = currentDrag.originalStartDate;
-        }
-        nextStart = currentDrag.originalStartDate;
-      }
-
-      return { nextStart, nextDue };
-    },
-    [dayWidth]
-  );
-
-  // Global Mouse Move & Mouse Up for Dragging with Edge Zone Auto-Scroll
+  // 마우스 이동 및 종료 이벤트 리스너
   useEffect(() => {
-    if (!dragState) {
-      if (autoScrollFrameRef.current) {
-        cancelAnimationFrame(autoScrollFrameRef.current);
-        autoScrollFrameRef.current = null;
-      }
-      return;
-    }
-
-    const EDGE_ZONE = 70; // 가장자리 감지 영역 (px)
-    const MAX_SCROLL_SPEED = 12; // 최대 스크롤 속도 (px / frame)
+    if (!dragState) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
-
+      updateMousePos(e.clientX, e.clientY);
       const scrollLeft = ganttBodyRef.current?.scrollLeft || 0;
-      const { nextStart, nextDue } = updateDatesFromMouseAndScroll(dragState, e.clientX, scrollLeft);
+      const { nextStart, nextDue } = calculateSnapDates(dragState, e.clientX, scrollLeft, dayWidth);
 
       setDragState((prev) => {
         if (!prev) return null;
@@ -253,73 +233,8 @@ export const useWBSGanttDrag = ({
       });
     };
 
-    // Auto-scroll loop using requestAnimationFrame
-    const autoScrollLoop = () => {
-      if (!dragState || !ganttBodyRef.current || !lastMousePosRef.current) {
-        autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
-        return;
-      }
-
-      const rect = ganttBodyRef.current.getBoundingClientRect();
-      const clientX = lastMousePosRef.current.clientX;
-
-      let scrollDelta = 0;
-
-      // 좌측 엣지 감지 (rect.left ~ rect.left + EDGE_ZONE)
-      if (clientX < rect.left + EDGE_ZONE && clientX >= rect.left - 60) {
-        const dist = (rect.left + EDGE_ZONE) - clientX;
-        const ratio = Math.min(1, Math.max(0.15, dist / EDGE_ZONE));
-        scrollDelta = -Math.round(ratio * MAX_SCROLL_SPEED);
-      }
-      // 우측 엣지 감지 (rect.right - EDGE_ZONE ~ rect.right + 60)
-      else if (clientX > rect.right - EDGE_ZONE && clientX <= rect.right + 60) {
-        const dist = clientX - (rect.right - EDGE_ZONE);
-        const ratio = Math.min(1, Math.max(0.15, dist / EDGE_ZONE));
-        scrollDelta = Math.round(ratio * MAX_SCROLL_SPEED);
-      }
-
-      if (scrollDelta !== 0) {
-        const currentScroll = ganttBodyRef.current.scrollLeft;
-        const maxScroll = ganttBodyRef.current.scrollWidth - ganttBodyRef.current.clientWidth;
-        const targetScroll = Math.max(0, Math.min(maxScroll, currentScroll + scrollDelta));
-
-        if (targetScroll !== currentScroll) {
-          ganttBodyRef.current.scrollLeft = targetScroll;
-          if (ganttHeaderRef.current) {
-            ganttHeaderRef.current.scrollLeft = targetScroll;
-          }
-
-          // 스크롤이 발생함에 따라 날짜도 즉시 재계산 및 갱신
-          const { nextStart, nextDue } = updateDatesFromMouseAndScroll(dragState, clientX, targetScroll);
-          setDragState((prev) => {
-            if (!prev) return null;
-            if (
-              prev.currentStartDate.getTime() === nextStart.getTime() &&
-              prev.currentDueDate.getTime() === nextDue.getTime()
-            ) {
-              return prev;
-            }
-            return {
-              ...prev,
-              currentStartDate: nextStart,
-              currentDueDate: nextDue,
-            };
-          });
-        }
-      }
-
-      autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
-    };
-
-    autoScrollFrameRef.current = requestAnimationFrame(autoScrollLoop);
-
     const handleMouseUp = async () => {
-      if (autoScrollFrameRef.current) {
-        cancelAnimationFrame(autoScrollFrameRef.current);
-        autoScrollFrameRef.current = null;
-      }
-      lastMousePosRef.current = null;
-
+      clearMousePos();
       const current = dragState;
       if (!current) return;
 
@@ -334,7 +249,6 @@ export const useWBSGanttDrag = ({
         return;
       }
 
-      // 이전 이슈 상태 스냅샷 저장 (API 실패 시 원상복구용)
       const previousIssues = [...issues];
 
       // 1. 낙관적 UI 업데이트
@@ -352,7 +266,6 @@ export const useWBSGanttDrag = ({
         })
       );
 
-      // 드래그 상태 해제
       setDragState(null);
       setUpdatingIssueId(current.issueId);
 
@@ -401,14 +314,23 @@ export const useWBSGanttDrag = ({
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
-      if (autoScrollFrameRef.current) {
-        cancelAnimationFrame(autoScrollFrameRef.current);
-        autoScrollFrameRef.current = null;
-      }
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, dayWidth, loadProjectData, getDescendantIssueIds, issues, liveDateMap, updateDatesFromMouseAndScroll, setIssues, setUpdatingIssueId, setErrorMessage, ganttBodyRef, ganttHeaderRef]);
+  }, [
+    dragState,
+    dayWidth,
+    loadProjectData,
+    getDescendantIssueIds,
+    issues,
+    liveDateMap,
+    setIssues,
+    setUpdatingIssueId,
+    setErrorMessage,
+    ganttBodyRef,
+    updateMousePos,
+    clearMousePos,
+  ]);
 
   return {
     dragState,

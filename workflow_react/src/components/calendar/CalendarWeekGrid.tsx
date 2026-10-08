@@ -1,12 +1,15 @@
 ﻿import React from 'react';
 import { Clock, User } from 'lucide-react';
 import type { CalendarEvent } from '@/types';
+import { usePrefStore } from '@/stores/usePrefStore';
+import { formatDateOnly } from '@/utils/dateUtils';
 
 interface CalendarWeekGridProps {
   currentDate: Date;
   events: CalendarEvent[];
   onSelectEvent: (event: CalendarEvent) => void;
   onDateClick: (dateStr: string) => void;
+  isSundayStart?: boolean;
 }
 
 const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -16,25 +19,32 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
   events,
   onSelectEvent,
   onDateClick,
+  isSundayStart: isSundayStartProp,
 }) => {
-  // 1. 현재 날짜가 속한 주의 일요일(시작일) 계산
+  const storeSundayStart = usePrefStore((s) => s.isSundayStart);
+  const isSunday = isSundayStartProp !== undefined ? isSundayStartProp : storeSundayStart;
+
+  // 1. 현재 날짜가 속한 주의 시작일 계산 (일요일 또는 월요일 시작)
   const startOfWeek = new Date(currentDate);
   const currentDay = startOfWeek.getDay();
-  startOfWeek.setDate(startOfWeek.getDate() - currentDay);
+  const diff = isSunday ? currentDay : (currentDay + 6) % 7;
+  startOfWeek.setDate(startOfWeek.getDate() - diff);
 
-  const today = new Date().toISOString().split('T')[0];
+  const todayStr = formatDateOnly(new Date());
 
-  const weekDays: { name: string; date: number; dateStr: string; isToday: boolean }[] = [];
+  const weekDays: { name: string; date: number; dateStr: string; isToday: boolean; dayOfWeek: number }[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = formatDateOnly(d);
+    const dayOfWeek = d.getDay();
 
     weekDays.push({
-      name: WEEKDAYS[i],
+      name: WEEKDAYS[dayOfWeek],
       date: d.getDate(),
       dateStr,
-      isToday: dateStr === today,
+      dayOfWeek,
+      isToday: dateStr === todayStr,
     });
   }
 
@@ -72,7 +82,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', flex: 1, minHeight: '520px' }}>
-      {weekDays.map((day, idx) => {
+      {weekDays.map((day) => {
         const dayEvents = getEventsForDate(day.dateStr);
 
         return (
@@ -108,9 +118,9 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                   fontSize: '0.78rem',
                   fontWeight: 600,
                   color:
-                    idx === 0
+                    day.dayOfWeek === 0
                       ? '#f14c4c'
-                      : idx === 6
+                      : day.dayOfWeek === 6
                       ? '#9cdcfe'
                       : 'var(--text-sub)',
                 }}
