@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Issue } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Spinner } from '@/components/common';
@@ -12,15 +12,17 @@ import {
 } from '@/utils/wbsUtils';
 import { useWBSProjectData } from '@/hooks/useWBSProjectData';
 import { useWBSGanttDrag } from '@/hooks/useWBSGanttDrag';
-import { WBSToolbar, WBSMainSplitView } from '@/components/wbs';
+import { WBSToolbar, WBSMainSplitView, WBSColorConfigModal } from '@/components/wbs';
 import { IssueDetailDrawer } from '@/components/issueDetail/IssueDetailDrawer';
 import { usePrefStore } from '@/stores/usePrefStore';
+import { useUIStore } from '@/stores/useUIStore';
 
 interface WBSPageProps {
   selectedProjectId?: number | null;
   onFilterChange?: (projectId: number | null) => void;
   onSelectIssue?: (issue: Issue) => void;
   onOpenAuth?: () => void;
+  refreshKey?: number;
 }
 
 export const WBSPage: React.FC<WBSPageProps> = ({
@@ -28,6 +30,7 @@ export const WBSPage: React.FC<WBSPageProps> = ({
   onFilterChange,
   onSelectIssue,
   onOpenAuth,
+  refreshKey,
 }) => {
   const { isAuthenticated } = useAuth();
 
@@ -39,8 +42,14 @@ export const WBSPage: React.FC<WBSPageProps> = ({
   // WBS Local Issue Detail Drawer State (독립 오버레이 슬라이드)
   const [selectedDrawerIssueId, setSelectedDrawerIssueId] = useState<number | null>(null);
 
-  // Preference: isSundayStart (Zustand 실시간 반응형 구독)
+  // Preference: isSundayStart & WBS Color Config (Zustand 실시간 반응형 구독)
   const isSundayStart = usePrefStore((s) => s.isSundayStart);
+  const wbsColorMode = usePrefStore((s) => s.wbsColorMode);
+  const wbsDefaultTheme = usePrefStore((s) => s.wbsDefaultTheme);
+  const wbsRootColorMap = usePrefStore((s) => s.wbsRootColorMap);
+
+  // WBS Color Config Modal State
+  const [isColorModalOpen, setIsColorModalOpen] = useState<boolean>(false);
 
   // Collapse / Expand State (Set of collapsed parent issue IDs)
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
@@ -77,10 +86,54 @@ export const WBSPage: React.FC<WBSPageProps> = ({
     onFilterChange,
   });
 
+  // Global Issue Modal Trigger for Sub-Issue & Root-Issue Creation
+  const openIssueModal = useUIStore((s) => s.openIssueModal);
+  const closeIssueDetail = useUIStore((s) => s.closeIssueDetail);
+
+  // WBS 페이지를 벗어날 때 열려있던 드로어 상태 확실히 정리
+  useEffect(() => {
+    return () => {
+      setSelectedDrawerIssueId(null);
+      closeIssueDetail();
+    };
+  }, [closeIssueDetail]);
+
+  // External refresh trigger (e.g. issue created/updated globally)
+  useEffect(() => {
+    if (refreshKey) {
+      loadProjectData(false);
+    }
+  }, [refreshKey, loadProjectData]);
+
+  // 최상위 일감(루트 이슈) 신규 생성 핸들러 (해당 프로젝트 내에서)
+  const handleAddNewRootIssue = () => {
+    openIssueModal(selectedProjectId || undefined, null, null);
+  };
+
+  // 하위 이슈 생성 핸들러 (특정 부모 이슈의 속성 및 4개 기간 자동 세팅)
+  const handleAddSubIssue = (parentIssue: Issue) => {
+    // 부모 이슈가 접혀 있다면 펼쳐서 나중에 생성된 하위 이슈가 보이도록 함
+    if (collapsedIds.has(parentIssue.id)) {
+      setCollapsedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(parentIssue.id);
+        return next;
+      });
+    }
+    openIssueModal(parentIssue.projectId, parentIssue, parentIssue.id);
+  };
+
+  // 최상위 일감(루트 이슈) 목록 (색상 설정 모달용)
+  const rootIssues = useMemo(() => issues.filter((iss) => !iss.parentId), [issues]);
+
   // 2. Build Tree & Compute Dates
   const { flatWBSItems, timelineRange } = useMemo(() => {
-    return buildWBSTree(issues, collapsedIds);
-  }, [issues, collapsedIds]);
+    return buildWBSTree(issues, collapsedIds, null, {
+      mode: wbsColorMode,
+      defaultTheme: wbsDefaultTheme,
+      rootColorMap: wbsRootColorMap,
+    });
+  }, [issues, collapsedIds, wbsColorMode, wbsDefaultTheme, wbsRootColorMap]);
 
   // 3. Gantt Drag & Drop, Resize & Edge Zone Auto-Scroll Hook
   const {
@@ -222,6 +275,8 @@ export const WBSPage: React.FC<WBSPageProps> = ({
         onOpenAuth={onOpenAuth}
         isBackgroundSyncing={isBackgroundSyncing}
         updatingIssueId={updatingIssueId}
+        onAddNewRootIssue={handleAddNewRootIssue}
+        onOpenColorModal={() => setIsColorModalOpen(true)}
       />
 
       {/* Error Message Toast */}
@@ -272,7 +327,15 @@ export const WBSPage: React.FC<WBSPageProps> = ({
         </div>
       ) : issues.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-          선택된 프로젝트/스프린트에 등록된 일감(이슈)이 없습니다.
+          <p style={{ marginBottom: '14px' }}>선택된 프로젝트/스프린트에 등록된 일감(이슈)이 없습니다.</p>
+          <button
+            type="button"
+            onClick={handleAddNewRootIssue}
+            className="btn btn-primary"
+            style={{ padding: '6px 16px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            ➕ 첫 번째 일감(최상위 이슈) 추가하기
+          </button>
         </div>
       ) : (
         <WBSMainSplitView
@@ -286,6 +349,8 @@ export const WBSPage: React.FC<WBSPageProps> = ({
             setSelectedDrawerIssueId(iss.id);
             if (onSelectIssue) onSelectIssue(iss);
           }}
+          onAddSubIssue={handleAddSubIssue}
+          onAddNewRootIssue={handleAddNewRootIssue}
           tableBodyRef={tableBodyRef}
           onTableScroll={handleTableScroll}
           leftWidth={leftWidth}
@@ -314,9 +379,19 @@ export const WBSPage: React.FC<WBSPageProps> = ({
         isOpen={!!selectedDrawerIssueId}
         issueId={selectedDrawerIssueId}
         projectId={selectedProjectId}
-        onClose={() => setSelectedDrawerIssueId(null)}
+        onClose={() => {
+          setSelectedDrawerIssueId(null);
+          closeIssueDetail();
+        }}
         onIssueUpdated={() => loadProjectData(false)}
         onOpenAuth={onOpenAuth}
+      />
+
+      {/* WBS Color Config Modal (Portal Modal) */}
+      <WBSColorConfigModal
+        isOpen={isColorModalOpen}
+        onClose={() => setIsColorModalOpen(false)}
+        rootIssues={rootIssues}
       />
     </div>
   );

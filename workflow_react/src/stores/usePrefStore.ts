@@ -14,10 +14,14 @@ export interface PrefSchema {
   activeWorkspaceId: number | null;
   activeTab: string;
   theme: ThemeMode;
+  // WBS 간트차트 색상 설정
+  wbsColorMode: 'multi' | 'single';
+  wbsDefaultTheme: string;
+  wbsRootColorMap: Record<number, string>;
 }
 
 export const DEFAULT_PREFS: PrefSchema = {
-  isSundayStart: false,
+  isSundayStart: true,
   defaultPriority: 3,
   compactCards: false,
   desktopNotifications: true,
@@ -25,6 +29,9 @@ export const DEFAULT_PREFS: PrefSchema = {
   activeWorkspaceId: null,
   activeTab: 'dashboard',
   theme: 'dark',
+  wbsColorMode: 'multi',
+  wbsDefaultTheme: 'blue',
+  wbsRootColorMap: {},
 };
 
 export interface PrefStoreState extends PrefSchema {
@@ -41,6 +48,12 @@ export interface PrefStoreState extends PrefSchema {
   setActiveWorkspaceId: (value: number | null) => void;
   setActiveTab: (value: string) => void;
   setTheme: (theme: ThemeMode) => void;
+  // WBS 간트 색상 세터
+  setWBSColorMode: (mode: 'multi' | 'single') => void;
+  setWBSDefaultTheme: (theme: string) => void;
+  setWBSRootColor: (rootIssueId: number, color: string) => void;
+  removeWBSRootColor: (rootIssueId: number) => void;
+  resetWBSColors: () => void;
 
   // 인증 세터
   setAuthToken: (token: string | null) => void;
@@ -72,6 +85,28 @@ export const usePrefStore = create<PrefStoreState>()(
         applyTheme(theme);
         set({ theme });
       },
+
+      setWBSColorMode: (wbsColorMode) => set({ wbsColorMode }),
+      setWBSDefaultTheme: (wbsDefaultTheme) => set({ wbsDefaultTheme }),
+      setWBSRootColor: (rootIssueId, color) =>
+        set((state) => ({
+          wbsRootColorMap: {
+            ...state.wbsRootColorMap,
+            [rootIssueId]: color,
+          },
+        })),
+      removeWBSRootColor: (rootIssueId) =>
+        set((state) => {
+          const next = { ...state.wbsRootColorMap };
+          delete next[rootIssueId];
+          return { wbsRootColorMap: next };
+        }),
+      resetWBSColors: () =>
+        set({
+          wbsColorMode: 'multi',
+          wbsDefaultTheme: 'blue',
+          wbsRootColorMap: {},
+        }),
 
       setAuthToken: (authToken) => set({ authToken }),
       setCurrentUser: (currentUser) => set({ currentUser }),

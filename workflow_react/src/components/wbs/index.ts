@@ -5,3 +5,5 @@ export * from './WBSGanttBar';
 export * from './WBSGanttHeader';
 export * from './WBSGanttTimeline';
 export * from './WBSMainSplitView';
+export * from './WBSColorConfigModal';
+export * from './colorModal';

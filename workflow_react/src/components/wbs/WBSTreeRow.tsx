@@ -5,6 +5,7 @@ import {
   ChevronRight,
   ChevronDown,
   GripVertical,
+  Plus,
 } from 'lucide-react';
 import { StatusBadge, Avatar } from '@/components/common';
 import { MemoIndicator } from '@/components/memos';
@@ -18,6 +19,7 @@ interface WBSTreeRowProps {
   updatingIssueId: number | null;
   onToggleCollapse: (issueId: number) => void;
   onSelectIssue?: (issue: Issue) => void;
+  onAddSubIssue?: (parentIssue: Issue) => void;
   onDragStart: (e: React.DragEvent, issueId: number) => void;
   onDragOver: (e: React.DragEvent, issue: Issue) => void;
   onDragLeave: (e: React.DragEvent) => void;
@@ -34,6 +36,7 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
   updatingIssueId,
   onToggleCollapse,
   onSelectIssue,
+  onAddSubIssue,
   onDragStart,
   onDragOver,
   onDragLeave,
@@ -45,16 +48,16 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
   let rowBg = item.isParent ? 'rgba(255,255,255,0.03)' : 'transparent';
   let rowBoxShadow: string | undefined = undefined;
   let rowBorderTop: string | undefined = undefined;
-  let rowBorderBottom = '1px solid #333333';
+  let rowBorderBottom = '1px solid var(--border-divider)';
 
   if (isTarget) {
     if (treeDropTarget?.position === 'inside') {
-      rowBg = 'rgba(0, 122, 204, 0.28)';
-      rowBoxShadow = 'inset 0 0 0 2px #007acc';
+      rowBg = 'var(--primary-subtle)';
+      rowBoxShadow = 'inset 0 0 0 2px var(--primary)';
     } else if (treeDropTarget?.position === 'before') {
-      rowBorderTop = '2.5px solid #38bdf8';
+      rowBorderTop = '2.5px solid var(--accent-cyan)';
     } else if (treeDropTarget?.position === 'after') {
-      rowBorderBottom = '2.5px solid #38bdf8';
+      rowBorderBottom = '2.5px solid var(--accent-cyan)';
     }
   }
 
@@ -63,6 +66,7 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
   return (
     <div
       key={iss.id}
+      className="wbs-tree-row"
       draggable={!updatingIssueId}
       onDragStart={(e) => onDragStart(e, iss.id)}
       onDragOver={(e) => onDragOver(e, iss)}
@@ -94,7 +98,7 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
         background: rowBg,
         boxShadow: rowBoxShadow,
         opacity: isBeingDragged ? 0.35 : 1,
-        transition: 'background 0.1s, opacity 0.15s',
+        transition: 'background-color 0.15s ease, opacity 0.15s ease',
         boxSizing: 'border-box',
       }}
       title={
@@ -106,12 +110,6 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
           ? `"${iss.title}"의 아래쪽(동일 계층)으로 이동`
           : `#${iss.id} ${iss.title} - 클릭하여 상세 및 편집`
       }
-      onMouseEnter={(e) => {
-        if (!isTarget) e.currentTarget.style.background = '#2a2d2e';
-      }}
-      onMouseLeave={(e) => {
-        if (!isTarget) e.currentTarget.style.background = rowBg;
-      }}
     >
       {/* 개인 메모 인디케이터 (좌측 상단 붉은색 삼각형) */}
       <MemoIndicator issueId={iss.id} />
@@ -207,17 +205,33 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
       </div>
 
       {/* Status */}
-      <div style={{ width: '70px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ width: '70px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
         <StatusBadge status={iss.status} size="sm" />
       </div>
 
       {/* Assignee */}
-      <div style={{ width: '65px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '3px' }}>
+      <div style={{ width: '65px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
         {iss.assignee ? (
           <Avatar user={iss.assignee} name={iss.assignee.name || ''} size={16} shape="circle" />
         ) : (
           <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>미지정</span>
         )}
+      </div>
+
+      {/* 🚀 하위 이슈 추가 (+) 액션 버튼 (맨 오른쪽에서 호버 시 부드러운 슬라이드로 등장) */}
+      <div style={{ width: '28px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+        <button
+          type="button"
+          className="wbs-add-subtask-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onAddSubIssue) onAddSubIssue(iss);
+          }}
+          title={`#${iss.id} "${iss.title}"에 하위 일감 추가`}
+          aria-label={`#${iss.id} 하위 일감 추가`}
+        >
+          <Plus size={13} />
+        </button>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 ﻿import React, { useState, type RefObject } from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, TreeDropTarget } from '@/types/wbs';
+import { Plus } from 'lucide-react';
 import { WBSTreeRow } from './WBSTreeRow';
 import { updateIssue } from '@/services/api';
 import { useUIStore } from '@/stores/useUIStore';
@@ -13,6 +14,8 @@ interface WBSTreeTableProps {
   onToggleCollapse: (issueId: number) => void;
   setCollapsedIds: React.Dispatch<React.SetStateAction<Set<number>>>;
   onSelectIssue?: (issue: Issue) => void;
+  onAddSubIssue?: (parentIssue: Issue) => void;
+  onAddNewRootIssue?: () => void;
   tableBodyRef: RefObject<HTMLDivElement | null>;
   onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   leftWidth?: number;
@@ -31,6 +34,8 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
   onToggleCollapse,
   setCollapsedIds,
   onSelectIssue,
+  onAddSubIssue,
+  onAddNewRootIssue,
   tableBodyRef,
   onScroll,
   leftWidth = 440,
@@ -180,6 +185,7 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
         <div style={{ flex: 1, paddingLeft: '4px' }}>작업명 / 이슈 제목 (WBS)</div>
         <div style={{ width: '70px', textAlign: 'center' }}>상태</div>
         <div style={{ width: '65px', textAlign: 'center' }}>담당자</div>
+        <div style={{ width: '28px', flexShrink: 0, textAlign: 'center' }} />
       </div>
 
       {/* Left Body */}
@@ -210,6 +216,7 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
               updatingIssueId={updatingIssueId}
               onToggleCollapse={onToggleCollapse}
               onSelectIssue={onSelectIssue}
+              onAddSubIssue={onAddSubIssue}
               onDragStart={handleTreeDragStart}
               onDragOver={handleTreeDragOver}
               onDragLeave={handleTreeDragLeave}
@@ -218,6 +225,42 @@ export const WBSTreeTable: React.FC<WBSTreeTableProps> = ({
             />
           );
         })}
+
+        {/* ➕ WBS 최하단 새 일감 추가 버튼 (해당 프로젝트 내 최상위 일감으로 추가) */}
+        {onAddNewRootIssue && (
+          <div
+            onClick={onAddNewRootIssue}
+            style={{
+              height: '38px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0 12px',
+              borderBottom: '1px solid var(--border-divider)',
+              color: 'var(--text-muted)',
+              fontSize: '0.74rem',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s ease, color 0.15s ease',
+              backgroundColor: 'transparent',
+              userSelect: 'none',
+              boxSizing: 'border-box',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-card-hover)';
+              e.currentTarget.style.color = 'var(--primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+            title="이 프로젝트에 새로운 최상위(Root) 일감을 추가합니다"
+          >
+            <div style={{ width: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Plus size={14} color="var(--primary)" />
+            </div>
+            <span style={{ fontWeight: 500 }}>새 일감 추가...</span>
+          </div>
+        )}
 
         {/* Drop Target Zone: Move to Root (최상위 이슈로 빼기 영역) */}
         {treeDragSourceId && (

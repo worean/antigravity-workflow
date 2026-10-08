@@ -9,6 +9,8 @@ import {
   ZoomOut,
   Loader2,
   LogIn,
+  Plus,
+  Palette,
 } from 'lucide-react';
 import { Button } from '@/components/common';
 
@@ -31,6 +33,8 @@ interface WBSToolbarProps {
   onOpenAuth?: () => void;
   isBackgroundSyncing: boolean;
   updatingIssueId: number | null;
+  onAddNewRootIssue?: () => void;
+  onOpenColorModal?: () => void;
 }
 
 export const WBSToolbar: React.FC<WBSToolbarProps> = ({
@@ -52,6 +56,8 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
   onOpenAuth,
   isBackgroundSyncing,
   updatingIssueId,
+  onAddNewRootIssue,
+  onOpenColorModal,
 }) => {
   return (
     <div
@@ -111,6 +117,19 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
             ))}
           </select>
         </div>
+
+        {/* ➕ 새 일감 (최상위 루트 이슈) 생성 버튼 */}
+        {onAddNewRootIssue && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={onAddNewRootIssue}
+            style={{ height: '26px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '3px', padding: '0 8px' }}
+            title="현재 프로젝트에 새 일감(최상위 이슈) 추가"
+          >
+            <Plus size={12} /> 새 일감
+          </Button>
+        )}
       </div>
 
       {/* Right: Zoom Scale & View Controls */}
@@ -201,6 +220,18 @@ export const WBSToolbar: React.FC<WBSToolbarProps> = ({
         <Button variant="secondary" size="sm" onClick={onCollapseAll} style={{ height: '26px', fontSize: '0.74rem' }}>
           <Minimize2 size={12} style={{ marginRight: '4px' }} /> 모두 접기
         </Button>
+
+        {onOpenColorModal && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onOpenColorModal}
+            style={{ height: '26px', fontSize: '0.74rem' }}
+            title="WBS 간트차트 색상 설정"
+          >
+            <Palette size={12} style={{ marginRight: '4px' }} /> 색상 설정
+          </Button>
+        )}
 
         {!isAuthenticated && onOpenAuth && (
           <Button variant="primary" size="sm" onClick={onOpenAuth} style={{ height: '26px', fontSize: '0.74rem' }}>

@@ -46,6 +46,7 @@
   --text-sub: #969696;
   --text-muted: #6e6e6e;
   --text-inverse: #1e1e1e;
+  --text-on-primary: #ffffff;
   --text-placeholder: #767676;
 
   /* Border Radii */
@@ -180,6 +181,7 @@
   --text-sub: #475569;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
+  --text-on-primary: #ffffff;
   --text-placeholder: #64748b;
 
   /* Shadows */

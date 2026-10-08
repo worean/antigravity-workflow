@@ -195,7 +195,7 @@ export const WBSGanttTimeline: React.FC<WBSGanttTimelineProps> = ({
             top: 0,
             left: 0,
             width: `${timelineRange.totalDays * dayWidth}px`,
-            height: `${items.length * 38}px`,
+            height: `${(items.length + 1) * 38}px`,
             display: 'flex',
             pointerEvents: 'none',
             zIndex: 0,

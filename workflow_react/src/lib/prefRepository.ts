@@ -132,6 +132,24 @@ export class PrefRepository {
     usePrefStore.getState().setTheme(value);
   }
 
+  public get wbsColorMode(): 'multi' | 'single' {
+    return usePrefStore.getState().wbsColorMode;
+  }
+  public set wbsColorMode(value: 'multi' | 'single') {
+    usePrefStore.getState().setWBSColorMode(value);
+  }
+
+  public get wbsDefaultTheme(): string {
+    return usePrefStore.getState().wbsDefaultTheme;
+  }
+  public set wbsDefaultTheme(value: string) {
+    usePrefStore.getState().setWBSDefaultTheme(value);
+  }
+
+  public get wbsRootColorMap(): Record<number, string> {
+    return usePrefStore.getState().wbsRootColorMap;
+  }
+
   // --- 🔐 인증 및 세션 관리 ---
   public get authToken(): string | null {
     return usePrefStore.getState().authToken;
@@ -176,6 +194,9 @@ export class PrefRepository {
       activeWorkspaceId: s.activeWorkspaceId,
       activeTab: s.activeTab,
       theme: s.theme,
+      wbsColorMode: s.wbsColorMode,
+      wbsDefaultTheme: s.wbsDefaultTheme,
+      wbsRootColorMap: s.wbsRootColorMap,
     };
   }
 

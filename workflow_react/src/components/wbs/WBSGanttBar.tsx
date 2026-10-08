@@ -185,7 +185,7 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
                 position: 'absolute',
                 left: '6px',
                 fontSize: '0.64rem',
-                color: '#ffffff',
+                color: 'var(--text-bright)',
                 fontWeight: 700,
                 whiteSpace: 'nowrap',
                 textShadow: '0 1px 3px rgba(0,0,0,0.95)',
