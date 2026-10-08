@@ -110,6 +110,9 @@ model User {
   avatarColor String?
   pushToken   String?
   preferences String?  @default("{}")
+  bio         String?  // 자기 설명 / 소개
+  department  String?  // 소속 부서
+  jobTitle    String?  // 직책 / 포지션
 
   socialAccounts   SocialAccount[]
 
@@ -135,6 +138,7 @@ model User {
   chatReactions    ChatMessageReaction[]
 
   favorites        Favorite[]
+  memos            Memo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -823,4 +827,38 @@ model Favorite {
   @@unique([userId, targetType, targetId])
   @@index([userId, targetType])
   @@index([targetType, targetId])
+}
+
+// 공유 메모장
+model Memo {
+  id          Int              @id @default(autoincrement())
+  workspaceId Int              @default(1) @map("workspace_id")
+  authorId    Int              @map("author_id")
+  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String
+  content     String           @db.Text
+  isPublic    Boolean          @default(false) @map("is_public")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  attachments MemoAttachment[]
+
+  @@index([workspaceId, isPublic])
+  @@index([authorId])
+  @@index([workspaceId, title])
+  @@map("memos")
+}
+
+model MemoAttachment {
+  id        Int      @id @default(autoincrement())
+  memoId    Int      @map("memo_id")
+  memo      Memo     @relation(fields: [memoId], references: [id], onDelete: Cascade)
+  fileName  String   @map("file_name")
+  fileSize  Int      @map("file_size") // bytes (최대 5MB)
+  fileUrl   String   @map("file_url")
+  fileType  String?  @map("file_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([memoId])
+  @@map("memo_attachments")
 }

@@ -20,6 +20,7 @@ import { workspaceRouter } from './modules/workspaces/workspaces.routes.js';
 import tagRouter from './modules/tags/tags.routes.js';
 import { aiRouter } from './modules/ai/ai.routes.js';
 import { calendarRouter } from './modules/calendar/calendar.routes.js';
+import { memoRouter } from './modules/memos/memos.routes.js';
 import { systemRouter } from './modules/system/system.routes.js';
 
 dotenv.config();
@@ -83,6 +84,7 @@ app.use('/api/workspaces', workspaceRouter);
 app.use('/api/tags', tagRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/calendar', calendarRouter);
+app.use('/api/memos', memoRouter);
 app.use('/api/system', systemRouter);
 
 

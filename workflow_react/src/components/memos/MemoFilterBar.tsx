@@ -1,162 +1,177 @@
 ﻿import React from 'react';
-import type { MemoColor, MemoFilterType } from '@/types/memo';
-import { Search, Plus, X } from 'lucide-react';
+import { Search, Plus, Globe, Lock, Layers } from 'lucide-react';
+import type { MemoFilterType } from '@/types/memo';
 
 export interface MemoFilterBarProps {
   search: string;
-  issueFilter: MemoFilterType;
-  selectedColor: MemoColor | 'ALL';
+  filter: MemoFilterType;
   onSearchChange: (search: string) => void;
-  onIssueFilterChange: (type: MemoFilterType) => void;
-  onColorChange: (color: MemoColor | 'ALL') => void;
-  totalCount: number;
-  filteredCount: number;
+  onFilterChange: (filter: MemoFilterType) => void;
   onNewMemo: () => void;
+  totalCount: number;
 }
-
-const COLOR_CHIPS: { key: MemoColor; label: string; color: string }[] = [
-  { key: 'yellow', label: '노랑', color: '#eab308' },
-  { key: 'blue', label: '파랑', color: '#3b82f6' },
-  { key: 'green', label: '초록', color: '#22c55e' },
-  { key: 'pink', label: '분홍', color: '#ec4899' },
-  { key: 'purple', label: '보라', color: '#a855f7' },
-];
 
 export const MemoFilterBar: React.FC<MemoFilterBarProps> = ({
   search,
-  issueFilter,
-  selectedColor,
+  filter,
   onSearchChange,
-  onIssueFilterChange,
-  onColorChange,
-  totalCount,
-  filteredCount,
+  onFilterChange,
   onNewMemo,
+  totalCount,
 }) => {
   return (
     <div
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '10px',
-        padding: '10px 14px',
-        background: 'var(--bg-card)',
-        borderRadius: 'var(--radius-xs, 4px)',
+        justifyContent: 'space-between',
+        gap: '12px',
+        backgroundColor: 'var(--bg-card)',
+        padding: '12px 16px',
+        borderRadius: '10px',
         border: '1px solid var(--border-light)',
       }}
     >
+      {/* 좌측: 검색창 및 필터 탭 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
-        <div style={{ position: 'relative', minWidth: '180px' }}>
-          <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '8px', top: '7px' }} />
+        {/* 검색 인풋 */}
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            minWidth: '220px',
+          }}
+        >
+          <Search
+            size={16}
+            style={{
+              position: 'absolute',
+              left: '10px',
+              color: 'var(--text-muted)',
+              pointerEvents: 'none',
+            }}
+          />
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="메모 내용 검색..."
+            placeholder="제목 또는 내용 검색..."
             style={{
-              padding: '4px 24px 4px 26px',
-              fontSize: '0.78rem',
-              background: 'var(--bg-input)',
+              width: '100%',
+              padding: '8px 12px 8px 32px',
+              borderRadius: '6px',
               border: '1px solid var(--border-light)',
-              borderRadius: '3px',
-              color: 'var(--text-bright)',
-              outline: 'none',
-              width: '180px',
+              backgroundColor: 'var(--bg-subtle)',
+              color: 'var(--text-main)',
+              fontSize: '0.85rem',
             }}
           />
-          {search && (
-            <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              style={{ position: 'absolute', right: '6px', top: '5px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-            >
-              <X size={12} />
-            </button>
-          )}
         </div>
 
-        <div style={{ display: 'flex', background: 'var(--bg-input)', borderRadius: '3px', border: '1px solid var(--border-light)' }}>
-          {(['ALL', 'ISSUE_ONLY', 'STANDALONE'] as MemoFilterType[]).map((type) => {
-            const labels: Record<MemoFilterType, string> = {
-              ALL: '전체',
-              ISSUE_ONLY: '이슈 연동',
-              STANDALONE: '단독 메모',
-            };
-            const active = issueFilter === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => onIssueFilterChange(type)}
-                style={{
-                  padding: '3px 8px',
-                  fontSize: '0.72rem',
-                  border: 'none',
-                  background: active ? 'var(--primary)' : 'transparent',
-                  color: active ? '#ffffff' : 'var(--text-sub)',
-                  cursor: 'pointer',
-                  borderRadius: type === 'ALL' ? '2px 0 0 2px' : type === 'STANDALONE' ? '0 2px 2px 0' : 0,
-                }}
-              >
-                {labels[type]}
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+        {/* 필터 탭 */}
+        <div
+          style={{
+            display: 'inline-flex',
+            backgroundColor: 'var(--bg-subtle)',
+            borderRadius: '6px',
+            padding: '3px',
+            border: '1px solid var(--border-light)',
+          }}
+        >
           <button
             type="button"
-            onClick={() => onColorChange('ALL')}
+            onClick={() => onFilterChange('all')}
             style={{
-              padding: '2px 6px',
-              fontSize: '0.68rem',
-              border: selectedColor === 'ALL' ? '1px solid var(--primary)' : '1px solid var(--border-light)',
-              background: selectedColor === 'ALL' ? 'var(--primary-subtle)' : 'var(--bg-input)',
-              color: selectedColor === 'ALL' ? 'var(--primary)' : 'var(--text-muted)',
-              borderRadius: '3px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 10px',
+              borderRadius: '4px',
+              border: 'none',
+              backgroundColor: filter === 'all' ? 'var(--bg-card)' : 'transparent',
+              color: filter === 'all' ? 'var(--text-bright)' : 'var(--text-muted)',
+              fontWeight: filter === 'all' ? 600 : 400,
+              fontSize: '0.82rem',
               cursor: 'pointer',
+              boxShadow: filter === 'all' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
             }}
           >
-            모든 색상
+            <Layers size={13} />
+            전체
           </button>
-          {COLOR_CHIPS.map((chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              onClick={() => onColorChange(chip.key)}
-              style={{
-                width: '15px',
-                height: '15px',
-                borderRadius: '50%',
-                backgroundColor: chip.color,
-                border: selectedColor === chip.key ? '2px solid var(--text-bright)' : '1px solid var(--border-light)',
-                cursor: 'pointer',
-                transform: selectedColor === chip.key ? 'scale(1.2)' : 'none',
-                padding: 0,
-              }}
-              title={chip.label}
-            />
-          ))}
+          <button
+            type="button"
+            onClick={() => onFilterChange('public')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 10px',
+              borderRadius: '4px',
+              border: 'none',
+              backgroundColor: filter === 'public' ? 'var(--bg-card)' : 'transparent',
+              color: filter === 'public' ? 'var(--status-done, #22c55e)' : 'var(--text-muted)',
+              fontWeight: filter === 'public' ? 600 : 400,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              boxShadow: filter === 'public' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+            }}
+          >
+            <Globe size={13} />
+            공개 메모
+          </button>
+          <button
+            type="button"
+            onClick={() => onFilterChange('my')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 10px',
+              borderRadius: '4px',
+              border: 'none',
+              backgroundColor: filter === 'my' ? 'var(--bg-card)' : 'transparent',
+              color: filter === 'my' ? 'var(--primary)' : 'var(--text-muted)',
+              fontWeight: filter === 'my' ? 600 : 400,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              boxShadow: filter === 'my' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+            }}
+          >
+            <Lock size={13} />
+            내 메모
+          </button>
         </div>
-      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-          {filteredCount}/{totalCount}건
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          총 {totalCount}개
         </span>
-
-        <button
-          type="button"
-          onClick={onNewMemo}
-          className="btn btn-primary btn-sm"
-          style={{ fontSize: '0.74rem', height: '26px', display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          <Plus size={13} /> 새 메모 작성
-        </button>
       </div>
+
+      {/* 우측: 새 메모 버튼 */}
+      <button
+        type="button"
+        onClick={onNewMemo}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 14px',
+          borderRadius: '6px',
+          border: 'none',
+          backgroundColor: 'var(--primary)',
+          color: 'var(--text-bright)',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+        }}
+      >
+        <Plus size={15} />
+        새 메모 작성
+      </button>
     </div>
   );
 };

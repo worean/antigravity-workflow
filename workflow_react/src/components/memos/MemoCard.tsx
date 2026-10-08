@@ -1,210 +1,199 @@
 ﻿import React from 'react';
-import type { UserMemoItem, MemoColor } from '@/types/memo';
-import { MarkdownViewer } from '@/components/common/MarkdownViewer';
-import { Pin, Trash2, Edit3, ExternalLink } from 'lucide-react';
-import { formatDateOnly } from '@/utils/dateUtils';
+import { Globe, Lock, Paperclip, Calendar, User, Edit3, Trash2 } from 'lucide-react';
+import type { MemoDto } from '@/types/memo';
+import { useAuth } from '@/context/AuthContext';
+import { renderTextWithMemoMentions } from './MemoMentionLink';
 
 export interface MemoCardProps {
-  memo: UserMemoItem;
-  onEdit: (memo: UserMemoItem) => void;
-  onDelete: (memoId: string) => void;
-  onTogglePin: (memoId: string) => void;
-  onSelectIssue?: (issueId: number) => void;
+  memo: MemoDto;
+  onClick: (memo: MemoDto) => void;
+  onEdit?: (memoId: number) => void;
+  onDelete?: (memoId: number) => void;
 }
-
-const COLOR_MAP: Record<MemoColor, { bg: string; border: string; accent: string; header: string }> = {
-  yellow: {
-    bg: 'rgba(234, 179, 8, 0.08)',
-    border: 'rgba(234, 179, 8, 0.35)',
-    accent: '#eab308',
-    header: 'rgba(234, 179, 8, 0.2)',
-  },
-  blue: {
-    bg: 'rgba(59, 130, 246, 0.08)',
-    border: 'rgba(59, 130, 246, 0.35)',
-    accent: '#3b82f6',
-    header: 'rgba(59, 130, 246, 0.2)',
-  },
-  green: {
-    bg: 'rgba(34, 197, 94, 0.08)',
-    border: 'rgba(34, 197, 94, 0.35)',
-    accent: '#22c55e',
-    header: 'rgba(34, 197, 94, 0.2)',
-  },
-  pink: {
-    bg: 'rgba(236, 72, 153, 0.08)',
-    border: 'rgba(236, 72, 153, 0.35)',
-    accent: '#ec4899',
-    header: 'rgba(236, 72, 153, 0.2)',
-  },
-  purple: {
-    bg: 'rgba(168, 85, 247, 0.08)',
-    border: 'rgba(168, 85, 247, 0.35)',
-    accent: '#a855f7',
-    header: 'rgba(168, 85, 247, 0.2)',
-  },
-};
 
 export const MemoCard: React.FC<MemoCardProps> = ({
   memo,
+  onClick,
   onEdit,
   onDelete,
-  onTogglePin,
-  onSelectIssue,
 }) => {
-  const theme = COLOR_MAP[memo.color] || COLOR_MAP.yellow;
+  const { user } = useAuth();
+  const isAuthor = user?.id && memo.authorId === user.id;
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) onEdit(memo.id);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) onDelete(memo.id);
+  };
 
   return (
     <div
-      onClick={() => onEdit(memo)}
+      onClick={() => onClick(memo)}
       style={{
-        background: theme.bg,
-        border: `1px solid ${theme.border}`,
-        borderRadius: 'var(--radius-sm, 6px)',
-        padding: '12px',
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: '10px',
+        border: '1px solid var(--border-light)',
+        padding: '16px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        justifyContent: 'space-between',
         cursor: 'pointer',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
-        boxShadow: memo.isPinned ? `0 2px 12px ${theme.accent}33` : '0 2px 6px rgba(0,0,0,0.2)',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+        minHeight: '160px',
         position: 'relative',
-        userSelect: 'none',
       }}
       onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'var(--primary)';
         e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = `0 6px 16px ${theme.accent}44`;
+        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.08)';
       }}
       onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'var(--border-light)';
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = memo.isPinned ? `0 2px 12px ${theme.accent}33` : '0 2px 6px rgba(0,0,0,0.2)';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePin(memo.id);
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: memo.isPinned ? '#eab308' : 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '2px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-            title={memo.isPinned ? '고정 해제' : '상단 고정'}
-          >
-            <Pin size={13} fill={memo.isPinned ? '#eab308' : 'none'} />
-          </button>
-
-          {memo.issueId ? (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onSelectIssue) onSelectIssue(memo.issueId!);
-              }}
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                color: 'var(--primary)',
-                background: 'rgba(0, 122, 204, 0.15)',
-                padding: '1px 6px',
-                borderRadius: '3px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-              }}
-              title="연동된 이슈 바로가기"
-            >
-              #{memo.issueId} <ExternalLink size={10} />
-            </span>
-          ) : (
-            <span
-              style={{
-                fontSize: '0.68rem',
-                color: 'var(--text-muted)',
-                background: 'rgba(255, 255, 255, 0.05)',
-                padding: '1px 5px',
-                borderRadius: '3px',
-              }}
-            >
-              단독 메모
-            </span>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(memo);
-            }}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-            title="확대 편집"
-          >
-            <Edit3 size={12} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (window.confirm('이 메모를 영구 삭제하시겠습니까?')) {
-                onDelete(memo.id);
-              }
-            }}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-            title="삭제"
-          >
-            <Trash2 size={12} />
-          </button>
-        </div>
-      </div>
-
-      <div
-        style={{
-          fontSize: '0.8rem',
-          lineHeight: 1.45,
-          color: 'var(--text-bright)',
-          maxHeight: '160px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          display: '-webkit-box',
-          WebkitLineClamp: 7,
-          WebkitBoxOrient: 'vertical',
-        }}
-      >
-        <MarkdownViewer
-          content={memo.content}
-          placeholder="내용이 없는 빈 메모입니다."
+      <div>
+        {/* 상단 뱃지 & 액션 */}
+        <div
           style={{
-            background: 'transparent',
-            border: 'none',
-            padding: '0',
-            fontSize: '0.78rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '10px',
           }}
-        />
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 8px',
+              borderRadius: '10px',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              backgroundColor: memo.isPublic ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+              color: memo.isPublic ? 'var(--status-done, #22c55e)' : 'var(--status-todo, #eab308)',
+            }}
+          >
+            {memo.isPublic ? <Globe size={11} /> : <Lock size={11} />}
+            {memo.isPublic ? '공개' : '비공개'}
+          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {memo.attachments && memo.attachments.length > 0 && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  fontSize: '0.72rem',
+                  color: 'var(--text-muted)',
+                  backgroundColor: 'var(--bg-subtle)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                }}
+                title={`첨부파일 ${memo.attachments.length}개`}
+              >
+                <Paperclip size={11} />
+                {memo.attachments.length}
+              </span>
+            )}
+
+            {isAuthor && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '3px',
+                    borderRadius: '4px',
+                  }}
+                  title="수정"
+                >
+                  <Edit3 size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--status-urgent, #ef4444)',
+                    cursor: 'pointer',
+                    padding: '3px',
+                    borderRadius: '4px',
+                  }}
+                  title="삭제"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* 제목 */}
+        <h3
+          style={{
+            margin: '0 0 8px 0',
+            fontSize: '0.98rem',
+            fontWeight: 700,
+            color: 'var(--text-bright)',
+            lineHeight: 1.35,
+          }}
+        >
+          {memo.title}
+        </h3>
+
+        {/* 본문 미리보기 (최대 3줄) */}
+        <div
+          style={{
+            fontSize: '0.84rem',
+            lineHeight: 1.5,
+            color: 'var(--text-main)',
+            opacity: 0.85,
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            wordBreak: 'break-word',
+          }}
+        >
+          {renderTextWithMemoMentions(memo.content || '(내용 없음)')}
+        </div>
       </div>
 
+      {/* 하단 푸터 (작성자 & 날짜) */}
       <div
         style={{
+          marginTop: '14px',
+          paddingTop: '10px',
+          borderTop: '1px solid var(--border-light)',
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          paddingTop: '6px',
-          marginTop: 'auto',
-          fontSize: '0.68rem',
+          justifyContent: 'space-between',
+          fontSize: '0.74rem',
           color: 'var(--text-muted)',
         }}
       >
-        <span>{formatDateOnly(memo.updatedAt)}</span>
-        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: theme.accent }} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <User size={12} />
+          {memo.author?.name || memo.author?.email?.split('@')[0] || '작성자'}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Calendar size={12} />
+          {new Date(memo.createdAt).toLocaleDateString()}
+        </span>
       </div>
     </div>
   );

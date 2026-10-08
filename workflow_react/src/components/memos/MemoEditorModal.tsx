@@ -1,259 +1,397 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { ModalWrapper } from '@/components/common/ModalWrapper';
-import { MarkdownViewer } from '@/components/common/MarkdownViewer';
-import { useMemoStore } from '@/stores/useMemoStore';
-import type { MemoColor } from '@/types/memo';
-import { Pin, Trash2, CheckCircle, ExternalLink } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Globe, Lock, Save, AlertCircle } from 'lucide-react';
+import { useMemo, useCreateMemo, useUpdateMemo, useUploadMemoAttachment, useDeleteMemoAttachment } from '@/api/memo';
+import { useUIStore } from '@/stores/useUIStore';
+import { MemoAttachmentSection } from './MemoAttachmentSection';
 
 export interface MemoEditorModalProps {
   isOpen: boolean;
-  memoId: string | null;
+  memoId: number | null;
   onClose: () => void;
-  onSelectIssue?: (issueId: number) => void;
 }
-
-const COLOR_OPTIONS: MemoColor[] = ['yellow', 'blue', 'green', 'pink', 'purple'];
-const COLOR_HEX: Record<MemoColor, string> = {
-  yellow: '#eab308',
-  blue: '#3b82f6',
-  green: '#22c55e',
-  pink: '#ec4899',
-  purple: '#a855f7',
-};
 
 export const MemoEditorModal: React.FC<MemoEditorModalProps> = ({
   isOpen,
   memoId,
   onClose,
-  onSelectIssue,
 }) => {
-  const memos = useMemoStore((s) => s.memos);
-  const updateMemo = useMemoStore((s) => s.updateMemo);
-  const deleteMemo = useMemoStore((s) => s.deleteMemo);
-  const flushDebouncedSave = useMemoStore((s) => s.flushDebouncedSave);
-  const isSaving = useMemoStore((s) => s.isSaving);
+  const showToast = useUIStore((s) => s.showToast);
 
-  const targetMemo = memos.find((m) => m.id === memoId);
+  const { data: existingMemo, isLoading } = useMemo(memoId, {
+    enabled: isOpen && !!memoId,
+  });
 
-  const [content, setContent] = useState<string>('');
-  const [color, setColor] = useState<MemoColor>('yellow');
-  const [isPinned, setIsPinned] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
+  const createMutation = useCreateMemo();
+  const updateMutation = useUpdateMemo();
+  const uploadAttachmentMutation = useUploadMemoAttachment();
+  const deleteAttachmentMutation = useDeleteMemoAttachment();
+
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (targetMemo) {
-      setContent(targetMemo.content || '');
-      setColor(targetMemo.color || 'yellow');
-      setIsPinned(targetMemo.isPinned || false);
+    if (existingMemo && memoId) {
+      setTitle(existingMemo.title || '');
+      setContent(existingMemo.content || '');
+      setIsPublic(Boolean(existingMemo.isPublic));
+      setErrorMessage(null);
+    } else if (!memoId) {
+      setTitle('');
+      setContent('');
+      setIsPublic(false);
+      setErrorMessage(null);
     }
-  }, [targetMemo?.id]);
+  }, [existingMemo, memoId, isOpen]);
 
-  if (!isOpen || !targetMemo) return null;
+  // ESC 닫기 및 스크롤 락
+  useEffect(() => {
+    if (!isOpen) return;
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setContent(val);
-    updateMemo(targetMemo.id, { content: val });
-  };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
 
-  const handleColorChange = (c: MemoColor) => {
-    setColor(c);
-    updateMemo(targetMemo.id, { color: c });
-  };
+    window.addEventListener('keydown', handleKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
-  const handleTogglePin = () => {
-    const nextPin = !isPinned;
-    setIsPinned(nextPin);
-    updateMemo(targetMemo.id, { isPinned: nextPin });
-  };
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
 
-  const handleClose = () => {
-    flushDebouncedSave();
-    onClose();
-  };
+  if (!isOpen) return null;
 
-  const handleDelete = () => {
-    if (window.confirm('이 메모를 삭제하시겠습니까?')) {
-      deleteMemo(targetMemo.id);
-      onClose();
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      setErrorMessage('메모 제목을 입력해 주세요.');
+      return;
     }
-  };
 
-  return (
-    <ModalWrapper
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: COLOR_HEX[color] }} />
-          <span>개인 포스트잇 메모</span>
-          {targetMemo.issueId && (
-            <span
-              onClick={() => {
-                if (onSelectIssue && targetMemo.issueId) {
-                  handleClose();
-                  onSelectIssue(targetMemo.issueId);
-                }
-              }}
-              style={{
-                fontSize: '0.74rem',
-                fontWeight: 600,
-                color: 'var(--primary)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-              }}
-              title="연동 이슈 열기"
-            >
-              (이슈 #{targetMemo.issueId} <ExternalLink size={11} />)
-            </span>
-          )}
-        </div>
+    try {
+      if (memoId) {
+        await updateMutation.mutateAsync({
+          id: memoId,
+          data: { title: title.trim(), content, isPublic },
+        });
+        showToast('메모가 성공적으로 수정되었습니다.', 'success');
+      } else {
+        await createMutation.mutateAsync({
+          title: title.trim(),
+          content,
+          isPublic,
+          workspaceId: 1,
+        });
+        showToast('새 메모가 등록되었습니다.', 'success');
       }
-      maxWidth="780px"
+      onClose();
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || '저장에 실패했습니다.';
+      setErrorMessage(msg);
+      showToast(msg, 'error');
+    }
+  };
+
+  const handleUploadAttachment = async (file: File) => {
+    if (!memoId) return;
+    try {
+      const dummyUrl = `/uploads/memos/${memoId}/${encodeURIComponent(file.name)}`;
+      await uploadAttachmentMutation.mutateAsync({
+        memoId,
+        data: {
+          fileName: file.name,
+          fileSize: file.size,
+          fileUrl: dummyUrl,
+          fileType: file.type || 'application/octet-stream',
+        },
+      });
+      showToast('첨부파일이 등록되었습니다.', 'success');
+    } catch (err: any) {
+      showToast(err.message || '첨부파일 등록 실패', 'error');
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    if (!memoId) return;
+    if (!window.confirm('첨부파일을 삭제하시겠습니까?')) return;
+    try {
+      await deleteAttachmentMutation.mutateAsync({ memoId, attachmentId });
+      showToast('첨부파일이 삭제되었습니다.', 'success');
+    } catch (err: any) {
+      showToast(err.message || '첨부파일 삭제 실패', 'error');
+    }
+  };
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const modalRoot = document.getElementById('ag-portal-root') || document.body;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="memo-editor-title"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'blur(3px)',
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>테마 색상:</span>
-            {COLOR_OPTIONS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => handleColorChange(c)}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  borderRadius: '50%',
-                  backgroundColor: COLOR_HEX[c],
-                  border: color === c ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.2)',
-                  cursor: 'pointer',
-                  transform: color === c ? 'scale(1.2)' : 'none',
-                  transition: 'transform 0.15s ease',
-                  padding: 0,
-                }}
-                title={c}
-              />
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={handleTogglePin}
-              className={`btn btn-sm ${isPinned ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ fontSize: '0.72rem', height: '24px', padding: '0 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              <Pin size={11} fill={isPinned ? 'currentColor' : 'none'} />
-              {isPinned ? '고정됨' : '상단 고정'}
-            </button>
-
-            <div style={{ display: 'flex', background: 'var(--bg-subtle)', borderRadius: '4px', border: '1px solid var(--border-light)' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('write')}
-                style={{
-                  padding: '2px 8px',
-                  fontSize: '0.72rem',
-                  border: 'none',
-                  background: viewMode === 'write' ? 'var(--primary)' : 'transparent',
-                  color: viewMode === 'write' ? '#ffffff' : 'var(--text-muted)',
-                  borderRadius: '3px 0 0 3px',
-                  cursor: 'pointer',
-                }}
-              >
-                편집기
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('preview')}
-                style={{
-                  padding: '2px 8px',
-                  fontSize: '0.72rem',
-                  border: 'none',
-                  background: viewMode === 'preview' ? 'var(--primary)' : 'transparent',
-                  color: viewMode === 'preview' ? '#ffffff' : 'var(--text-muted)',
-                  borderRadius: '0 3px 3px 0',
-                  cursor: 'pointer',
-                }}
-              >
-                미리보기
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ minHeight: '280px', maxHeight: '55vh', overflowY: 'auto', overflowX: 'auto' }}>
-          {viewMode === 'write' ? (
-            <textarea
-              value={content}
-              onChange={handleContentChange}
-              placeholder="마크다운 형식으로 자유롭게 메모를 작성하세요...&#10;- 체크리스트: [ ] 할 일&#10;- 강조: **굵게**, *기울임*&#10;- 코드: `코드`"
-              style={{
-                width: '100%',
-                minHeight: '280px',
-                height: '100%',
-                padding: '12px',
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border-light)',
-                borderRadius: '4px',
-                color: 'var(--text-bright)',
-                fontSize: '0.86rem',
-                lineHeight: 1.5,
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-          ) : (
-            <div style={{ padding: '6px', background: 'var(--bg-subtle)', borderRadius: '4px', minHeight: '280px' }}>
-              <MarkdownViewer content={content} placeholder="작성된 내용이 없습니다." />
-            </div>
-          )}
-        </div>
-
+      <div
+        style={{
+          width: '90%',
+          maxWidth: '680px',
+          maxHeight: '85vh',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '12px',
+          border: '1px solid var(--border-light)',
+          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.28)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* 헤더 */}
         <div
           style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border-light)',
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
-            borderTop: '1px solid var(--border-light)',
-            paddingTop: '8px',
+            justifyContent: 'space-between',
+            backgroundColor: 'var(--bg-subtle)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            {isSaving ? (
-              <span>저장 중...</span>
-            ) : (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#4ec9b0' }}>
-                <CheckCircle size={12} /> 실시간 자동 저장됨
-              </span>
+          <h2
+            id="memo-editor-title"
+            style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-bright)' }}
+          >
+            {memoId ? '메모 수정' : '새 메모 작성'}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* 폼 본문 */}
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {errorMessage && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderRadius: '6px',
+                  color: 'var(--status-urgent, #ef4444)',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <AlertCircle size={16} />
+                <span>{errorMessage}</span>
+              </div>
             )}
-            <span>• 글자 수: {content.length}자</span>
+
+            {/* 제목 */}
+            <div>
+              <label
+                style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '6px' }}
+              >
+                메모 제목 <span style={{ color: 'var(--status-urgent, #ef4444)' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="메모 제목을 입력하세요 (예: 2026 인프라 아키텍처)"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-light)',
+                  backgroundColor: 'var(--bg-subtle)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.9rem',
+                  boxSizing: 'border-box',
+                }}
+                disabled={isLoading}
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                💡 본문이나 이슈 등에서 <code>@{'{제목}'}</code>으로 링크할 수 있습니다.
+              </span>
+            </div>
+
+            {/* 공개 범위 설정 */}
+            <div>
+              <label
+                style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '8px' }}
+              >
+                공개 범위
+              </label>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(false)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: !isPublic ? '2px solid var(--primary)' : '1px solid var(--border-light)',
+                    backgroundColor: !isPublic ? 'var(--bg-subtle)' : 'var(--bg-card)',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <Lock size={16} color={!isPublic ? 'var(--primary)' : 'var(--text-muted)'} />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600 }}>비공개 메모</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>본인만 열람/수정 가능</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(true)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: isPublic ? '2px solid var(--status-done, #22c55e)' : '1px solid var(--border-light)',
+                    backgroundColor: isPublic ? 'var(--bg-subtle)' : 'var(--bg-card)',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <Globe size={16} color={isPublic ? 'var(--status-done, #22c55e)' : 'var(--text-muted)'} />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600 }}>워크스페이스 공개</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>워크스페이스 모든 구성원 열람 가능</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* 마크다운 본문 */}
+            <div>
+              <label
+                style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '6px' }}
+              >
+                메모 내용 (Markdown 지원)
+              </label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={8}
+                placeholder="마크다운 문법으로 내용을 작성하세요. (예: # 헤더, - 목록, @참조메모)"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-light)',
+                  backgroundColor: 'var(--bg-subtle)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.9rem',
+                  lineHeight: 1.5,
+                  boxSizing: 'border-box',
+                  resize: 'vertical',
+                  fontFamily: 'monospace',
+                }}
+              />
+            </div>
+
+            {/* 첨부파일 서브 컴포넌트 */}
+            <MemoAttachmentSection
+              memoId={memoId}
+              attachments={existingMemo?.attachments}
+              onUpload={handleUploadAttachment}
+              onDelete={handleDeleteAttachment}
+            />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* 하단 버튼 */}
+          <div
+            style={{
+              padding: '14px 20px',
+              borderTop: '1px solid var(--border-light)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              backgroundColor: 'var(--bg-subtle)',
+            }}
+          >
             <button
               type="button"
-              onClick={handleDelete}
-              className="btn btn-danger btn-sm"
-              style={{ fontSize: '0.74rem', height: '26px' }}
+              onClick={onClose}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-light)',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-main)',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+              }}
             >
-              <Trash2 size={12} style={{ marginRight: '4px' }} /> 삭제
+              취소
             </button>
             <button
-              type="button"
-              onClick={handleClose}
-              className="btn btn-primary btn-sm"
-              style={{ fontSize: '0.74rem', height: '26px' }}
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: 'var(--primary)',
+                color: 'var(--text-bright)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: isSubmitting ? 0.7 : 1,
+              }}
             >
-              닫기
+              <Save size={15} />
+              {isSubmitting ? '저장 중...' : memoId ? '수정 완료' : '메모 생성'}
             </button>
           </div>
-        </div>
+        </form>
       </div>
-    </ModalWrapper>
+    </div>,
+    modalRoot
   );
 };
