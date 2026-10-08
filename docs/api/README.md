@@ -34,7 +34,7 @@ AntiGravity 백엔드 서버는 **Node.js + Express + TypeScript + Prisma ORM** 
 | 도메인 | 기본 경로 | 하위 라우트 디렉터리 | 주요 설명 |
 | :--- | :--- | :--- | :--- |
 | **Auth** | `/api/auth` | [`auth.md`](./auth.md) | 구글/이메일 로그인 및 세션 검증 |
-| **Users** | `/api/users` | [`users.md`](./users.md) | 사용자 프로필, 설정, CRUD |
+| **Users** | `/api/users` | [`users/`](./users/README.md) | 사용자 프로필(자기 설명, 부서, 직책), 설정, CRUD |
 | **Projects** | `/api/projects` | [`projects/`](./projects/README.md) | 프로젝트 및 멤버/부서/스프린트 연동 |
 | **Issues** | `/api/issues` | [`issues/`](./issues/README.md) | 일감 CRUD, 일괄 일정, 좋아요/태그 |
 | **Comments** | `/api/comments` | [`comments/`](./comments/README.md) | 댓글/대댓글 트리 및 이모지 반응 |
@@ -50,4 +50,5 @@ AntiGravity 백엔드 서버는 **Node.js + Express + TypeScript + Prisma ORM** 
 | **Activity Logs**| `/api/activity-logs`| [`activity-logs.md`](./activity-logs.md) | 활동 감사 로그 조회 |
 | **Favorites** | `/api/favorites` | [`favorites.md`](./favorites.md) | 일감/프로젝트/채널 즐겨찾기 |
 | **Calendar** | `/api/calendar` | [`calendar/get-events.md`](./calendar/get-events.md) | 캘린더 일정 조회 및 Google Calendar 동기화 |
+| **Memos** | `/api/memos` | [`memos.md`](./memos.md) | 워크스페이스 공유 메모(공개/비공개, 5MB 첨부파일, @멘션) |
 | **AI Chatbot** | `/api/ai` | [`ai/chat.md`](./ai/chat.md) | LLM 모델 연동 및 Function Calling 시스템 제어 |

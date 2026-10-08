@@ -26,10 +26,12 @@ export const getCurrentBackendHostUrl = (): string => {
     if (customUrl) return normalizeBackendUrl(customUrl);
 
     if (window.electronAPI?.isElectron || window.location.protocol === 'file:') {
-      return normalizeBackendUrl(import.meta.env.VITE_API_URL || 'https://localhost:4000');
+      const fallback = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://localhost:4000';
+      return normalizeBackendUrl(fallback);
     }
   }
-  return normalizeBackendUrl(import.meta.env.VITE_API_URL || window.location.origin);
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  return normalizeBackendUrl(envUrl || window.location.origin);
 };
 
 /**
@@ -41,10 +43,12 @@ export const getApiBaseUrl = (): string => {
     if (customUrl) return normalizeBackendUrl(customUrl) + '/api';
 
     if (window.electronAPI?.isElectron || window.location.protocol === 'file:') {
-      return normalizeBackendUrl(import.meta.env.VITE_API_URL || 'https://localhost:4000') + '/api';
+      const fallback = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://localhost:4000';
+      return normalizeBackendUrl(fallback) + '/api';
     }
   }
-  return import.meta.env.VITE_API_URL ? `${normalizeBackendUrl(import.meta.env.VITE_API_URL)}/api` : '/api';
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  return envUrl ? `${normalizeBackendUrl(envUrl)}/api` : '/api';
 };
 
 /**
@@ -150,8 +154,16 @@ apiClient.interceptors.request.use((config) => {
 });
 
 export const checkHealth = async (): Promise<HealthStatus> => {
-  const res = await apiClient.get<HealthStatus>('/health');
-  return res.data;
+  try {
+    const res = await apiClient.get<HealthStatus>('/health');
+    return res.data;
+  } catch (err: any) {
+    return {
+      status: 'OFFLINE',
+      timestamp: new Date().toISOString(),
+      ...(err.response?.data?.error ? { error: err.response.data.error } : { error: err.message || '서버에 연결할 수 없습니다.' }),
+    };
+  }
 };
 
 export default apiClient;

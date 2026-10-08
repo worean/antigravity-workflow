@@ -35,7 +35,22 @@ description: 프론트엔드 UI/UX 조작과 실제 백엔드 API 연동을 결�
 python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --verify-docs
 ```
 
-### 2. 전체 풀스택 회귀 테스트 일괄 실행 (백엔드 단위테스트 + 프론트 빌드 + 컴포넌트 검사 + API 리포트)
+### 2. 자율 폐루프 회귀 검증 및 서킷 브레이커 실행 (Closed-Loop & Circuit Breaker)
+```bash
+# 신규 작업 루프 초기화
+python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --init-loop "기능명"
+
+# 폐루프 회귀 검증 실행 (동일 에러 3회 반복 시 서킷 브레이커 자동 발동 & 종합 리포트 생성)
+python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --check-loop
+
+# 최종 종합 실행 리포트 수동 생성
+python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --generate-report
+```
+- **산출물 위치**:
+  - 상태 파일: `.agents/state/pipeline_state.json`
+  - 종합 리포트: `docs/qa/reports/AUTONOMOUS_PIPELINE_REPORT.md`
+
+### 3. 전체 풀스택 회귀 테스트 일괄 실행 (수동 원샷)
 ```bash
 python .agents/skills/scenario-qa-runner/scripts/qa_runner.py --run-all
 ```

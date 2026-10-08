@@ -14,6 +14,9 @@ export interface User {
   avatar?: string | null;
   avatarColor?: string | null;
   preferences?: string | null;
+  bio?: string | null;
+  department?: string | null;
+  jobTitle?: string | null;
   isGoogleLinked?: boolean;
   groupMemberships?: GroupMember[];
   createdAt?: string;
@@ -276,6 +279,8 @@ export interface Worklog {
 export interface HealthStatus {
   status: string;
   timestamp: string;
+  database?: any;
+  error?: string;
 }
 
 // ----------------------------------------------------

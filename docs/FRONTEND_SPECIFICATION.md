@@ -30,7 +30,8 @@ AntiGravity Workflow 프론트엔드는 **React 18 + TypeScript + Vite + TanStac
 | **전역 모달 & 레이아웃 (12종)** | [`11_GLOBAL_MODALS_LAYOUT.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/11_GLOBAL_MODALS_LAYOUT.md) | `Header`, `Sidebar`, `ProfileCard`, `AuthModal`, `ActionFeedbackModal`, `AvatarCropModal`, `ConfirmModal`, `CustomFieldsModal`, `GroupModal`, `IssueModal`, `ProjectModal`, `SprintModal`, `WorkspaceCreateModal`, `WorkspaceInviteModal` |
 | **캘린더 & 구글 연동 (5종)** | [`12_CALENDAR_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/12_CALENDAR_COMPONENTS.md) | `CalendarPage`, `CalendarGoogleSyncBanner`, `CalendarHeader`, `CalendarMonthGrid`, `CalendarWeekGrid` |
 | **AI 챗봇 & 플로팅 팝업 (6종)** | [`chatbot_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/chatbot_COMPONENTS.md) | `ChatbotPopup`, `ChatbotHeader`, `ChatbotMessageList`, `ChatbotMessageItem`, `ChatbotInputArea`, `ChatbotLauncher`, `ChatbotActionCard` |
-| **개인 메모 (7종)** | [`Memo_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/Memo_COMPONENTS.md) | `MemosPage`, `MemoIndicator`, `MemoCard`, `MemoEditorModal`, `MemoFilterBar`, `MemoGrid`, `MemoQuickAdd` |
+| **공유 메모장 (6종)** | [`memos_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/memos_COMPONENTS.md) | `MemosPage`, `MemoCard`, `MemoDetailModal`, `MemoEditorModal`, `MemoFilterBar`, `MemoGrid`, `MemoMentionLink` |
+| **사용자 & 프로필 (4종)** | [`users_COMPONENTS.md`](file:///C:/Users/admin/antigravity-workflow/docs/components/users_COMPONENTS.md) | `SettingsProfileTab`, `ProfileGroupList`, `ProfileCard`, `ChatMemberSidebar` |
 
 ---
 

@@ -1,4 +1,4 @@
-# 🧪 AntiGravity Workflow - Quality Assurance (QA) Master Hub
+﻿# 🧪 AntiGravity Workflow - Quality Assurance (QA) Master Hub
 
 AntiGravity Workflow 시스템의 **UI/UX 조작과 백엔드 REST API 연동을 포괄하는 전체 도메인 시나리오 테스트 케이스(Test Cases)** 및 품질 검증 관리 허브입니다.
 
@@ -21,6 +21,8 @@ AntiGravity Workflow 시스템의 **UI/UX 조작과 백엔드 REST API 연동을
 | :--- | :--- | :--- | :--- | :--- |
 | **Projects (프로젝트)** | `ProjectDetailPage`, `GET /api/projects/:id` | [`docs/qa/scenarios/projects.md`](file:///C:/Users/admin/antigravity-workflow/docs/qa/scenarios/projects.md) | 즐겨찾기(isFavorite) 연동, 권한별(PM) 수정/삭제, 중복 키 에러 검증 | ✅ Pass |
 | **WBS (간트 차트)** | `WBSPage`, `IssueDetailDrawer`, Batch Schedule API | [`docs/qa/scenarios/wbs.md`](file:///C:/Users/admin/antigravity-workflow/docs/qa/scenarios/wbs.md) | 간트 바/트리 행 클릭 시 독립 드로어 오픈, 드래그 일정 연동, 날짜 역전 방지 | ✅ Pass |
+| **Users (사용자 프로필)** | `SettingsProfileTab`, `ProfileCard`, `PUT /api/users/:id` | [`docs/qa/scenarios/user_profile.md`](file:///C:/Users/admin/antigravity-workflow/docs/qa/scenarios/user_profile.md) | 자기 소개, 부서, 직책 입력 및 Global/Workspace DB 동기화, UI 배지 렌더링 검증 | ✅ Pass |
+| **Memos (공유 메모장)** | `MemosPage`, `MemoDetailModal`, `GET/POST /api/memos` | [`docs/qa/scenarios/memos.md`](file:///C:/Users/admin/antigravity-workflow/docs/qa/scenarios/memos.md) | 워크스페이스 공개/비공개 격리, 5MB 초과 파일 차단, @멘션 전역 팝업 모달 연동 | ✅ Pass |
 
 ---
 

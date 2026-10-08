@@ -1,4 +1,4 @@
-# 📋 QA Test Case Specification: {Domain Name}
+﻿# 📋 QA Test Case Specification: {Domain Name}
 
 ## 1. Feature Overview (기능 개요)
 - **Domain**: `{domain}` (예: projects, issues, wbs, chat 등)

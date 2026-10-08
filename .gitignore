@@ -121,3 +121,6 @@ certs/
 release/
 dist/
 
+
+# Archives
+*.zip
