@@ -9,6 +9,7 @@ import {
   deleteMemoController,
   uploadMemoAttachmentController,
   deleteMemoAttachmentController,
+  downloadMemoAttachmentController,
 } from './memos.controller.js';
 
 export const memoRouter = Router();
@@ -25,4 +26,5 @@ memoRouter.delete('/:id', deleteMemoController);
 
 // 첨부파일 관리
 memoRouter.post('/:id/attachments', uploadMemoAttachmentController);
+memoRouter.get('/:id/attachments/:attachmentId/download', downloadMemoAttachmentController);
 memoRouter.delete('/:id/attachments/:attachmentId', deleteMemoAttachmentController);

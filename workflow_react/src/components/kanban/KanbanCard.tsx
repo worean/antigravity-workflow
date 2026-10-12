@@ -1,9 +1,7 @@
 ﻿import React from 'react';
-import { GripVertical, Trash2, Calendar, Heart, StickyNote } from 'lucide-react';
+import { GripVertical, Trash2, Calendar, Heart } from 'lucide-react';
 import type { Issue, User } from '@/types';
 import { PriorityBadge, IssueTypeBadge, UserBadge, FavoriteButton, TagBadge } from '@/components/common';
-import { MemoIndicator } from '@/components/memos';
-import { useMemoStore } from '@/stores/useMemoStore';
 import { formatDateOnly, getDDayStatus } from '@/utils/dateUtils';
 import { STATUS_LIST, parsePriorityLevel } from '@/utils/statusUtils';
 
@@ -50,25 +48,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     ? 'card-priority-medium'
     : 'card-priority-low';
 
-  const memos = useMemoStore((s) => s.memos);
-  const currentMemo = React.useMemo(() => memos.find((m) => m.issueId === issue.id), [memos, issue.id]);
-  const createMemo = useMemoStore((s) => s.createMemo);
-  const setActiveMemoId = useMemoStore((s) => s.setActiveMemoId);
-
-  const handleMemoClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
-    if (currentMemo) {
-      setActiveMemoId(currentMemo.id);
-    } else {
-      const created = createMemo(currentUser?.id || 1, { issueId: issue.id, color: 'yellow', content: '' });
-      setActiveMemoId(created.id);
-    }
-  };
-
   return (
     <div
       key={issue.id}
@@ -94,9 +73,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
       }}
       onClick={() => onSelectIssue(issue)}
     >
-      {/* 개인 메모 인디케이터 (좌측 상단 붉은색 삼각형) */}
-      <MemoIndicator issueId={issue.id} />
-
       {/* Header: ID, Type, Priority, Drag Handle & Delete */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -108,28 +84,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           <PriorityBadge priority={issue.priorityId || issue.priority} size="sm" />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={handleMemoClick}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: currentMemo ? '#eab308' : 'var(--text-muted)',
-                cursor: 'pointer',
-                padding: '2px',
-                display: 'flex',
-                alignItems: 'center',
-                opacity: currentMemo ? 1 : 0.6,
-                transition: 'opacity 0.15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = currentMemo ? '1' : '0.6')}
-              title={currentMemo ? '내 개인 메모 열기/편집' : '이 이슈에 개인 메모(포스트잇) 남기기'}
-            >
-              <StickyNote size={12} fill={currentMemo ? '#eab308' : 'none'} />
-            </button>
-          )}
 
           {isAuthenticated && (
             <button

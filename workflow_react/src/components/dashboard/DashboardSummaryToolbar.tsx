@@ -1,7 +1,16 @@
 ﻿import React from 'react';
-import { Terminal, RefreshCw, LogIn, Plus } from 'lucide-react';
+import {
+  Terminal,
+  RefreshCw,
+  LogIn,
+  Plus,
+  LayoutGrid,
+  Check,
+  RotateCcw,
+} from 'lucide-react';
 import type { User } from '@/types';
 import { Button, Avatar } from '@/components/common';
+import { useDashboardStore } from '@/stores/useDashboardStore';
 
 interface DashboardSummaryToolbarProps {
   isAuthenticated: boolean;
@@ -22,6 +31,17 @@ export const DashboardSummaryToolbar: React.FC<DashboardSummaryToolbarProps> = (
   onOpenCreateProject,
   onOpenAuth,
 }) => {
+  const isEditMode = useDashboardStore((s) => s.isEditMode);
+  const toggleEditMode = useDashboardStore((s) => s.toggleEditMode);
+  const openAddModal = useDashboardStore((s) => s.openAddModal);
+  const resetToDefaultLayout = useDashboardStore((s) => s.resetToDefaultLayout);
+
+  const handleResetConfirm = () => {
+    if (window.confirm('대시보드 위젯 구성을 기본 초기 레이아웃으로 복원하시겠습니까?')) {
+      resetToDefaultLayout();
+    }
+  };
+
   return (
     <>
       {/* Guest Mode Banner */}
@@ -63,10 +83,11 @@ export const DashboardSummaryToolbar: React.FC<DashboardSummaryToolbarProps> = (
           alignItems: 'center',
           padding: '6px 10px',
           background: 'var(--bg-card)',
-          border: '1px solid var(--border-light)',
+          border: isEditMode ? '1px solid var(--primary)' : '1px solid var(--border-light)',
           borderRadius: 'var(--radius-xs)',
           flexWrap: 'wrap',
           gap: '8px',
+          boxShadow: isEditMode ? '0 0 10px rgba(0, 122, 204, 0.2)' : undefined,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -78,17 +99,72 @@ export const DashboardSummaryToolbar: React.FC<DashboardSummaryToolbarProps> = (
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             ({user ? `${user.name || user.email} 로그인 중` : '게스트 모드'})
           </span>
+          {isEditMode && (
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: 'var(--text-on-primary)',
+                background: 'var(--primary)',
+                padding: '1px 6px',
+                borderRadius: '3px',
+              }}
+            >
+              대시보드 편집 모드
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <Button variant="secondary" size="sm" icon={<RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />} onClick={handleRefresh}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Widget Add & Layout Edit Controls */}
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Plus size={12} />}
+            onClick={openAddModal}
+            title="새 위젯 컴포넌트 추가"
+          >
+            위젯 추가
+          </Button>
+
+          <Button
+            variant={isEditMode ? 'primary' : 'secondary'}
+            size="sm"
+            icon={isEditMode ? <Check size={12} /> : <LayoutGrid size={12} />}
+            onClick={toggleEditMode}
+            title="위젯 위치/크기/순서 편집"
+          >
+            {isEditMode ? '편집 완료' : '레이아웃 편집'}
+          </Button>
+
+          {isEditMode && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<RotateCcw size={12} />}
+              onClick={handleResetConfirm}
+              style={{ color: '#f14c4c' }}
+              title="기본 위젯 레이아웃으로 초기화"
+            >
+              기본값 복원
+            </Button>
+          )}
+
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />}
+            onClick={handleRefresh}
+          >
             새로고침
           </Button>
+
           {!isAuthenticated && onOpenAuth && (
             <Button variant="primary" size="sm" icon={<LogIn size={12} />} onClick={onOpenAuth}>
               로그인
             </Button>
           )}
+
           {isAuthenticated && (
             <>
               <Button variant="secondary" size="sm" icon={<Plus size={12} />} onClick={onOpenCreateProject}>

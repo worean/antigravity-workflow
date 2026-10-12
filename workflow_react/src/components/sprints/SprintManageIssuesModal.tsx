@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import {
   Zap,
   Calendar,
@@ -40,6 +41,8 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
   handleRemoveIssueFromSprint,
   handleAddIssueToSprint,
 }) => {
+  const overlayProps = useOverlayClickClose(() => setShowManageModal(false));
+
   if (!showManageModal || !managingSprint) return null;
 
   return (
@@ -55,7 +58,7 @@ export const SprintManageIssuesModal: React.FC<SprintManageIssuesModalProps> = (
         zIndex: 1000,
         padding: '16px',
       }}
-      onClick={() => setShowManageModal(false)}
+      {...overlayProps}
     >
       <div
         style={{

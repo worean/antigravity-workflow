@@ -1,4 +1,5 @@
-﻿﻿import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import { UserPlus, X } from 'lucide-react';
 import type { Group, User as UserType } from '@/types';
 
@@ -43,6 +44,8 @@ export const OrgAddMemberModal: React.FC<OrgAddMemberModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const overlayProps = useOverlayClickClose(onClose);
+
   if (!isOpen) return null;
 
   return (
@@ -61,10 +64,12 @@ export const OrgAddMemberModal: React.FC<OrgAddMemberModalProps> = ({
         background: 'rgba(0, 0, 0, 0.65)',
         backdropFilter: 'blur(2px)',
       }}
-      onClick={onClose}
+      {...overlayProps}
     >
       <div
         className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           maxWidth: '440px',
           width: '92%',
@@ -77,7 +82,6 @@ export const OrgAddMemberModal: React.FC<OrgAddMemberModalProps> = ({
           border: '1px solid var(--border-light)',
           boxShadow: 'var(--shadow-lg)',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div
           style={{

@@ -219,6 +219,7 @@ export const SprintModal: React.FC<SprintModalProps> = ({
             boxShadow: 'var(--shadow-lg)',
           }}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header (IssueModal 100% 동일 구조) */}
           <div

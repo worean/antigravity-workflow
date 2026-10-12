@@ -28,6 +28,7 @@ export const ActionFeedbackModal: React.FC<ActionFeedbackModalProps> = ({ state,
           boxShadow: '0 20px 40px rgba(244, 63, 94, 0.2)',
         }}
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', margin: '-10px -10px 0 0' }}>

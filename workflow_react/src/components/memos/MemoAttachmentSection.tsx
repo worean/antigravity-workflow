@@ -1,4 +1,4 @@
-﻿import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 import { Paperclip, Trash2 } from 'lucide-react';
 import type { MemoAttachmentDto } from '@/types/memo';
 import { useUIStore } from '@/stores/useUIStore';
@@ -90,13 +90,38 @@ export const MemoAttachmentSection: React.FC<MemoAttachmentSectionProps> = ({
                 fontSize: '0.82rem',
               }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Paperclip size={13} color="var(--primary)" />
-                <span style={{ color: 'var(--text-main)' }}>{att.fileName}</span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                {att.fileUrl && (att.fileType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(att.fileName)) ? (
+                  <img
+                    src={att.fileUrl}
+                    alt={att.fileName}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-light)',
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <Paperclip size={13} color="var(--primary)" style={{ flexShrink: 0 }} />
+                )}
+                <span
+                  style={{
+                    color: 'var(--text-main)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={att.fileName}
+                >
+                  {att.fileName}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0 }}>
                   ({(att.fileSize / (1024 * 1024)).toFixed(2)} MB)
                 </span>
-              </span>
+              </div>
               <button
                 type="button"
                 onClick={() => onDelete(att.id)}

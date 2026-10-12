@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -22,6 +22,7 @@ import { ChatPage } from '@/pages/ChatPage';
 import { MemosPage } from '@/pages/MemosPage';
 import { GlobalModalManager } from '@/components/GlobalModalManager';
 import { useUIStore } from '@/stores/useUIStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useProjects, projectKeys } from '@/api/projects';
 import { issueKeys } from '@/api/issues';
 import { getSocket } from '@/lib/socketClient';
@@ -169,6 +170,14 @@ const AppContent: React.FC = () => {
         useUIStore.getState().closeIssueDetail();
       }
 
+      // 채팅 탭에서 벗어날 경우 활성 채널 선택 해제하여 향후 새 메시지 알림 정상 누적
+      if (tab !== 'chat') {
+        useChatStore.getState().setSelectedChannelId(null);
+      } else if (extra?.channelId) {
+        useChatStore.getState().setSelectedChannelId(extra.channelId);
+        useChatStore.getState().markChannelAsRead(extra.channelId);
+      }
+
       // Build RESTful Hierarchical Hash URL
       const newHash = buildHashFromRoute({
         tab: tab as ActiveTabType,
@@ -210,6 +219,13 @@ const AppContent: React.FC = () => {
       // 페이지 전환 시 이전 드로어 닫기
       if (route.tab !== 'issue-detail') {
         useUIStore.getState().closeIssueDetail();
+      }
+
+      if (route.tab !== 'chat') {
+        useChatStore.getState().setSelectedChannelId(null);
+      } else if (route.channelId) {
+        useChatStore.getState().setSelectedChannelId(route.channelId);
+        useChatStore.getState().markChannelAsRead(route.channelId);
       }
     };
 

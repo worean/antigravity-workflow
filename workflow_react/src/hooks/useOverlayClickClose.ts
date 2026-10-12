@@ -1,26 +1,22 @@
-﻿import React, { useRef } from 'react';
+﻿import React from 'react';
 
 /**
- * 팝업 오버레이(배경)를 마우스로 직접 누르고 뗐을 때만 모달이 닫히도록 제어하는 커스텀 훅.
- * 팝업 내부 요소(텍스트, 드롭다운 등)에서 mousedown을 시작하여 마우스 커서를 팝업 바깥에서 떼었을 때(mouseup)
- * 모달이 예기치 않게 닫히는 현상을 완전히 방지합니다.
+ * 모달/팝업 오버레이(외부 영역)를 마우스로 직접 누르는(mousedown) 시점에만 모달을 닫도록 제어하는 공통 훅.
+ * 모달 내부 요소(텍스트, 코드 블록 등)에서 드래그(mousedown)를 시작하여 마우스 커서를 모달 바깥에서 떼었을 때(mouseup),
+ * 브라우저가 발생시키는 잔여 click 이벤트로 인해 모달이 의도치 않게 닫히는 현상을 완전히 방지합니다.
  */
 export const useOverlayClickClose = (onClose: () => void) => {
-  const isMouseDownOnOverlay = useRef<boolean>(false);
-
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      isMouseDownOnOverlay.current = true;
-    } else {
-      isMouseDownOnOverlay.current = false;
+      onClose();
     }
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget && isMouseDownOnOverlay.current) {
-      onClose();
+    // 텍스트 드래그 완료 후 외부에서 마우스를 뗐을 때 발생하는 click 이벤트 차단
+    if (e.target === e.currentTarget) {
+      e.stopPropagation();
     }
-    isMouseDownOnOverlay.current = false;
   };
 
   return {

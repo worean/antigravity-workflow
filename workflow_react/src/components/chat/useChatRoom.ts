@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   getChannels,
   getMessages,
@@ -14,6 +14,7 @@ import { getUsers, getProjects, getGroups } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { usePrefStore } from '@/stores/usePrefStore';
+import { useChatStore } from '@/stores/useChatStore';
 
 export interface UseChatRoomProps {
   propChannelId?: number | null;
@@ -76,12 +77,14 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
       // 중복 채널 방어 (고유 ID 기준 고유화)
       const uniqueChannels = Array.from(new Map(data.map((c) => [c.id, c])).values());
       setChannels(uniqueChannels);
+      useChatStore.getState().syncChannels(uniqueChannels);
       if (uniqueChannels.length > 0) {
         setSelectedChannelId((prev) => {
           const currentTarget = prev ?? wsChannelId;
           const exists = uniqueChannels.some((c) => c.id === currentTarget);
           const resolvedId = exists ? (currentTarget as number) : uniqueChannels[0].id;
           setWsChannelId(resolvedId);
+          useChatStore.getState().setSelectedChannelId(resolvedId);
           return resolvedId;
         });
       }
@@ -101,6 +104,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     if (propChannelId !== undefined && propChannelId !== null) {
       setSelectedChannelId(propChannelId);
       setWsChannelId(propChannelId);
+      useChatStore.getState().setSelectedChannelId(propChannelId);
     }
   }, [propChannelId, setWsChannelId]);
 
@@ -110,6 +114,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     try {
       const data = await getMessages(channelId);
       setMessages(Array.isArray(data) ? data : data.messages || []);
+      useChatStore.getState().markChannelAsRead(channelId);
       await markAsRead(channelId);
       setChannels((prev) =>
         prev.map((c) => (c.id === channelId ? { ...c, unreadCount: 0 } : c))
@@ -123,8 +128,11 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
 
   useEffect(() => {
     if (selectedChannelId) {
+      useChatStore.getState().setSelectedChannelId(selectedChannelId);
+      useChatStore.getState().markChannelAsRead(selectedChannelId);
       fetchMessages(selectedChannelId);
     } else {
+      useChatStore.getState().setSelectedChannelId(null);
       setMessages([]);
     }
   }, [selectedChannelId, fetchMessages]);
@@ -138,20 +146,28 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
       socket.emit('chat:join_channel', { channelId: selectedChannelId });
     }
 
-    const handleNewMessage = (msg: ChatMessage) => {
-      if (msg.channelId === selectedChannelId) {
+    const handleNewMessage = (msg: any) => {
+      const realMsg: ChatMessage = msg?.message || msg;
+      const targetChannelId = Number(msg?.channelId || realMsg?.channelId);
+      const hasMention = !!(realMsg?.hasMention || msg?.hasMention);
+
+      if (targetChannelId === selectedChannelId) {
         setMessages((prev) => {
-          if (prev.some((m) => m.id === msg.id)) return prev;
-          return [...prev, msg];
+          if (prev.some((m) => m.id === realMsg.id)) return prev;
+          return [...prev, realMsg];
         });
-        markAsRead(msg.channelId).catch(console.error);
+        markAsRead(targetChannelId).catch(console.error);
+        useChatStore.getState().markChannelAsRead(targetChannelId);
+      } else {
+        useChatStore.getState().onNewMessageReceived(targetChannelId, hasMention);
       }
+
       setChannels((prev) =>
         prev.map((c) => {
-          if (c.id === msg.channelId) {
+          if (c.id === targetChannelId) {
             return {
               ...c,
-              lastMessage: msg,
+              lastMessage: realMsg,
               unreadCount: c.id === selectedChannelId ? 0 : (c.unreadCount || 0) + 1,
             };
           }
@@ -200,17 +216,21 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     };
 
     const handleChannelRead = (data: { channelId: number }) => {
+      useChatStore.getState().markChannelAsRead(data.channelId);
       setChannels((prev) =>
         prev.map((c) => (c.id === data.channelId ? { ...c, unreadCount: 0 } : c))
       );
     };
 
     const handleAllRead = () => {
+      useChatStore.getState().markAllAsRead();
       setChannels((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })));
     };
 
     socket.on('chat:new_message', handleNewMessage);
+    socket.on('new_message', handleNewMessage);
     socket.on('chat:reaction_updated', handleReactionUpdated);
+    socket.on('reaction_updated', handleReactionUpdated);
     socket.on('chat:message_reaction', handleReactionUpdated);
     socket.on('chat:message_pinned', handleMessagePinned);
     socket.on('chat:typing', handleTyping);
@@ -223,7 +243,9 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
         socket.emit('chat:leave_channel', { channelId: selectedChannelId });
       }
       socket.off('chat:new_message', handleNewMessage);
+      socket.off('new_message', handleNewMessage);
       socket.off('chat:reaction_updated', handleReactionUpdated);
+      socket.off('reaction_updated', handleReactionUpdated);
       socket.off('chat:message_reaction', handleReactionUpdated);
       socket.off('chat:message_pinned', handleMessagePinned);
       socket.off('chat:typing', handleTyping);
@@ -237,12 +259,17 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 4. Stable Callbacks
   const handleSelectChannel = useCallback(
     (cId: number) => {
       if (cId === selectedChannelId) return;
       setSelectedChannelId(cId);
       setWsChannelId(cId);
+      useChatStore.getState().setSelectedChannelId(cId);
+      useChatStore.getState().markChannelAsRead(cId);
+      markAsRead(cId).catch(console.error);
+      setChannels((prev) =>
+        prev.map((c) => (c.id === cId ? { ...c, unreadCount: 0 } : c))
+      );
       if (onSelectChannel) onSelectChannel(cId);
     },
     [selectedChannelId, setWsChannelId, onSelectChannel]
@@ -396,8 +423,9 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
-      await markAllAsRead();
+      useChatStore.getState().markAllAsRead();
       setChannels((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })));
+      await markAllAsRead();
     } catch (err) {
       console.error('Failed to mark all as read:', err);
     }

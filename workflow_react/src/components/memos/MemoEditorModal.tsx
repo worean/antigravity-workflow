@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import { X, Globe, Lock, Save, AlertCircle } from 'lucide-react';
 import { useMemo, useCreateMemo, useUpdateMemo, useUploadMemoAttachment, useDeleteMemoAttachment } from '@/api/memo';
 import { useUIStore } from '@/stores/useUIStore';
@@ -26,6 +27,7 @@ export const MemoEditorModal: React.FC<MemoEditorModalProps> = ({
   const updateMutation = useUpdateMemo();
   const uploadAttachmentMutation = useUploadMemoAttachment();
   const deleteAttachmentMutation = useDeleteMemoAttachment();
+  const overlayProps = useOverlayClickClose(onClose);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -97,16 +99,26 @@ export const MemoEditorModal: React.FC<MemoEditorModalProps> = ({
     }
   };
 
+  const readFileAsDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleUploadAttachment = async (file: File) => {
     if (!memoId) return;
     try {
-      const dummyUrl = `/uploads/memos/${memoId}/${encodeURIComponent(file.name)}`;
+      showToast('첨부파일 업로드 중...', 'info');
+      const dataUrl = await readFileAsDataUrl(file);
       await uploadAttachmentMutation.mutateAsync({
         memoId,
         data: {
           fileName: file.name,
           fileSize: file.size,
-          fileUrl: dummyUrl,
+          fileUrl: dataUrl,
           fileType: file.type || 'application/octet-stream',
         },
       });
@@ -145,9 +157,7 @@ export const MemoEditorModal: React.FC<MemoEditorModalProps> = ({
         backgroundColor: 'rgba(0, 0, 0, 0.55)',
         backdropFilter: 'blur(3px)',
       }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...overlayProps}
     >
       <div
         style={{

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿﻿import React from 'react';
 import {
   Zap,
   Target,
@@ -208,7 +208,7 @@ export const DashboardFocusSprints: React.FC<DashboardFocusSprintsProps> = ({
                     <span>완료 {prog.done} / 전체 {prog.total}개 이슈</span>
                   </div>
                   <div style={{ width: '100%', height: '5px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden', display: 'flex' }}>
-                    <div style={{ width: `${prog.rate}%`, background: '#89d185', transition: 'width 0.3s' }} />
+                    <div style={{ width: `${prog.rate}%`, background: 'var(--accent-green, #89d185)', transition: 'width 0.3s' }} />
                   </div>
                 </div>
 

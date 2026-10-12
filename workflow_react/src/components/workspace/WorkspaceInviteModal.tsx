@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import { UserPlus, X, Send, Copy, Check, KeyRound } from 'lucide-react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { createWorkspaceInvitation, joinWorkspaceByToken } from '@/api/workspaces';
@@ -27,6 +28,7 @@ export const WorkspaceInviteModal: React.FC<WorkspaceInviteModalProps> = ({ isOp
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinSuccess, setJoinSuccess] = useState<string | null>(null);
+  const overlayProps = useOverlayClickClose(onClose);
 
   if (!isOpen) return null;
 
@@ -122,8 +124,11 @@ export const WorkspaceInviteModal: React.FC<WorkspaceInviteModalProps> = ({ isOp
         backdropFilter: 'blur(2px)',
         padding: '16px',
       }}
+      {...overlayProps}
     >
       <div
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: '440px',

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import { X, Globe, Lock, Paperclip, Calendar, User, Edit3, Trash2, Download } from 'lucide-react';
 import { useMemo, useMemoByTitle, useDeleteMemo } from '@/api/memo';
 import { useAuth } from '@/context/AuthContext';
@@ -22,6 +23,7 @@ export const MemoDetailModal: React.FC<MemoDetailModalProps> = ({
   const { user } = useAuth();
   const showToast = useUIStore((s) => s.showToast);
   const deleteMutation = useDeleteMemo();
+  const overlayProps = useOverlayClickClose(onClose);
 
   const isNumericId = typeof target === 'number';
   const memoId = isNumericId ? target : null;
@@ -39,6 +41,8 @@ export const MemoDetailModal: React.FC<MemoDetailModalProps> = ({
   const memo = isNumericId ? memoById : memoByTitle;
   const isLoading = isNumericId ? isLoadingId : isLoadingTitle;
   const error = isNumericId ? errorId : errorTitle;
+
+  const [previewImage, setPreviewImage] = React.useState<{ url: string; name: string } | null>(null);
 
   // ESC 키 닫기 및 스크롤 락
   useEffect(() => {
@@ -61,6 +65,47 @@ export const MemoDetailModal: React.FC<MemoDetailModalProps> = ({
   if (!isOpen || !target) return null;
 
   const isAuthor = user?.id && memo?.authorId === user.id;
+
+  const isImageAttachment = (fileName: string, fileType?: string | null) => {
+    if (fileType?.startsWith('image/')) return true;
+    return /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(fileName);
+  };
+
+  const handleDownloadAttachment = (att: { id: number; fileName: string; fileUrl: string; fileType?: string | null }) => {
+    if (att.fileUrl && att.fileUrl.startsWith('data:')) {
+      try {
+        const commaIdx = att.fileUrl.indexOf(',');
+        const metaPart = att.fileUrl.substring(0, commaIdx);
+        const base64Data = att.fileUrl.substring(commaIdx + 1);
+
+        const mimeMatch = metaPart.match(/data:([^;]+);base64/);
+        const mimeType = mimeMatch ? mimeMatch[1] : (att.fileType || 'application/octet-stream');
+
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Uint8Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+
+        const blob = new Blob([byteNumbers], { type: mimeType });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = att.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        return;
+      } catch (err) {
+        console.error('Data URL direct decode failed:', err);
+      }
+    }
+
+    if (memo) {
+      window.open(`/api/memos/${memo.id}/attachments/${att.id}/download`, '_blank');
+    }
+  };
 
   const handleDelete = async () => {
     if (!memo) return;
@@ -92,9 +137,7 @@ export const MemoDetailModal: React.FC<MemoDetailModalProps> = ({
         backgroundColor: 'rgba(0, 0, 0, 0.55)',
         backdropFilter: 'blur(3px)',
       }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...overlayProps}
     >
       <div
         style={{
@@ -307,52 +350,103 @@ export const MemoDetailModal: React.FC<MemoDetailModalProps> = ({
                     <Paperclip size={14} />
                     첨부파일 ({memo.attachments.length})
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {memo.attachments.map((att) => (
-                      <div
-                        key={att.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 12px',
-                          backgroundColor: 'var(--bg-subtle)',
-                          borderRadius: '6px',
-                          fontSize: '0.85rem',
-                        }}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Paperclip size={14} color="var(--primary)" />
-                          <span style={{ fontWeight: 500, color: 'var(--text-main)' }}>
-                            {att.fileName}
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            ({(att.fileSize / (1024 * 1024)).toFixed(2)} MB)
-                          </span>
-                        </span>
-                        <a
-                          href={att.fileUrl}
-                          download={att.fileName}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {memo.attachments.map((att) => {
+                      const isImg = isImageAttachment(att.fileName, att.fileType);
+                      return (
+                        <div
+                          key={att.id}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            backgroundColor: 'var(--bg-card)',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            backgroundColor: 'var(--bg-subtle)',
                             border: '1px solid var(--border-light)',
-                            color: 'var(--primary)',
-                            fontSize: '0.75rem',
-                            textDecoration: 'none',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
                           }}
                         >
-                          <Download size={12} />
-                          다운로드
-                        </a>
-                      </div>
-                    ))}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                            {isImg && att.fileUrl ? (
+                              <img
+                                src={att.fileUrl}
+                                alt={att.fileName}
+                                onClick={() => setPreviewImage({ url: att.fileUrl, name: att.fileName })}
+                                style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  border: '1px solid var(--border-light)',
+                                }}
+                                title="클릭하여 원본 사진 미리보기"
+                              />
+                            ) : (
+                              <Paperclip size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+                            )}
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <span
+                                style={{
+                                  fontWeight: 500,
+                                  color: 'var(--text-main)',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                                title={att.fileName}
+                              >
+                                {att.fileName}
+                              </span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                {(att.fileSize / (1024 * 1024)).toFixed(2)} MB
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            {isImg && att.fileUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewImage({ url: att.fileUrl, name: att.fileName })}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  backgroundColor: 'var(--bg-card)',
+                                  border: '1px solid var(--border-light)',
+                                  color: 'var(--text-main)',
+                                  fontSize: '0.75rem',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                미리보기
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadAttachment(att)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                backgroundColor: 'var(--primary-subtle, rgba(59, 130, 246, 0.1))',
+                                border: '1px solid var(--primary)',
+                                color: 'var(--primary)',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                fontWeight: 500,
+                              }}
+                            >
+                              <Download size={12} />
+                              다운로드
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -360,6 +454,67 @@ export const MemoDetailModal: React.FC<MemoDetailModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* 이미지 미리보기 라이트박스 모달 */}
+      {previewImage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%',
+              maxWidth: '90vw',
+              marginBottom: '10px',
+            }}
+          >
+            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>
+              {previewImage.name}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: '#fff',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              닫기 (ESC)
+            </button>
+          </div>
+          <img
+            src={previewImage.url}
+            alt={previewImage.name}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '80vh',
+              objectFit: 'contain',
+              borderRadius: '8px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+            }}
+          />
+        </div>
+      )}
     </div>,
     modalRoot
   );

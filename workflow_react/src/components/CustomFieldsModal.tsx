@@ -78,7 +78,7 @@ export const CustomFieldsModal: React.FC<CustomFieldsModalProps> = ({ isOpen, on
 
   return (
     <div className="modal-overlay" {...overlayProps}>
-      <div className="modal-content" style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sliders size={20} color="var(--primary)" /> 커스텀 필드 관리 (Custom Fields)

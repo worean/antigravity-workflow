@@ -8,7 +8,6 @@ import {
   Plus,
 } from 'lucide-react';
 import { StatusBadge, Avatar } from '@/components/common';
-import { MemoIndicator } from '@/components/memos';
 
 interface WBSTreeRowProps {
   item: WBSItem;
@@ -111,9 +110,6 @@ export const WBSTreeRow: React.FC<WBSTreeRowProps> = ({
           : `#${iss.id} ${iss.title} - 클릭하여 상세 및 편집`
       }
     >
-      {/* 개인 메모 인디케이터 (좌측 상단 붉은색 삼각형) */}
-      <MemoIndicator issueId={iss.id} />
-
       {/* Drag Grip Handle */}
       <div
         style={{

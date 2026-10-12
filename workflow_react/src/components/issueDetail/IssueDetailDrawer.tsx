@@ -1,5 +1,6 @@
-﻿﻿import React, { useEffect } from 'react';
-import { Spinner, Button } from '@/components/common';
+﻿import React, { useEffect } from 'react';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { Spinner, Button, Portal } from '@/components/common';
 import { IssueModal } from '@/components/IssueModal';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
@@ -132,17 +133,16 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, showDeleteConfirm, showCreateSubTaskModal, errorState.isOpen, onClose]);
 
+  const overlayProps = useOverlayClickClose(onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div
-      className="drawer-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
+    <Portal containerId="ag-portal-root">
+      <div
+        className="drawer-backdrop"
+        {...overlayProps}
+      >
       <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
         {/* Sticky Top Header */}
         <IssueDrawerStickyHeader issue={issue} onClose={onClose} />
@@ -276,6 +276,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
           onConfirm={handleDeleteIssue}
           onClose={() => setShowDeleteConfirm(false)}
           loading={isPending}
+          zIndex={2000}
         />
 
         {showCreateSubTaskModal && issue && (
@@ -298,5 +299,6 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
         />
       </div>
     </div>
+    </Portal>
   );
 };

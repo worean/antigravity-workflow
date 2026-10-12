@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import { Portal } from './Portal';
@@ -67,6 +67,7 @@ export const ModalWrapper: React.FC<ModalWrapperProps> = ({
           className="modal-content"
           style={{ maxWidth }}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {title && (
             <div

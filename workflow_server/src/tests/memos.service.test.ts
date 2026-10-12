@@ -7,6 +7,7 @@ import { getMemoByTitleService } from '../modules/memos/services/getMemoByTitle.
 import { updateMemoService } from '../modules/memos/services/updateMemo.service.js';
 import { deleteMemoService } from '../modules/memos/services/deleteMemo.service.js';
 import { uploadMemoAttachmentService } from '../modules/memos/services/uploadMemoAttachment.service.js';
+import { downloadMemoAttachmentService } from '../modules/memos/services/downloadMemoAttachment.service.js';
 
 describe('Shared Memos Service Unit Tests', () => {
   let user1Id: number;
@@ -171,5 +172,46 @@ describe('Shared Memos Service Unit Tests', () => {
     // 본인 정상 삭제
     const result = await deleteMemoService(memo.id, user1Id, 1);
     expect(result.success).toBe(true);
+  });
+
+  it('TC-8: 첨부파일 다운로드 조회 및 Base64 바이너리 복원 검증', async () => {
+    const memo = await createMemoService(
+      { title: `다운로드테스트_${Date.now()}`, isPublic: false },
+      user1Id
+    );
+
+    // 1x1 투명 PNG Base64 Data URL
+    const pngDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const attachment = await uploadMemoAttachmentService(
+      memo.id,
+      user1Id,
+      {
+        fileName: 'test_pixel.png',
+        fileSize: 68,
+        fileUrl: pngDataUrl,
+        fileType: 'image/png',
+      },
+      1
+    );
+
+    // 타인 접근 시 권한 오류 차단 (비공개 메모)
+    await expect(
+      downloadMemoAttachmentService(memo.id, attachment.id, user2Id, 1)
+    ).rejects.toThrow('해당 메모 및 첨부파일에 접근할 권한이 없습니다.');
+
+    // 본인 접근 시 정상 다운로드 데이터 반환
+    const downloaded = await downloadMemoAttachmentService(memo.id, attachment.id, user1Id, 1);
+    expect(downloaded.id).toBe(attachment.id);
+    expect(downloaded.fileName).toBe('test_pixel.png');
+    expect(downloaded.fileUrl).toBe(pngDataUrl);
+
+    // Base64 디코딩 시 유효한 PNG 시그니처(0x89, 'P', 'N', 'G')가 보존되어야 함
+    const commaIdx = downloaded.fileUrl.indexOf(',');
+    const base64Part = downloaded.fileUrl.substring(commaIdx + 1);
+    const buffer = Buffer.from(base64Part, 'base64');
+    expect(buffer[0]).toBe(0x89);
+    expect(buffer[1]).toBe(0x50); // 'P'
+    expect(buffer[2]).toBe(0x4e); // 'N'
+    expect(buffer[3]).toBe(0x47); // 'G'
   });
 });

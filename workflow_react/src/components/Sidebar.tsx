@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -17,6 +17,7 @@ import { useUnreadChatStats } from '@/api/chat';
 import { useFavorites } from '@/api/favorites';
 import { useAuth } from '@/context/AuthContext';
 import { useUIStore } from '@/stores/useUIStore';
+import { useChatStore } from '@/stores/useChatStore';
 import type { Project, ChatChannel } from '@/types';
 
 export type TabType =
@@ -64,7 +65,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { isAuthenticated } = useAuth();
   const openSubmenus = useUIStore((s) => s.sidebarSubmenus);
   const toggleSubmenuAction = useUIStore((s) => s.toggleSidebarSubmenu);
-  const { totalUnreadCount, hasMentionUnread } = useUnreadChatStats();
+  const { totalUnreadCount: queryUnreadCount, hasMentionUnread: queryHasMention } = useUnreadChatStats();
+  const storeUnreadCount = useChatStore((s) => s.totalUnreadCount);
+  const storeHasMention = useChatStore((s) => s.hasMentionUnread);
+
+  // Zustand 스토어 값을 우선적으로 사용하고 폴백으로 쿼리 값 사용
+  const effectiveUnreadCount = storeUnreadCount !== undefined ? storeUnreadCount : queryUnreadCount;
+  const effectiveHasMention = storeHasMention !== undefined ? storeHasMention : queryHasMention;
+
   const { data: favorites = [] } = useFavorites(undefined, { enabled: isAuthenticated });
 
   const toggleSubmenu = (menuId: string, e: React.MouseEvent) => {
@@ -113,13 +121,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'chat',
       label: '실시간 채팅',
       icon: MessageSquare,
-      unreadCount: totalUnreadCount,
-      hasMention: hasMentionUnread,
+      unreadCount: effectiveUnreadCount,
+      hasMention: effectiveHasMention,
       subitems: favoriteChatChannels.map((c): SidebarSubitem => ({
         id: c.id,
         label: c.name,
         icon: c.icon || '💬',
         onClick: () => {
+          useChatStore.getState().setSelectedChannelId(c.id);
+          useChatStore.getState().markChannelAsRead(c.id);
           if (onSelectChatChannel) onSelectChatChannel(c.id);
           else setActiveTab('chat');
         },

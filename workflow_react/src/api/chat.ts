@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 import { getSocket } from '@/lib/socketClient';
@@ -46,7 +46,10 @@ export const sendMessage = async (
   return res.data;
 };
 
+import { useChatStore } from '@/stores/useChatStore';
+
 export const markAsRead = async (channelId: number): Promise<{ success: boolean; channelId: number }> => {
+  useChatStore.getState().markChannelAsRead(channelId);
   const res = await apiClient.post(`/chat/channels/${channelId}/read`);
   queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
   queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
@@ -54,6 +57,7 @@ export const markAsRead = async (channelId: number): Promise<{ success: boolean;
 };
 
 export const markAllAsRead = async (): Promise<{ success: boolean; updatedCount: number }> => {
+  useChatStore.getState().markAllAsRead();
   const res = await apiClient.post('/chat/read-all');
   queryClient.invalidateQueries({ queryKey: ['chat', 'channels'] });
   queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
@@ -95,6 +99,12 @@ export const useChatChannels = (options?: { enabled?: boolean }) => {
   });
 
   useEffect(() => {
+    if (query.data) {
+      useChatStore.getState().syncChannels(query.data);
+    }
+  }, [query.data]);
+
+  useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
@@ -102,6 +112,11 @@ export const useChatChannels = (options?: { enabled?: boolean }) => {
       // 다른 워크스페이스의 메시지 이벤트는 현재 워크스페이스 캐시에 영향 주지 않음
       if (payload?.workspaceId && activeWorkspaceId && payload.workspaceId !== activeWorkspaceId) {
         return;
+      }
+      const chId = payload?.channelId || payload?.message?.channelId;
+      const hasMention = payload?.message?.hasMention || payload?.hasMention;
+      if (chId) {
+        useChatStore.getState().onNewMessageReceived(chId, hasMention);
       }
       queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
       queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
@@ -111,21 +126,32 @@ export const useChatChannels = (options?: { enabled?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
     };
 
-    const handleRead = () => {
+    const handleRead = (payload?: any) => {
+      if (payload?.channelId) {
+        useChatStore.getState().markChannelAsRead(payload.channelId);
+      }
+      queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
+    };
+
+    const handleAllRead = () => {
+      useChatStore.getState().markAllAsRead();
       queryClient.invalidateQueries({ queryKey: ['chat', 'channels', activeWorkspaceId] });
       queryClient.invalidateQueries({ queryKey: ['chat', 'unreadStats'] });
     };
 
     socket.on('new_message', handleNewMessage);
+    socket.on('chat:new_message', handleNewMessage);
     socket.on('reaction_updated', handleReaction);
     socket.on('channel_read', handleRead);
-    socket.on('chat:all_read', handleRead);
+    socket.on('chat:all_read', handleAllRead);
 
     return () => {
       socket.off('new_message', handleNewMessage);
+      socket.off('chat:new_message', handleNewMessage);
       socket.off('reaction_updated', handleReaction);
       socket.off('channel_read', handleRead);
-      socket.off('chat:all_read', handleRead);
+      socket.off('chat:all_read', handleAllRead);
     };
   }, [queryClient, activeWorkspaceId]);
 

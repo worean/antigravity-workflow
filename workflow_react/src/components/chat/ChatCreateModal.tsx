@@ -209,6 +209,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
           }}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div

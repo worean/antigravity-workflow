@@ -579,6 +579,7 @@ export const IssueModal: React.FC<IssueModalProps> = ({
             boxShadow: 'var(--shadow-lg)',
           }}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>

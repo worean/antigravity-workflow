@@ -2,7 +2,7 @@
 import { AlertTriangle } from 'lucide-react';
 import { ModalWrapper, Button } from './common';
 
-interface ConfirmModalProps {
+export interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
   message: string;
@@ -11,6 +11,7 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   onClose: () => void;
   loading?: boolean;
+  zIndex?: number;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -22,6 +23,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   onClose,
   loading = false,
+  zIndex = 2000,
 }) => {
   return (
     <ModalWrapper
@@ -29,6 +31,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onClose={onClose}
       maxWidth="380px"
       title={title}
+      zIndex={zIndex}
       icon={
         <div
           style={{

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿﻿import React from 'react';
 import { Star, ArrowUpRight } from 'lucide-react';
 import type { Issue } from '@/types';
 import { Button, CountBadge, StatusBadge, ProjectBadge } from '@/components/common';
@@ -117,9 +117,13 @@ export const DashboardIssueLists: React.FC<DashboardIssueListsProps> = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {recentIssues.length === 0 ? (
+          {!isAuthenticated ? (
             <div style={{ color: 'var(--text-muted)', padding: '16px', textAlign: 'center', fontSize: '0.78rem' }}>
-              등록된 이슈가 없습니다.
+              로그인 후 관여된 이슈를 확인하실 수 있습니다.
+            </div>
+          ) : recentIssues.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', padding: '16px', textAlign: 'center', fontSize: '0.78rem' }}>
+              관여된 최근 등록 이슈가 없습니다.
             </div>
           ) : (
             recentIssues.map((issue) => (

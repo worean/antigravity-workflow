@@ -1,4 +1,5 @@
 ﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import { Button } from './common';
 import { Crop, ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 
@@ -277,12 +278,14 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
     onClose();
   };
 
+  const overlayProps = useOverlayClickClose(onClose);
+
   if (!isOpen || !imageSrc) return null;
 
   const maxCropSize = Math.min(canvasDim.width, canvasDim.height);
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 1200 }}>
+    <div className="modal-overlay" style={{ zIndex: 1200 }} {...overlayProps}>
       <div
         className="modal-container"
         style={{

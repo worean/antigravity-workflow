@@ -1,5 +1,5 @@
 import { globalPrisma } from '#lib/globalPrisma.js';
-import { broadcastToChannel } from '#lib/socket.js';
+import { broadcastToChannel, broadcastGlobal } from '#lib/socket.js';
 
 export interface SendMessageDTO {
   channelId: number;
@@ -79,12 +79,14 @@ export const sendMessageService = async (data: SendMessageDTO, customDb?: any, c
     data: { lastReadAt: new Date() },
   });
 
-  // 5. 실시간 소켓 브로드캐스트
-  broadcastToChannel(channelId, 'new_message', {
+  // 5. 실시간 소켓 브로드캐스트 (해당 채널 룸 및 전역 사이드바 알림 동기화)
+  const payload = {
     channelId,
     workspaceId: channel.workspaceId,
     message: { ...message, hasMention, mentionedNames, mentions },
-  });
+  };
+  broadcastToChannel(channelId, 'new_message', payload);
+  broadcastGlobal('chat:new_message', payload);
 
   return {
     ...message,

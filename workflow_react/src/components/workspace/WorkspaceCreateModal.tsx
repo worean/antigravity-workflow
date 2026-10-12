@@ -1,4 +1,5 @@
 ﻿import React, { useState } from 'react';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
 import { Layers, X, Sparkles } from 'lucide-react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 
@@ -16,6 +17,7 @@ export const WorkspaceCreateModal: React.FC<WorkspaceCreateModalProps> = ({ isOp
   const [icon, setIcon] = useState('🚀');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const overlayProps = useOverlayClickClose(onClose);
 
   if (!isOpen) return null;
 
@@ -57,8 +59,11 @@ export const WorkspaceCreateModal: React.FC<WorkspaceCreateModalProps> = ({ isOp
         backdropFilter: 'blur(2px)',
         padding: '16px',
       }}
+      {...overlayProps}
     >
       <div
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: '440px',
