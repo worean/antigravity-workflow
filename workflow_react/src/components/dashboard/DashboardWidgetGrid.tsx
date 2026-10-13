@@ -1,15 +1,7 @@
-﻿﻿import React from 'react';
+import React from 'react';
 import { useDashboardStore } from '@/stores/useDashboardStore';
 import { DashboardWidgetCard } from './DashboardWidgetCard';
-import {
-  KanbanWidget,
-  WBSGanttWidget,
-  CalendarMiniWidget,
-  StatCardsWidget,
-  FocusSprintsWidget,
-  RecentIssuesWidget,
-  MemoWidget,
-} from './widgets';
+import { getWidgetDefinition } from './widgetRegistry';
 import type { Issue } from '@/types';
 
 interface DashboardWidgetGridProps {
@@ -26,54 +18,30 @@ export const DashboardWidgetGrid: React.FC<DashboardWidgetGridProps> = ({
   const widgets = useDashboardStore((s) => s.widgets);
   const openWidgetConfigModal = useDashboardStore((s) => s.openWidgetConfigModal);
 
-  const sortedWidgets = [...widgets].sort((a, b) => a.order - b.order);
+  const sortedWidgets = [...widgets].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const renderWidgetContent = (widget: (typeof widgets)[0]) => {
-    switch (widget.type) {
-      case 'kanban':
-        return (
-          <KanbanWidget
-            config={widget.config}
-            onSelectIssue={onSelectIssue}
-            onOpenAuth={onOpenAuth}
-            onOpenConfig={() => openWidgetConfigModal(widget.id)}
-          />
-        );
-      case 'wbs':
-        return (
-          <WBSGanttWidget
-            config={widget.config}
-            onSelectIssue={onSelectIssue}
-          />
-        );
-      case 'calendar':
-        return (
-          <CalendarMiniWidget
-            config={widget.config}
-            onSelectIssue={onSelectIssue}
-          />
-        );
-      case 'stats':
-        return <StatCardsWidget />;
-      case 'sprints':
-        return (
-          <FocusSprintsWidget
-            onNavigate={onNavigate}
-            onOpenAuth={onOpenAuth}
-          />
-        );
-      case 'recent-issues':
-        return (
-          <RecentIssuesWidget
-            onSelectIssue={onSelectIssue}
-            onNavigate={onNavigate}
-          />
-        );
-      case 'memo':
-        return <MemoWidget />;
-      default:
-        return <div>알 수 없는 위젯입니다.</div>;
+    const widgetDef = getWidgetDefinition(widget.type);
+    if (!widgetDef) {
+      return (
+        <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
+          등록되지 않은 위젯 타입입니다 ({widget.type})
+        </div>
+      );
     }
+
+    const WidgetComponent = widgetDef.Component;
+    return (
+      <WidgetComponent
+        id={widget.id}
+        title={widget.title}
+        config={widget.config}
+        onSelectIssue={onSelectIssue}
+        onNavigate={onNavigate}
+        onOpenAuth={onOpenAuth}
+        onOpenConfig={widgetDef.ConfigModal ? () => openWidgetConfigModal(widget.id) : undefined}
+      />
+    );
   };
 
   return (
@@ -86,7 +54,9 @@ export const DashboardWidgetGrid: React.FC<DashboardWidgetGridProps> = ({
       }}
     >
       {sortedWidgets.map((widget) => {
-        const canConfigure = widget.type === 'kanban';
+        const widgetDef = getWidgetDefinition(widget.type);
+        const canConfigure = Boolean(widgetDef?.ConfigModal);
+
         return (
           <DashboardWidgetCard
             key={widget.id}

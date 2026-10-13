@@ -5,13 +5,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { DashboardFocusSprints } from '../DashboardFocusSprints';
 import { parseStatusCategory } from '@/utils/statusUtils';
 import { Spinner } from '@/components/common';
+import { Zap } from 'lucide-react';
+import type { WidgetProps, Widgetable } from '@/types/widget';
 
-interface FocusSprintsWidgetProps {
-  onNavigate?: (tab: any, projectId?: number | null) => void;
-  onOpenAuth?: () => void;
-}
-
-export const FocusSprintsWidget: React.FC<FocusSprintsWidgetProps> = ({
+export const FocusSprintsWidget: React.FC<WidgetProps> = ({
   onNavigate = () => {},
   onOpenAuth,
 }) => {
@@ -89,4 +86,15 @@ export const FocusSprintsWidget: React.FC<FocusSprintsWidgetProps> = ({
       onOpenAuth={onOpenAuth}
     />
   );
+};
+
+export const focusSprintsWidgetDefinition: Widgetable = {
+  type: 'sprints',
+  title: '관심 스프린트 모니터',
+  description: '즐겨찾기한 활성 스프린트의 진행률, 남은 D-Day, 담당자 현황을 집중 모니터링합니다.',
+  defaultColSpan: 6,
+  defaultHeight: 'normal',
+  icon: <Zap size={22} color="#f59e0b" />,
+  badge: '스프린트',
+  Component: FocusSprintsWidget,
 };

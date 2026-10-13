@@ -2,15 +2,8 @@
 import { ModalWrapper, Button } from '@/components/common';
 import { useProjects } from '@/api/projects';
 import { STATUS_LIST } from '@/utils/statusUtils';
-import type { DashboardWidgetConfig } from '@/types/dashboard';
+import type { KanbanWidgetFilterConfig, WidgetConfigModalProps } from '@/types/widget';
 import { Filter, Check } from 'lucide-react';
-
-interface KanbanWidgetConfigModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  config?: DashboardWidgetConfig;
-  onSave: (config: Partial<DashboardWidgetConfig>) => void;
-}
 
 const DEFAULT_STATUS_CATEGORIES = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 
@@ -21,7 +14,7 @@ const ISSUE_TYPES = [
   { id: 4, label: 'Improvement', icon: '🚀' },
 ];
 
-export const KanbanWidgetConfigModal: React.FC<KanbanWidgetConfigModalProps> = ({
+export const KanbanWidgetConfigModal: React.FC<WidgetConfigModalProps<KanbanWidgetFilterConfig>> = ({
   isOpen,
   onClose,
   config = {},
@@ -100,31 +93,22 @@ export const KanbanWidgetConfigModal: React.FC<KanbanWidgetConfigModalProps> = (
       zIndex={1600}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* 1. Status Filter */}
+        {/* 1. Status Filter Section */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-bright)' }}>
-              표시할 일감 상태 (Status)
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+              표시할 상태 (Status)
             </label>
             <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={handleSelectAllCategories}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.72rem' }}
-              >
+              <Button size="sm" variant="secondary" onClick={handleSelectAllCategories}>
                 전체 선택
-              </button>
-              <span style={{ color: 'var(--border-light)' }}>|</span>
-              <button
-                type="button"
-                onClick={handleClearCategories}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.72rem' }}
-              >
-                선택 해제
-              </button>
+              </Button>
+              <Button size="sm" variant="secondary" onClick={handleClearCategories}>
+                전체 해제
+              </Button>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
             {STATUS_LIST.map((st) => {
               const isChecked = selectedCategories.includes(st.key);
               return (
@@ -141,25 +125,24 @@ export const KanbanWidgetConfigModal: React.FC<KanbanWidgetConfigModalProps> = (
                     border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-light)'}`,
                     cursor: 'pointer',
                     userSelect: 'none',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <div
                     style={{
-                      width: '16px',
-                      height: '16px',
+                      width: '14px',
+                      height: '14px',
                       borderRadius: '3px',
-                      border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--text-muted)'}`,
+                      border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-subtle)'}`,
                       background: isChecked ? 'var(--primary)' : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'var(--text-on-primary)',
                     }}
                   >
-                    {isChecked && <Check size={12} strokeWidth={3} />}
+                    {isChecked && <Check size={10} color="#ffffff" />}
                   </div>
-                  <span style={{ fontSize: '0.8rem', color: isChecked ? 'var(--text-bright)' : 'var(--text-sub)', fontWeight: isChecked ? 600 : 400 }}>
+                  <span style={{ fontSize: '0.78rem', color: isChecked ? 'var(--text-bright)' : 'var(--text-muted)' }}>
                     {st.koreanLabel}
                   </span>
                 </div>
@@ -168,94 +151,131 @@ export const KanbanWidgetConfigModal: React.FC<KanbanWidgetConfigModalProps> = (
           </div>
         </div>
 
-        {/* 2. Type Filter */}
+        {/* 2. Issue Type Filter Section */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-bright)', marginBottom: '8px' }}>
-            표시할 일감 유형 (Type) <span style={{ fontSize: '0.72rem', fontWeight: 400, color: 'var(--text-muted)' }}>(선택 안 할 경우 전체)</span>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '8px' }}>
+            일감 유형 (Type) 필터
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-            {ISSUE_TYPES.map((t) => {
-              const isChecked = selectedTypeIds.includes(t.id);
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+            {ISSUE_TYPES.map((type) => {
+              const isChecked = selectedTypeIds.includes(type.id);
               return (
                 <div
-                  key={t.id}
-                  onClick={() => toggleTypeId(t.id)}
+                  key={type.id}
+                  onClick={() => toggleTypeId(type.id)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                     padding: '8px 10px',
                     borderRadius: 'var(--radius-xs)',
-                    background: isChecked ? 'rgba(0, 122, 204, 0.12)' : 'var(--bg-subtle)',
-                    border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-light)'}`,
+                    background: isChecked ? 'rgba(78, 201, 176, 0.12)' : 'var(--bg-subtle)',
+                    border: `1px solid ${isChecked ? '#4ec9b0' : 'var(--border-light)'}`,
                     cursor: 'pointer',
                     userSelect: 'none',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <div
                     style={{
-                      width: '16px',
-                      height: '16px',
+                      width: '14px',
+                      height: '14px',
                       borderRadius: '3px',
-                      border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--text-muted)'}`,
-                      background: isChecked ? 'var(--primary)' : 'transparent',
+                      border: `1px solid ${isChecked ? '#4ec9b0' : 'var(--border-subtle)'}`,
+                      background: isChecked ? '#4ec9b0' : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'var(--text-on-primary)',
                     }}
                   >
-                    {isChecked && <Check size={12} strokeWidth={3} />}
+                    {isChecked && <Check size={10} color="#ffffff" />}
                   </div>
-                  <span style={{ fontSize: '0.8rem', color: isChecked ? 'var(--text-bright)' : 'var(--text-sub)', fontWeight: isChecked ? 600 : 400 }}>
-                    {t.icon} {t.label}
+                  <span style={{ fontSize: '0.78rem', color: isChecked ? 'var(--text-bright)' : 'var(--text-muted)' }}>
+                    {type.icon} {type.label}
                   </span>
                 </div>
               );
             })}
           </div>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-sub)', marginTop: '4px', margin: 0 }}>
+            * 아무것도 선택하지 않으면 모든 일감 유형이 표시됩니다.
+          </p>
         </div>
 
-        {/* 3. Project & Assignee Filter */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-bright)', marginBottom: '6px' }}>
-              대상 프로젝트
-            </label>
-            <select
-              className="form-control"
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-              style={{ fontSize: '0.8rem', padding: '6px 8px' }}
-            >
-              <option value="ALL">전체 프로젝트</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.key})
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* 3. Project Filter Section */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '6px' }}>
+            대상 프로젝트
+          </label>
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+            style={{
+              width: '100%',
+              padding: '7px 10px',
+              borderRadius: 'var(--radius-xs)',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border-light)',
+              color: 'var(--text-main)',
+              fontSize: '0.78rem',
+            }}
+          >
+            <option value="ALL">전체 프로젝트</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-bright)', marginBottom: '6px' }}>
-              담당자 필터
-            </label>
-            <select
-              className="form-control"
-              value={assigneeFilter}
-              onChange={(e) => setAssigneeFilter(e.target.value as 'ALL' | 'MY')}
-              style={{ fontSize: '0.8rem', padding: '6px 8px' }}
+        {/* 4. Assignee Filter Section */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '6px' }}>
+            담당자 범위
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.78rem',
+                color: 'var(--text-sub)',
+                cursor: 'pointer',
+              }}
             >
-              <option value="ALL">전체 담당자</option>
-              <option value="MY">내게 할당된 일감만</option>
-            </select>
+              <input
+                type="radio"
+                name="assigneeFilter"
+                checked={assigneeFilter === 'ALL'}
+                onChange={() => setAssigneeFilter('ALL')}
+              />
+              모든 담당자
+            </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.78rem',
+                color: 'var(--text-sub)',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="radio"
+                name="assigneeFilter"
+                checked={assigneeFilter === 'MY'}
+                onChange={() => setAssigneeFilter('MY')}
+              />
+              내게 할당된 일감만
+            </label>
           </div>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
           <Button variant="secondary" size="sm" onClick={onClose}>
             취소
           </Button>

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Terminal,
   RefreshCw,
@@ -177,6 +177,34 @@ export const DashboardSummaryToolbar: React.FC<DashboardSummaryToolbarProps> = (
           )}
         </div>
       </div>
+
+      {/* Edit Mode Guide Banner */}
+      {isEditMode && (
+        <div
+          style={{
+            background: 'rgba(0, 122, 204, 0.08)',
+            border: '1px dashed var(--primary)',
+            borderRadius: 'var(--radius-xs)',
+            padding: '7px 12px',
+            fontSize: '0.75rem',
+            color: 'var(--text-bright)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>
+              💡 <strong>위젯 편집 가이드:</strong> 각 위젯 카드의 <strong>모서리를 마우스로 자유롭게 드래그</strong>하여 크기(너비/높이)를 조절하고, 좌측 <strong>그립 아이콘(⋮⋮)을 잡고 끌어서 원하는 위치로 Drag & Drop</strong>하거나 <strong>화살표(▲/▼) 버튼</strong>으로 순서를 즉시 이동할 수 있습니다.
+            </span>
+          </div>
+          <Button variant="primary" size="sm" icon={<Check size={12} />} onClick={toggleEditMode}>
+            편집 완료
+          </Button>
+        </div>
+      )}
     </>
   );
 };

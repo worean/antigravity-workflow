@@ -8,8 +8,8 @@ import {
   DashboardSummaryToolbar,
   DashboardWidgetGrid,
   DashboardWidgetAddModal,
+  getWidgetDefinition,
 } from '@/components/dashboard';
-import { KanbanWidgetConfigModal } from '@/components/dashboard/widgets';
 import { useDashboardStore } from '@/stores/useDashboardStore';
 
 interface DashboardPageProps {
@@ -134,17 +134,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         onAddWidget={addWidget}
       />
 
-      {/* 4. Kanban Widget Status/Type Filter Config Modal */}
-      <KanbanWidgetConfigModal
-        isOpen={!!editingWidgetIdForConfig && editingWidget?.type === 'kanban'}
-        onClose={closeWidgetConfigModal}
-        config={editingWidget?.config}
-        onSave={(newConfig) => {
-          if (editingWidgetIdForConfig) {
-            updateWidgetConfig(editingWidgetIdForConfig, newConfig);
-          }
-        }}
-      />
+      {/* 4. Widget Config Modal (동적 레지스트리 기반) */}
+      {(() => {
+        if (!editingWidgetIdForConfig || !editingWidget) return null;
+        const widgetDef = getWidgetDefinition(editingWidget.type);
+        if (!widgetDef || !widgetDef.ConfigModal) return null;
+        const ConfigModalComponent = widgetDef.ConfigModal;
+        return (
+          <ConfigModalComponent
+            isOpen={true}
+            onClose={closeWidgetConfigModal}
+            config={editingWidget.config}
+            onSave={(newConfig) => {
+              if (editingWidgetIdForConfig) {
+                updateWidgetConfig(editingWidgetIdForConfig, newConfig);
+              }
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };

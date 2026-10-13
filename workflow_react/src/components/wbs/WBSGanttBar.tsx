@@ -1,8 +1,10 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Issue } from '@/types';
 import type { WBSItem, DragState } from '@/types/wbs';
 import { formatDateOnly, diffDays } from '@/utils/dateUtils';
 import { Calendar } from 'lucide-react';
+import { getOptimalContrastText } from '@/utils/colorUtils';
+import { usePrefStore } from '@/stores/usePrefStore';
 
 interface WBSGanttBarProps {
   item: WBSItem;
@@ -71,6 +73,14 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
   const mouseDownPosRef = React.useRef<{ x: number; y: number } | null>(null);
 
   const prog = iss.progress || 0;
+
+  const themeMode = usePrefStore((s) => s.theme);
+  const isLightMode = themeMode === 'light';
+  const cardBackdrop = isLightMode ? '#ffffff' : '#1e1e1e';
+
+  const fillBg = isBeingDragged ? item.color.dragBase : item.color.base;
+  const trackContrast = getOptimalContrastText(item.color.bgEmpty, cardBackdrop);
+  const fillContrast = getOptimalContrastText(fillBg, cardBackdrop);
 
   return (
     <div
@@ -161,37 +171,66 @@ export const WBSGanttBar: React.FC<WBSGanttBarProps> = ({
             />
           )}
 
-          {/* Progress Fill Bar (0%일 때는 배경 bgEmpty가 노출되고, %가 차오를수록 불투명 채우기 색상 적용) */}
-          <div
-            style={{
-              width: `${prog}%`,
-              height: '100%',
-              background: isBeingDragged ? item.color.dragBase : item.color.base,
-              opacity: 1,
-              borderRadius: prog === 100 ? '2px' : '2px 0 0 2px',
-              pointerEvents: 'none',
-              transition: isBeingDragged ? 'none' : 'width 0.2s ease',
-            }}
-          />
-
-          {/* Label on Bar (% 진척도 텍스트) */}
+          {/* 1. Track 레이어 텍스트: 빈 배경(bgEmpty + cardBackdrop) 대비 최적 색상 */}
           {barWidth > 28 && (
             <span
               style={{
                 position: 'absolute',
                 left: '6px',
+                top: 0,
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
                 fontSize: '0.64rem',
-                color: 'var(--text-bright)',
                 fontWeight: 700,
+                color: trackContrast.color,
+                textShadow: trackContrast.textShadow,
                 whiteSpace: 'nowrap',
-                textShadow: '0 1px 3px rgba(0,0,0,0.95)',
                 pointerEvents: 'none',
-                zIndex: 5,
+                zIndex: 4,
               }}
             >
               {prog}%
             </span>
           )}
+
+          {/* 2. Progress Fill Bar Layer (채우기 게이지 및 채움색 대비 클리핑 텍스트) */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: `${prog}%`,
+              background: fillBg,
+              opacity: 1,
+              borderRadius: prog === 100 ? '2px' : '2px 0 0 2px',
+              pointerEvents: 'none',
+              transition: isBeingDragged ? 'none' : 'width 0.2s ease',
+              overflow: 'hidden',
+              zIndex: 5,
+            }}
+          >
+            {barWidth > 28 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  left: '6px',
+                  top: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.64rem',
+                  fontWeight: 700,
+                  color: fillContrast.color,
+                  textShadow: fillContrast.textShadow,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {prog}%
+              </span>
+            )}
+          </div>
 
           {/* Right Resize Handle */}
           {!item.isParent && (

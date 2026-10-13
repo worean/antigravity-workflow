@@ -7,3 +7,4 @@ export * from './WBSGanttTimeline';
 export * from './WBSMainSplitView';
 export * from './WBSColorConfigModal';
 export * from './colorModal';
+export * from './WBSGanttWidget';

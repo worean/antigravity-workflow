@@ -3,14 +3,11 @@ import { useIssues, useFavorites, useProjects } from '@/api';
 import { useAuth } from '@/context/AuthContext';
 import { DashboardIssueLists } from '../DashboardIssueLists';
 import { Spinner } from '@/components/common';
+import { ListTodo } from 'lucide-react';
 import type { Issue } from '@/types';
+import type { WidgetProps, Widgetable } from '@/types/widget';
 
-interface RecentIssuesWidgetProps {
-  onSelectIssue?: (issue: Issue) => void;
-  onNavigate?: (tab: any, projectId?: number | null) => void;
-}
-
-export const RecentIssuesWidget: React.FC<RecentIssuesWidgetProps> = ({
+export const RecentIssuesWidget: React.FC<WidgetProps> = ({
   onSelectIssue,
   onNavigate = () => {},
 }) => {
@@ -34,7 +31,7 @@ export const RecentIssuesWidget: React.FC<RecentIssuesWidgetProps> = ({
 
   // 2. 최근 등록된 이슈 목록 조회
   const { data: rawRecentIssues = [], isLoading: isRecentLoading } = useIssues(
-    { limit: 50, sortBy: 'id', order: 'desc' },
+    { limit: 50, sortBy: 'id', order: 'desc', onlyInvolved: true },
     { enabled: isAuthenticated }
   );
 
@@ -87,4 +84,15 @@ export const RecentIssuesWidget: React.FC<RecentIssuesWidgetProps> = ({
       onNavigate={onNavigate}
     />
   );
+};
+
+export const recentIssuesWidgetDefinition: Widgetable = {
+  type: 'recent-issues',
+  title: '최근 및 내 할당 이슈',
+  description: '즐겨찾기한 이슈, 최근 등록된 이슈, 나에게 할당된 이슈를 3개 컬럼으로 간결하게 조회합니다.',
+  defaultColSpan: 6,
+  defaultHeight: 'normal',
+  icon: <ListTodo size={22} color="#c586c0" />,
+  badge: '일감 리스트',
+  Component: RecentIssuesWidget,
 };

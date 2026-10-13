@@ -1,4 +1,4 @@
-﻿﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { safeStorage } from '@/utils/safeStorage';
 import type {
   DashboardWidgetItem,
@@ -7,6 +7,7 @@ import type {
   DashboardWidgetConfig,
   DashboardLayoutData,
 } from '@/types/dashboard';
+import { getWidgetDefinition } from '@/components/dashboard/widgetRegistry';
 
 const STORAGE_KEY = 'dashboard_widgets_v1';
 
@@ -106,13 +107,15 @@ interface DashboardStoreState {
   openWidgetConfigModal: (widgetId: string) => void;
   closeWidgetConfigModal: () => void;
 
-  addWidget: (type: DashboardWidgetType) => void;
+  addWidget: (type: DashboardWidgetType, customConfig?: Partial<DashboardWidgetItem>) => void;
   removeWidget: (id: string) => void;
   updateWidgetColSpan: (id: string, colSpan: number) => void;
-  updateWidgetHeight: (id: string, height: DashboardWidgetHeight) => void;
+  updateWidgetHeight: (id: string, height: DashboardWidgetHeight, customHeight?: number) => void;
+  updateWidgetCustomHeight: (id: string, customHeight?: number) => void;
   updateWidgetTitle: (id: string, title: string) => void;
   updateWidgetConfig: (id: string, config: Partial<DashboardWidgetConfig>) => void;
   moveWidget: (id: string, direction: 'up' | 'down') => void;
+  reorderWidgets: (sourceId: string, targetId: string) => void;
   resetToDefaultLayout: () => void;
   loadFromUserPreferences: (preferencesStr?: string | null) => void;
 }
@@ -120,9 +123,12 @@ interface DashboardStoreState {
 const getInitialWidgets = (): DashboardWidgetItem[] => {
   const saved = safeStorage.getItem<DashboardLayoutData | null>(STORAGE_KEY, null);
   if (saved && Array.isArray(saved.widgets) && saved.widgets.length > 0) {
-    return saved.widgets.sort((a, b) => a.order - b.order);
+    return saved.widgets
+      .map((w, idx) => ({ ...w, order: typeof w.order === 'number' ? w.order : idx }))
+      .sort((a, b) => a.order - b.order)
+      .map((w, idx) => ({ ...w, order: idx }));
   }
-  return DEFAULT_WIDGETS;
+  return DEFAULT_WIDGETS.map((w, idx) => ({ ...w, order: idx }));
 };
 
 const persistWidgets = (widgets: DashboardWidgetItem[]) => {
@@ -146,24 +152,25 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
   openWidgetConfigModal: (widgetId) => set({ editingWidgetIdForConfig: widgetId }),
   closeWidgetConfigModal: () => set({ editingWidgetIdForConfig: null }),
 
-  addWidget: (type) => {
+  addWidget: (type, customConfig) => {
     const { widgets } = get();
     const newId = `widget-${type}-${Date.now()}`;
     const nextOrder = widgets.length > 0 ? Math.max(...widgets.map((w) => w.order)) + 1 : 0;
+    const def = getWidgetDefinition(type);
 
     const newWidget: DashboardWidgetItem = {
       id: newId,
       type,
-      title: WIDGET_DEFAULT_TITLES[type] || '위젯',
-      colSpan: WIDGET_DEFAULT_COL_SPANS[type] || 6,
-      height: type === 'stats' ? 'compact' : 'normal',
+      title: customConfig?.title || def?.title || WIDGET_DEFAULT_TITLES[type] || '위젯',
+      colSpan: customConfig?.colSpan || def?.defaultColSpan || WIDGET_DEFAULT_COL_SPANS[type] || 6,
+      height: customConfig?.height || def?.defaultHeight || 'normal',
       order: nextOrder,
-      config: type === 'kanban' ? {
+      config: customConfig?.config || (type === 'kanban' ? {
         statusCategories: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'],
         typeIds: [],
         projectId: 'ALL',
         assigneeFilter: 'ALL',
-      } : {},
+      } : {}),
     };
 
     const nextWidgets = [...widgets, newWidget];
@@ -182,7 +189,7 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
   },
 
   updateWidgetColSpan: (id, colSpan) => {
-    const validColSpan = Math.min(12, Math.max(3, colSpan));
+    const validColSpan = Math.min(12, Math.max(1, colSpan));
     const nextWidgets = get().widgets.map((w) =>
       w.id === id ? { ...w, colSpan: validColSpan } : w
     );
@@ -190,9 +197,17 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
     set({ widgets: nextWidgets });
   },
 
-  updateWidgetHeight: (id, height) => {
+  updateWidgetHeight: (id, height, customHeight) => {
     const nextWidgets = get().widgets.map((w) =>
-      w.id === id ? { ...w, height } : w
+      w.id === id ? { ...w, height, customHeight: customHeight ?? undefined } : w
+    );
+    persistWidgets(nextWidgets);
+    set({ widgets: nextWidgets });
+  },
+
+  updateWidgetCustomHeight: (id, customHeight) => {
+    const nextWidgets = get().widgets.map((w) =>
+      w.id === id ? { ...w, customHeight } : w
     );
     persistWidgets(nextWidgets);
     set({ widgets: nextWidgets });
@@ -215,20 +230,42 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
   },
 
   moveWidget: (id, direction) => {
-    const sorted = [...get().widgets].sort((a, b) => a.order - b.order);
+    const current = [...get().widgets];
+    const sorted = current
+      .map((w, idx) => ({ ...w, order: typeof w.order === 'number' ? w.order : idx }))
+      .sort((a, b) => a.order - b.order);
+
     const index = sorted.findIndex((w) => w.id === id);
     if (index < 0) return;
 
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= sorted.length) return;
 
-    const temp = sorted[index];
-    sorted[index] = sorted[targetIndex];
-    sorted[targetIndex] = temp;
+    const [movedItem] = sorted.splice(index, 1);
+    sorted.splice(targetIndex, 0, movedItem);
 
     const nextWidgets = sorted.map((w, idx) => ({ ...w, order: idx }));
     persistWidgets(nextWidgets);
-    set({ widgets: nextWidgets });
+    set({ widgets: [...nextWidgets] });
+  },
+
+  reorderWidgets: (sourceId, targetId) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    const current = [...get().widgets];
+    const sorted = current
+      .map((w, idx) => ({ ...w, order: typeof w.order === 'number' ? w.order : idx }))
+      .sort((a, b) => a.order - b.order);
+
+    const sourceIndex = sorted.findIndex((w) => w.id === sourceId);
+    const targetIndex = sorted.findIndex((w) => w.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const [movedItem] = sorted.splice(sourceIndex, 1);
+    sorted.splice(targetIndex, 0, movedItem);
+
+    const nextWidgets = sorted.map((w, idx) => ({ ...w, order: idx }));
+    persistWidgets(nextWidgets);
+    set({ widgets: [...nextWidgets] });
   },
 
   resetToDefaultLayout: () => {
@@ -243,8 +280,12 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
       if (parsed?.dashboardConfig?.widgets && Array.isArray(parsed.dashboardConfig.widgets)) {
         const backendWidgets = parsed.dashboardConfig.widgets as DashboardWidgetItem[];
         if (backendWidgets.length > 0) {
-          persistWidgets(backendWidgets);
-          set({ widgets: backendWidgets });
+          const normalized = backendWidgets
+            .map((w, idx) => ({ ...w, order: typeof w.order === 'number' ? w.order : idx }))
+            .sort((a, b) => a.order - b.order)
+            .map((w, idx) => ({ ...w, order: idx }));
+          persistWidgets(normalized);
+          set({ widgets: normalized });
         }
       }
     } catch (err) {
