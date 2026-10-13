@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 🧪 [Domain: calendar / Service: getCalendarEvents]
  * - 기능: 캘린더 일정(이슈 및 스프린트 마일스톤) 목록 조회 API 테스트
  * - 검증 항목:
@@ -7,7 +7,7 @@
  *   3. 미인증 요청 시 401 Unauthorized 차단
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '#lib/prisma.js';
@@ -179,6 +179,49 @@ describe('🧪 [Calendar Events API] GET /api/calendar/events', () => {
       },
     });
 
+    const mockCalendarList = {
+      items: [
+        { id: 'work_calendar_id', summary: '직장 달력', primary: false },
+        { id: 'primary', summary: '개인 달력', primary: true },
+      ],
+    };
+
+    const mockEventsList = {
+      items: [
+        {
+          id: 'mock_work_event_1',
+          summary: '직장 주간 싱크 미팅',
+          description: '실제 구글 직장 달력 일정',
+          start: { dateTime: '2026-10-15T09:00:00Z' },
+          end: { dateTime: '2026-10-15T10:00:00Z' },
+          htmlLink: 'https://calendar.google.com/event?eid=mock_work_1',
+        },
+      ],
+    };
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url: any) => {
+      const urlStr = String(url);
+      if (urlStr.includes('/users/me/calendarList')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          text: async () => JSON.stringify(mockCalendarList),
+          json: async () => mockCalendarList,
+        } as any;
+      }
+      if (urlStr.includes('/events')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          text: async () => JSON.stringify(mockEventsList),
+          json: async () => mockEventsList,
+        } as any;
+      }
+      return { ok: false, status: 404, text: async () => 'Not found' } as any;
+    });
+
     try {
       const res = await request(app)
         .get('/api/calendar/events')
@@ -189,8 +232,55 @@ describe('🧪 [Calendar Events API] GET /api/calendar/events', () => {
       const googleEvents = events.filter((e: any) => e.type === 'google');
       expect(googleEvents.length).toBeGreaterThan(0);
       expect(googleEvents[0].source).toBe('google');
-      expect(googleEvents[0].title).toBeDefined();
+      expect(googleEvents[0].title).toBe('직장 주간 싱크 미팅');
     } finally {
+      fetchSpy.mockRestore();
+      await globalPrisma.socialAccount.delete({
+        where: { id: socialAccount.id },
+      }).catch(() => {});
+    }
+  });
+
+  it('6️⃣ Google 캘린더 목록 조회 시 "직장" 달력 자동 매칭 확인 (GET /api/calendar/google/calendars)', async () => {
+    const socialAccount = await globalPrisma.socialAccount.create({
+      data: {
+        provider: 'GOOGLE',
+        providerId: `google_cal_test_${Date.now()}`,
+        email: testUser.email,
+        accessToken: 'dummy_google_cal_token',
+        userId: testUser.id,
+      },
+    });
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url: any) => {
+      if (String(url).includes('/users/me/calendarList')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          text: async () => '',
+          json: async () => ({
+            items: [
+              { id: 'work_team_cal', summary: '직장 (업무 캘린더)', primary: false },
+              { id: 'personal_cal', summary: '개인', primary: true },
+            ],
+          }),
+        } as any;
+      }
+      return { ok: false, status: 404, text: async () => 'Not found' } as any;
+    });
+
+    try {
+      const res = await request(app)
+        .get('/api/calendar/google/calendars')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.calendars.length).toBe(2);
+      expect(res.body.matchedWorkCalendarId).toBe('work_team_cal');
+    } finally {
+      fetchSpy.mockRestore();
       await globalPrisma.socialAccount.delete({
         where: { id: socialAccount.id },
       }).catch(() => {});

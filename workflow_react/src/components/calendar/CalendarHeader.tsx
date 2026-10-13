@@ -1,8 +1,9 @@
-﻿import React from 'react';
-import { ChevronLeft, ChevronRight, Plus, UserCheck } from 'lucide-react';
+import React from 'react';
+import { ChevronLeft, ChevronRight, Plus, UserCheck, Download, Link, Calendar } from 'lucide-react';
 import type { CalendarViewMode, Project } from '@/types';
 import { useUIStore } from '@/stores/useUIStore';
 import { usePrefStore } from '@/stores/usePrefStore';
+import { downloadIcalFile, getIcalFeedUrl } from '@/api/calendar';
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -18,6 +19,8 @@ interface CalendarHeaderProps {
   onlyMyEvents?: boolean;
   onOnlyMyEventsChange?: (onlyMy: boolean) => void;
   isSundayStart?: boolean;
+  onOpenCalDavModal?: () => void;
+  isCalDavConnected?: boolean;
 }
 
 export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
@@ -34,9 +37,31 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
   onlyMyEvents = false,
   onOnlyMyEventsChange,
   isSundayStart: isSundayStartProp,
+  onOpenCalDavModal,
+  isCalDavConnected = false,
 }) => {
   const openIssueModal = useUIStore((s) => s.openIssueModal);
+  const showToast = useUIStore((s) => s.showToast);
   const handleNewIssue = onNewIssue || (() => openIssueModal(selectedProjectId === 'ALL' ? undefined : selectedProjectId));
+
+  const handleExportIcal = async () => {
+    try {
+      await downloadIcalFile(selectedProjectId, onlyMyEvents);
+      showToast('iCalendar (.ics) 파일이 성공적으로 다운로드되었습니다.', 'success');
+    } catch {
+      showToast('iCal 파일 생성에 실패했습니다.', 'error');
+    }
+  };
+
+  const handleCopyFeedUrl = () => {
+    const feedUrl = getIcalFeedUrl(selectedProjectId);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(feedUrl);
+      showToast('Google/Apple 캘린더 실시간 구독 URL이 클립보드에 복사되었습니다!', 'success');
+    } else {
+      window.prompt('캘린더 구독 URL (Ctrl+C로 복사):', feedUrl);
+    }
+  };
 
   const storeSundayStart = usePrefStore((s) => s.isSundayStart);
   const isSunday = isSundayStartProp !== undefined ? isSundayStartProp : storeSundayStart;
@@ -133,10 +158,12 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
             <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#c586c0' }} />
             스프린트
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#4285F4' }} />
-            Google 일정
-          </span>
+          {isCalDavConnected && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#8a2be2' }} />
+              CalDAV
+            </span>
+          )}
         </div>
       </div>
 
@@ -170,7 +197,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
             )
           }
           className="input-field"
-          style={{ width: '140px', height: '26px', fontSize: '0.78rem' }}
+          style={{ width: '135px', height: '26px', fontSize: '0.78rem' }}
         >
           <option value="ALL">전체 프로젝트</option>
           {projects.map((p) => (
@@ -209,6 +236,48 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
             주간
           </button>
         </div>
+
+        {/* iCal (.ics) 내보내기 & 실시간 구독 URL */}
+        <button
+          type="button"
+          onClick={handleExportIcal}
+          className="btn btn-secondary btn-sm"
+          style={{ height: '26px', fontSize: '0.75rem', gap: '4px' }}
+          title="현재 프로젝트/워크스페이스 일정을 iCalendar (.ics) 파일로 다운로드합니다"
+        >
+          <Download size={13} />
+          <span>iCal 다운로드</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCopyFeedUrl}
+          className="btn btn-secondary btn-sm"
+          style={{ height: '26px', fontSize: '0.75rem', gap: '4px' }}
+          title="Google / Apple / Outlook 캘린더에 실시간 연동할 수 있는 구독 URL을 복사합니다"
+        >
+          <Link size={13} />
+          <span>구독 URL 복사</span>
+        </button>
+
+        {/* CalDAV 외부 캘린더 가져오기 */}
+        <button
+          type="button"
+          onClick={onOpenCalDavModal}
+          className={`btn btn-sm ${isCalDavConnected ? 'btn-primary' : 'btn-secondary'}`}
+          style={{
+            height: '26px',
+            fontSize: '0.75rem',
+            gap: '4px',
+            borderColor: isCalDavConnected ? '#8a2be2' : undefined,
+            background: isCalDavConnected ? 'rgba(138, 43, 226, 0.2)' : undefined,
+            color: isCalDavConnected ? '#b366ff' : undefined,
+          }}
+          title="외부 CalDAV (Nextcloud, iCloud, Synology 등) 캘린더 연동 및 가져오기"
+        >
+          <Calendar size={13} />
+          <span>{isCalDavConnected ? 'CalDAV 연동됨' : 'CalDAV 가져오기'}</span>
+        </button>
 
         {/* 새 일감 등록 */}
         <button

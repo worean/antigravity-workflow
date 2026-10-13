@@ -3,6 +3,8 @@ import { Calendar as CalendarIcon, Clock, MapPin, AlignLeft, ExternalLink } from
 import { ModalWrapper } from '@/components/common/ModalWrapper';
 import type { CalendarEvent } from '@/types';
 
+import { getEffectiveEventRange } from '@/utils/dateUtils';
+
 export interface GoogleEventModalProps {
   event: CalendarEvent | null;
   onClose: () => void;
@@ -11,8 +13,26 @@ export interface GoogleEventModalProps {
 export const GoogleEventModal: React.FC<GoogleEventModalProps> = ({ event, onClose }) => {
   if (!event) return null;
 
-  const formatDate = (isoStr: string) => {
+  const { startDateOnly, endDateOnly, isMultiDay } = getEffectiveEventRange(event.startDate, event.endDate);
+  const isAllDay =
+    Boolean((event as any).isAllDay) ||
+    /T00:00(:00)?(\.000)?(Z|[+-]\d{2}:\d{2})?$/i.test(event.startDate) ||
+    !event.startDate.includes('T');
+
+  const formatDate = (isoStr: string, isEnd = false) => {
     try {
+      if (isAllDay) {
+        const dateStr = isEnd ? endDateOnly : startDateOnly;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dayDate = new Date(y, m - 1, d);
+        return dayDate.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'short',
+        }) + ' (종일)';
+      }
+
       const d = new Date(isoStr);
       return d.toLocaleString('ko-KR', {
         year: 'numeric',
@@ -34,11 +54,20 @@ export const GoogleEventModal: React.FC<GoogleEventModalProps> = ({ event, onClo
       maxWidth="500px"
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="google-tag">Google Calendar</span>
+          <span
+            className="google-tag"
+            style={{
+              background: event.type === 'caldav' ? `${event.project?.color || '#8a2be2'}22` : undefined,
+              borderColor: event.type === 'caldav' ? `${event.project?.color || '#8a2be2'}66` : undefined,
+              color: event.type === 'caldav' ? (event.project?.color || '#8a2be2') : undefined,
+            }}
+          >
+            {event.type === 'caldav' ? (event.project?.name || '사내 캘린더') : 'Google Calendar'}
+          </span>
           <span style={{ fontSize: '1rem', color: 'var(--text-bright)' }}>일정 상세</span>
         </div>
       }
-      icon={<CalendarIcon size={18} color="#4285F4" />}
+      icon={<CalendarIcon size={18} color={event.type === 'caldav' ? (event.project?.color || '#8a2be2') : '#4285F4'} />}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '4px' }}>
         {/* 1. 일정 제목 */}
@@ -72,14 +101,23 @@ export const GoogleEventModal: React.FC<GoogleEventModalProps> = ({ event, onClo
         >
           <Clock size={16} color="#8ab4f8" style={{ marginTop: '2px', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            <div>
-              <span style={{ color: 'var(--text-sub)', marginRight: '6px' }}>시작:</span>
-              <strong style={{ color: 'var(--text-bright)' }}>{formatDate(event.startDate)}</strong>
-            </div>
-            <div>
-              <span style={{ color: 'var(--text-sub)', marginRight: '6px' }}>종료:</span>
-              <strong style={{ color: 'var(--text-bright)' }}>{formatDate(event.endDate)}</strong>
-            </div>
+            {isAllDay && !isMultiDay ? (
+              <div>
+                <span style={{ color: 'var(--text-sub)', marginRight: '6px' }}>일시:</span>
+                <strong style={{ color: 'var(--text-bright)' }}>{formatDate(event.startDate)}</strong>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <span style={{ color: 'var(--text-sub)', marginRight: '6px' }}>시작:</span>
+                  <strong style={{ color: 'var(--text-bright)' }}>{formatDate(event.startDate)}</strong>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-sub)', marginRight: '6px' }}>종료:</span>
+                  <strong style={{ color: 'var(--text-bright)' }}>{formatDate(event.endDate, true)}</strong>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -150,7 +188,7 @@ export const GoogleEventModal: React.FC<GoogleEventModalProps> = ({ event, onClo
             </a>
           ) : (
             <span style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>
-              Google Calendar 동기화 일정
+              {event.type === 'caldav' ? 'CalDAV 외부 캘린더 동기화 일정' : '캘린더 동기화 일정'}
             </span>
           )}
 

@@ -1,4 +1,4 @@
-﻿import { CheckCircle2, Lock, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Lock, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useSyncGoogleCalendar } from '@/api/calendar';
 import { useUIStore } from '@/stores/useUIStore';
 import type { GoogleCalendarStatus } from '@/types';
@@ -6,11 +6,13 @@ import type { GoogleCalendarStatus } from '@/types';
 interface CalendarGoogleSyncBannerProps {
   status?: GoogleCalendarStatus | null;
   isLoading?: boolean;
+  isTokenExpired?: boolean;
 }
 
 export const CalendarGoogleSyncBanner: React.FC<CalendarGoogleSyncBannerProps> = ({
   status,
   isLoading = false,
+  isTokenExpired = false,
 }) => {
   const showToast = useUIStore((state) => state.showToast);
   const syncMutation = useSyncGoogleCalendar();
@@ -35,7 +37,60 @@ export const CalendarGoogleSyncBanner: React.FC<CalendarGoogleSyncBannerProps> =
     }
   };
 
-  // 1. Google 계정 연동 유저 UI
+  // 1. Google 계정 연동 유저이지만 토큰이 만료된 경우
+  if (isGoogleLinked && isTokenExpired) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '10px 14px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'rgba(234, 134, 0, 0.12)',
+          border: '1px solid rgba(234, 134, 0, 0.35)',
+          fontSize: '0.78rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(234, 134, 0, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#dcdcaa',
+              flexShrink: 0,
+            }}
+          >
+            <AlertTriangle size={16} style={{ color: '#e5a50a' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 600, color: '#e5a50a' }}>
+                Google Calendar 인증 토큰 만료
+              </span>
+              {status?.googleEmail && (
+                <span style={{ color: 'var(--text-sub)', fontSize: '0.75rem' }}>
+                  ({status.googleEmail})
+                </span>
+              )}
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem', margin: '2px 0 0 0' }}>
+              Google 보안 세션이 만료되었습니다. Google 일정을 불러오려면 상단 프로필에서 Google 계정으로 다시 로그인해주세요.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Google 계정 연동 정상 활성화 UI
   if (isGoogleLinked) {
     return (
       <div

@@ -1,15 +1,27 @@
-﻿/**
+/**
  * 날짜 관련 유틸리티 (시간/분/초 없이 YYYY-MM-DD 단위 처리)
  */
 
 export const formatDateOnly = (dateInput?: string | Date | null): string => {
   if (!dateInput) return '';
+
   if (typeof dateInput === 'string') {
-    const parts = dateInput.split('T')[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(parts)) {
-      return parts;
+    const clean = dateInput.trim();
+    // 1. 순수 YYYY-MM-DD 날짜 문자열인 경우 타임존 왜곡 없이 즉시 반환
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+      return clean;
+    }
+    // 2. 타임존 표시(Z 또는 +09:00 등)가 없는 순수 로컬 datetime 문자열인 경우 (예: 2026-10-15T00:00:00)
+    if (
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(clean) ||
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(clean)
+    ) {
+      return clean.split(/[T ]/)[0];
     }
   }
+
+  // 3. Date 객체이거나 UTC 오프셋(Z, +09:00 등)이 포함된 ISO 문자열인 경우
+  // 사용자 브라우저 로컬 타임존(KST 등) 기준으로 날짜를 정확히 계산하여 하루 일찍 찍히는 현상 방지
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return '';
   const year = d.getFullYear();
@@ -118,4 +130,51 @@ export const formatTimeAgo = (dateInput?: string | Date | null): string => {
   const diffDay = Math.floor(diffHour / 24);
   if (diffDay < 30) return `${diffDay}일 전`;
   return formatDateOnly(dateInput);
+};
+
+/**
+ * 캘린더 이벤트의 유효 시작일 및 종료일(YYYY-MM-DD) 계산
+ * - iCalendar/CalDAV RFC 5545 표준에 따라 종료 시각이 자정(00:00:00) 또는 24:00:00인 경우,
+ *   종료일은 exclusive 끝 경계이므로 실제 날짜는 전날로 보정하여 당일(1칸) 일정으로 처리합니다.
+ */
+export const getEffectiveEventRange = (
+  startDateStr: string,
+  endDateStr?: string | null
+): { startDateOnly: string; endDateOnly: string; isMultiDay: boolean } => {
+  const startOnly = formatDateOnly(startDateStr);
+  if (!endDateStr) {
+    return { startDateOnly: startOnly, endDateOnly: startOnly, isMultiDay: false };
+  }
+
+  let endOnly = formatDateOnly(endDateStr);
+
+  // 문자열 기반 자정/24시 판별 및 Date 객체 기반 판별
+  const rawEnd = String(endDateStr).trim();
+  const hasMidnightStr =
+    /T00:00(:00)?(\.000)?(Z|[+-]\d{2}:\d{2})?$/i.test(rawEnd) ||
+    / 00:00(:00)?$/i.test(rawEnd) ||
+    /24:00(:00)?/i.test(rawEnd);
+
+  let isMidnightDate = false;
+  const endObj = new Date(endDateStr);
+  if (!isNaN(endObj.getTime())) {
+    const isMidnightUtc = endObj.getUTCHours() === 0 && endObj.getUTCMinutes() === 0 && endObj.getUTCSeconds() === 0;
+    const isMidnightLocal = endObj.getHours() === 0 && endObj.getMinutes() === 0 && endObj.getSeconds() === 0;
+    isMidnightDate = isMidnightUtc || isMidnightLocal;
+  }
+
+  // 종료 시각이 자정이면서 종료일이 시작일보다 뒤인 경우, exclusive 종료 경계이므로 1일 차감
+  if ((hasMidnightStr || isMidnightDate) && endOnly > startOnly) {
+    const endLocalDate = parseLocalDate(endOnly);
+    if (endLocalDate) {
+      endLocalDate.setDate(endLocalDate.getDate() - 1);
+      endOnly = formatDateOnly(endLocalDate);
+    }
+  }
+
+  return {
+    startDateOnly: startOnly,
+    endDateOnly: endOnly,
+    isMultiDay: startOnly !== endOnly,
+  };
 };

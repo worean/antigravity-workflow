@@ -1,4 +1,4 @@
-﻿export interface CalendarEvent {
+export interface CalendarEvent {
   id: string;
   issueId?: number;
   sprintId?: number;
@@ -8,8 +8,8 @@
   endDate: string;
   status?: string;
   priority?: string;
-  type: 'issue' | 'sprint' | 'google';
-  source?: 'workflow' | 'google';
+  type: 'issue' | 'sprint' | 'google' | 'caldav';
+  source?: 'workflow' | 'google' | 'caldav';
   htmlLink?: string | null;
   location?: string | null;
   project?: {
@@ -45,6 +45,23 @@ export interface SyncGoogleCalendarResponse {
   googleEmail?: string | null;
 }
 
+export interface GoogleCalendarItem {
+  id: string;
+  summary: string;
+  description?: string | null;
+  primary?: boolean;
+  backgroundColor?: string | null;
+  timeZone?: string | null;
+}
+
+export interface GetGoogleCalendarsResponse {
+  success: boolean;
+  isTokenExpired?: boolean;
+  calendars: GoogleCalendarItem[];
+  matchedWorkCalendarId?: string | null;
+  message?: string;
+}
+
 export type CalendarViewMode = 'month' | 'week';
 
 export interface CalendarFilter {
@@ -52,4 +69,55 @@ export interface CalendarFilter {
   startDate?: string;
   endDate?: string;
   onlyMyEvents?: boolean;
+  googleCalendarId?: string;
+}
+
+export interface CaldavStatusResponse {
+  isConnected: boolean;
+  serverUrl?: string;
+  domain?: string;
+  useSsl?: boolean;
+  username?: string;
+  calendarName?: string;
+  color?: string;
+  calendarColors?: Record<string, string>;
+  calendarEnabled?: Record<string, boolean>;
+  discoveredCalendars?: string[];
+  lastSyncedAt?: string | null;
+}
+
+export interface CaldavConnectInput {
+  serverUrl?: string;
+  domain?: string;
+  useSsl?: boolean;
+  port?: number;
+  username: string;
+  password: string;
+  calendarName?: string;
+  color?: string;
+  calendarColors?: Record<string, string>;
+  calendarEnabled?: Record<string, boolean>;
+}
+
+export interface UpdateCalDavSettingsInput {
+  calendarColors?: Record<string, string>;
+  calendarEnabled?: Record<string, boolean>;
+  color?: string;
+  calendarName?: string;
+}
+
+export interface CaldavConnectResponse {
+  success: boolean;
+  message: string;
+  discoveredCalendars?: string[];
+  account?: {
+    serverUrl: string;
+    domain?: string;
+    useSsl?: boolean;
+    username: string;
+    calendarName: string;
+    color: string;
+    calendarColors?: Record<string, string>;
+    calendarEnabled?: Record<string, boolean>;
+  };
 }

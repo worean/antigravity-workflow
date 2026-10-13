@@ -2,7 +2,8 @@
 import { Clock, User } from 'lucide-react';
 import type { CalendarEvent } from '@/types';
 import { usePrefStore } from '@/stores/usePrefStore';
-import { formatDateOnly } from '@/utils/dateUtils';
+import { formatDateOnly, getEffectiveEventRange } from '@/utils/dateUtils';
+import { parseColorToRgb } from '@/utils/colorUtils';
 
 interface CalendarWeekGridProps {
   currentDate: Date;
@@ -50,8 +51,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
 
   const getEventsForDate = (dateStr: string) => {
     return events.filter((e) => {
-      const start = e.startDate.split('T')[0];
-      const end = e.endDate.split('T')[0];
+      const { startDateOnly: start, endDateOnly: end } = getEffectiveEventRange(e.startDate, e.endDate);
       return dateStr >= start && dateStr <= end;
     });
   };
@@ -81,7 +81,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', flex: 1, minHeight: '520px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', flex: 1, minHeight: '600px', flexShrink: 0 }}>
       {weekDays.map((day) => {
         const dayEvents = getEventsForDate(day.dateStr);
 
@@ -162,9 +162,13 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
               ) : (
                 dayEvents.map((evt) => {
                   const isGoogle = evt.type === 'google';
+                  const isCaldav = evt.type === 'caldav' || evt.source === 'caldav';
                   const isDone =
                     evt.status?.toUpperCase() === 'DONE' ||
                     evt.status?.toUpperCase() === 'COMPLETED';
+
+                  const calColor = isCaldav ? (evt.project?.color || '#8a2be2') : undefined;
+                  const calRgb = calColor ? parseColorToRgb(calColor) : null;
 
                   return (
                     <div
@@ -176,9 +180,21 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                       style={{
                         padding: '6px 8px',
                         borderRadius: 'var(--radius-xs)',
-                        background: isGoogle ? 'rgba(66, 133, 244, 0.08)' : 'var(--bg-input)',
-                        border: isGoogle ? '1px solid rgba(66, 133, 244, 0.4)' : '1px solid var(--border-light)',
-                        borderLeft: isGoogle ? '3px solid #4285F4' : undefined,
+                        background: calRgb
+                          ? `rgba(${calRgb.r}, ${calRgb.g}, ${calRgb.b}, 0.12)`
+                          : isGoogle
+                          ? 'rgba(66, 133, 244, 0.08)'
+                          : 'var(--bg-input)',
+                        border: calRgb
+                          ? `1px solid rgba(${calRgb.r}, ${calRgb.g}, ${calRgb.b}, 0.45)`
+                          : isGoogle
+                          ? '1px solid rgba(66, 133, 244, 0.4)'
+                          : '1px solid var(--border-light)',
+                        borderLeft: calRgb
+                          ? `3px solid ${calColor}`
+                          : isGoogle
+                          ? '3px solid #4285F4'
+                          : undefined,
                         fontSize: '0.75rem',
                         display: 'flex',
                         flexDirection: 'column',
@@ -190,7 +206,23 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
                         {isGoogle ? (
                           <span className="google-tag">
-                            Google Calendar
+                            외부 캘린더
+                          </span>
+                        ) : isCaldav ? (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              padding: '1px 5px',
+                              borderRadius: 'var(--radius-xs)',
+                              background: calRgb ? `rgba(${calRgb.r}, ${calRgb.g}, ${calRgb.b}, 0.22)` : 'rgba(138, 43, 226, 0.2)',
+                              color: calColor,
+                              fontWeight: 600,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {evt.project?.name || 'CalDAV'}
                           </span>
                         ) : evt.project ? (
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -206,10 +238,12 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                             fontWeight: 600,
                             ...(isGoogle
                               ? { background: 'rgba(66, 133, 244, 0.25)', color: '#8ab4f8' }
+                              : isCaldav
+                              ? { background: calRgb ? `rgba(${calRgb.r}, ${calRgb.g}, ${calRgb.b}, 0.2)` : 'rgba(138, 43, 226, 0.2)', color: calColor }
                               : getStatusBadgeStyle(evt.status)),
                           }}
                         >
-                          {isGoogle ? '연동 일정' : (evt.status || 'TODO')}
+                          {isGoogle ? '연동 일정' : isCaldav ? (evt.project?.name || '일정') : (evt.status || 'TODO')}
                         </span>
                       </div>
 
@@ -217,7 +251,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                         style={{
                           margin: 0,
                           fontWeight: 500,
-                          color: isGoogle ? '#a8c7fa' : 'var(--text-bright)',
+                          color: isGoogle ? '#a8c7fa' : isCaldav ? 'var(--text-bright)' : 'var(--text-bright)',
                           overflow: 'hidden',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
@@ -242,7 +276,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                           <Clock size={11} />
-                          <span>{evt.endDate.split('T')[0].slice(5)}</span>
+                          <span>{getEffectiveEventRange(evt.startDate, evt.endDate).endDateOnly.slice(5)}</span>
                         </span>
 
                         {isGoogle && evt.location ? (

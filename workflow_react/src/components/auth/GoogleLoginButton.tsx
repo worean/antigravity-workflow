@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 
 interface GoogleLoginButtonProps {
@@ -15,6 +15,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   setIsLoading,
 }) => {
   const loginWithGoogle = useGoogleLogin({
+    scope: 'openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       try {

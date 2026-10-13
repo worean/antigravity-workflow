@@ -1,7 +1,8 @@
 ﻿import React, { useMemo } from 'react';
 import type { CalendarEvent } from '@/types';
 import { usePrefStore } from '@/stores/usePrefStore';
-import { formatDateOnly } from '@/utils/dateUtils';
+import { formatDateOnly, getEffectiveEventRange } from '@/utils/dateUtils';
+import { parseColorToRgb } from '@/utils/colorUtils';
 
 interface CalendarMonthGridProps {
   currentDate: Date;
@@ -112,6 +113,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
 
   // 이벤트 스타일 클래스 매핑
   const getEventClass = (evt: CalendarEvent) => {
+    if (evt.type === 'caldav' || evt.source === 'caldav') return 'calendar-event-caldav caldav';
     if (evt.type === 'google') return 'calendar-event-google google';
     if (evt.type === 'sprint') return 'calendar-event-sprint';
     const p = evt.priority?.toUpperCase();
@@ -128,8 +130,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
     const rawSegments: Omit<EventSegment, 'trackIndex'>[] = [];
 
     events.forEach((evt) => {
-      const evtStart = evt.startDate.split('T')[0];
-      const evtEnd = evt.endDate.split('T')[0];
+      const { startDateOnly: evtStart, endDateOnly: evtEnd, isMultiDay } = getEffectiveEventRange(evt.startDate, evt.endDate);
 
       if (evtStart <= weekEnd && evtEnd >= weekStart) {
         const effectiveStart = evtStart < weekStart ? weekStart : evtStart;
@@ -144,7 +145,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
             endCol: endIdx + 1,
             isStart: evtStart >= weekStart,
             isEnd: evtEnd <= weekEnd,
-            isMultiDay: evtStart !== evtEnd,
+            isMultiDay,
           });
         }
       }
@@ -219,6 +220,7 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                 flexDirection: 'column',
                 minHeight: `${contentHeight}px`,
                 flex: 1,
+                flexShrink: 0,
                 borderBottom: weekIdx < weeks.length - 1 ? '1px solid var(--border-light)' : 'none',
               }}
             >
@@ -245,31 +247,8 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                       <span
                         style={
                           d.isToday
-                            ? {
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '22px',
-                                height: '22px',
-                                borderRadius: '50%',
-                                background: 'var(--primary)',
-                                color: '#ffffff',
-                                fontWeight: 'bold',
-                                fontSize: '0.75rem',
-                              }
-                            : {
-                                fontSize: '0.78rem',
-                                fontWeight: 500,
-                                color:
-                                  d.monthOffset !== 0
-                                    ? 'var(--text-muted)'
-                                    : d.isWeekend
-                                    ? d.dayOfWeek === 0
-                                      ? '#f14c4c'
-                                      : '#9cdcfe'
-                                    : 'var(--text-bright)',
-                                paddingLeft: '2px',
-                              }
+                            ? { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '50%', background: 'var(--primary)', color: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem' }
+                            : { fontSize: '0.78rem', fontWeight: 500, color: d.monthOffset !== 0 ? 'var(--text-muted)' : d.isWeekend ? (d.dayOfWeek === 0 ? '#f14c4c' : '#9cdcfe') : 'var(--text-bright)', paddingLeft: '2px' }
                         }
                       >
                         {d.date}
@@ -299,6 +278,10 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                     seg.event.status?.toUpperCase() === 'DONE' ||
                     seg.event.status?.toUpperCase() === 'COMPLETED';
 
+                  const isCaldav = seg.event.type === 'caldav' || seg.event.source === 'caldav';
+                  const calColor = isCaldav ? (seg.event.project?.color || '#8a2be2') : undefined;
+                  const calRgb = calColor ? parseColorToRgb(calColor) : null;
+
                   return (
                     <div
                       key={`seg-${seg.event.id}-${seg.startCol}-${seg.endCol}`}
@@ -318,34 +301,18 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                         padding: '0 6px',
                         margin: '0 1px',
                         borderRadius: `${seg.isStart ? '3px' : '0'} ${seg.isEnd ? '3px' : '0'} ${seg.isEnd ? '3px' : '0'} ${seg.isStart ? '3px' : '0'}`,
-                        borderLeft: seg.isStart ? undefined : 'none',
+                        borderLeft: calRgb ? (seg.isStart ? `3px solid ${calColor}` : 'none') : (seg.isStart ? undefined : 'none'),
                         borderRight: seg.isEnd ? undefined : 'none',
+                        background: calRgb ? `rgba(${calRgb.r}, ${calRgb.g}, ${calRgb.b}, 0.22)` : undefined,
+                        borderColor: calRgb ? `rgba(${calRgb.r}, ${calRgb.g}, ${calRgb.b}, 0.5)` : undefined,
+                        color: calRgb ? '#ffffff' : undefined,
                       }}
-                      title={`${seg.event.title} (${seg.event.startDate.split('T')[0]} ~ ${seg.event.endDate.split('T')[0]})`}
+                      title={`${seg.event.title} (${formatDateOnly(seg.event.startDate)}${seg.event.endDate && formatDateOnly(seg.event.startDate) !== getEffectiveEventRange(seg.event.startDate, seg.event.endDate).endDateOnly ? ` ~ ${getEffectiveEventRange(seg.event.startDate, seg.event.endDate).endDateOnly}` : ''})`}
                     >
-                      {/* Google 캘린더 일정 배지 혹은 시작일/이음새 도트 표시 */}
-                      {seg.event.type === 'google' ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.62rem',
-                            fontWeight: 700,
-                            background: '#4285F4',
-                            color: '#ffffff',
-                            borderRadius: '2px',
-                            padding: '0 3px',
-                            height: '13px',
-                            lineHeight: '13px',
-                            flexShrink: 0,
-                          }}
-                        >
-                          G
-                        </span>
-                      ) : !seg.isStart ? (
+                      {/* 시작일/이음새 도트 표시 (CalDAV/Google 아이콘 제거) */}
+                      {!seg.isStart ? (
                         <span style={{ fontSize: '0.65rem', opacity: 0.75, flexShrink: 0 }}>◀</span>
-                      ) : (
+                      ) : !isCaldav ? (
                         <span
                           style={{
                             width: '4px',
@@ -355,9 +322,9 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                             flexShrink: 0,
                           }}
                         />
-                      )}
+                      ) : null}
 
-                      {/* 이벤트 타이틀 및 소스/프로젝트명 */}
+                      {/* 이벤트 타이틀 (CalDAV는 고유 제목만, 이슈는 [KEY] 표시) */}
                       <span
                         style={{
                           overflow: 'hidden',
@@ -366,9 +333,12 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                           textDecoration: isDone ? 'line-through' : 'none',
                           opacity: isDone ? 0.6 : 1,
                           fontSize: '0.72rem',
+                          fontWeight: 500,
                         }}
                       >
-                        {seg.event.type === 'google' ? '[Google] ' : (seg.event.project?.key ? `[${seg.event.project.key}] ` : '')}
+                        {seg.event.type !== 'caldav' && seg.event.type !== 'google' && seg.event.project?.key
+                          ? `[${seg.event.project.key}] `
+                          : ''}
                         {seg.event.title}
                       </span>
 
