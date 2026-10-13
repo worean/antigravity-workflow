@@ -5,7 +5,7 @@ import { X, Globe, Lock, Paperclip, Calendar, User, Edit3, Trash2, Download } fr
 import { useMemo, useMemoByTitle, useDeleteMemo } from '@/api/memo';
 import { useAuth } from '@/context/AuthContext';
 import { useUIStore } from '@/stores/useUIStore';
-import { renderTextWithMemoMentions } from './MemoMentionLink';
+import { MemoMarkdownRenderer } from './MemoMarkdownRenderer';
 
 interface MemoDetailModalProps {
   isOpen: boolean;
@@ -312,19 +312,9 @@ export const MemoDetailModal: React.FC<MemoDetailModalProps> = ({
                 </span>
               </div>
 
-              {/* 마크다운 본문 (멘션 감지 적용) */}
-              <div
-                style={{
-                  fontSize: '0.95rem',
-                  lineHeight: 1.7,
-                  color: 'var(--text-main)',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  fontFamily: 'inherit',
-                  minHeight: '80px',
-                }}
-              >
-                {renderTextWithMemoMentions(memo.content)}
+              {/* 마크다운 본문 (GFM 마크다운 및 멘션 링크 완벽 지원) */}
+              <div style={{ minHeight: '80px', padding: '4px 0' }}>
+                <MemoMarkdownRenderer content={memo.content} />
               </div>
 
               {/* 첨부파일 섹션 */}

@@ -5,6 +5,7 @@ import { X, Globe, Lock, Save, AlertCircle } from 'lucide-react';
 import { useMemo, useCreateMemo, useUpdateMemo, useUploadMemoAttachment, useDeleteMemoAttachment } from '@/api/memo';
 import { useUIStore } from '@/stores/useUIStore';
 import { MemoAttachmentSection } from './MemoAttachmentSection';
+import { MemoMarkdownEditor } from './MemoMarkdownEditor';
 
 export interface MemoEditorModalProps {
   isOpen: boolean;
@@ -314,31 +315,19 @@ export const MemoEditorModal: React.FC<MemoEditorModalProps> = ({
               </div>
             </div>
 
-            {/* 마크다운 본문 */}
+            {/* 마크다운 본문 에디터 (퀵 툴바 및 실시간 미리보기 지원) */}
             <div>
               <label
                 style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)', marginBottom: '6px' }}
               >
                 메모 내용 (Markdown 지원)
               </label>
-              <textarea
+              <MemoMarkdownEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={8}
-                placeholder="마크다운 문법으로 내용을 작성하세요. (예: # 헤더, - 목록, @참조메모)"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-light)',
-                  backgroundColor: 'var(--bg-subtle)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.9rem',
-                  lineHeight: 1.5,
-                  boxSizing: 'border-box',
-                  resize: 'vertical',
-                  fontFamily: 'monospace',
-                }}
+                onChange={setContent}
+                placeholder="마크다운 문법으로 작성하세요. (예: # 헤더, - 목록, @참조메모)"
+                rows={9}
+                disabled={isLoading}
               />
             </div>
 
