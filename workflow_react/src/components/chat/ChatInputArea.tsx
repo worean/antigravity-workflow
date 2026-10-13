@@ -1,7 +1,8 @@
 ﻿import React, { useRef, useEffect, useCallback } from 'react';
 import { Send, Paperclip, AtSign, X, Loader2 } from 'lucide-react';
-import type { ChatChannel } from '@/types';
+import type { ChatChannel, ChatAttachment } from '@/types';
 import { Button } from '@/components/common';
+import { ChatAttachmentInputPreview } from './ChatAttachmentInputPreview';
 
 interface ChatInputAreaProps {
   currentChannel: ChatChannel | null;
@@ -9,6 +10,9 @@ interface ChatInputAreaProps {
   isSendingMessage: boolean;
   inputText: string;
   setInputText: (text: string) => void;
+  selectedAttachments?: ChatAttachment[];
+  handleFilesSelected?: (files: FileList | File[]) => Promise<void>;
+  handleRemoveAttachment?: (index: number) => void;
   handleSendMessage: (e?: React.FormEvent) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   mentionSuggestions: { id: string | number; name: string; type: string }[];
@@ -24,6 +28,9 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   isSendingMessage,
   inputText,
   setInputText,
+  selectedAttachments = [],
+  handleFilesSelected,
+  handleRemoveAttachment,
   handleSendMessage,
   handleKeyDown,
   mentionSuggestions,
@@ -33,6 +40,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   onOpenAuth,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 📐 텍스트 입력 내용에 맞춘 자동 높이 조절 (최소 3줄 ~ 최대 화면 절반 45vh)
   const adjustHeight = useCallback(() => {
@@ -61,9 +69,11 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     }, 0);
   };
 
+  const canSend = !isSendingMessage && (inputText.trim().length > 0 || selectedAttachments.length > 0);
+
   const onSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSendingMessage) return;
+    if (!canSend) return;
     handleSendMessage(e);
     // 전송 후에도 포커스를 입력창에 즉시 유지
     setTimeout(() => {
@@ -178,6 +188,13 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         </div>
       )}
 
+      {/* 📎 Attached Files Preview */}
+      <ChatAttachmentInputPreview
+        attachments={selectedAttachments}
+        onRemove={(idx) => handleRemoveAttachment?.(idx)}
+        disabled={isSendingMessage}
+      />
+
       {/* 💬 Auto-Expanding Chat Input Box (Min 3-rows, Max 45vh with Scrollbar) */}
       <form
         onSubmit={onSubmitForm}
@@ -200,10 +217,11 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           <button
             type="button"
             disabled={isSendingMessage}
+            onClick={() => fileInputRef.current?.click()}
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--text-sub)',
+              color: selectedAttachments.length > 0 ? 'var(--primary)' : 'var(--text-sub)',
               cursor: isSendingMessage ? 'not-allowed' : 'pointer',
               padding: '4px',
               display: 'flex',
@@ -213,7 +231,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
               opacity: isSendingMessage ? 0.5 : 1,
               transition: 'background-color 0.12s',
             }}
-            title="파일 첨부"
+            title="파일 첨부 (파일당 최대 5MB)"
             onMouseEnter={(e) => {
               if (!isSendingMessage) e.currentTarget.style.background = 'var(--bg-subtle)';
             }}
@@ -223,6 +241,18 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           >
             <Paperclip size={18} />
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                handleFilesSelected?.(e.target.files);
+              }
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}
+            style={{ display: 'none' }}
+          />
         </div>
 
         {/* 📝 Auto-Expanding Textarea (Focus Kept On Send, No Manual Resize, Max 45vh) */}
@@ -265,12 +295,12 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-end' }}>
           <button
             type="submit"
-            disabled={isSendingMessage || !inputText.trim()}
+            disabled={!canSend}
             style={{
-              background: isSendingMessage ? 'var(--primary)' : inputText.trim() ? 'var(--primary)' : 'var(--bg-subtle)',
+              background: isSendingMessage ? 'var(--primary)' : canSend ? 'var(--primary)' : 'var(--bg-subtle)',
               border: '1px solid var(--border-light)',
-              color: isSendingMessage ? '#fff' : inputText.trim() ? '#fff' : 'var(--text-muted)',
-              cursor: isSendingMessage ? 'wait' : inputText.trim() ? 'pointer' : 'default',
+              color: isSendingMessage ? '#fff' : canSend ? '#fff' : 'var(--text-muted)',
+              cursor: isSendingMessage ? 'wait' : canSend ? 'pointer' : 'default',
               padding: '6px 10px',
               borderRadius: '4px',
               display: 'flex',

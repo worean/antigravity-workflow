@@ -9,12 +9,13 @@ import {
   toggleReaction,
 } from '@/api/chat';
 import { getSocket } from '@/lib/socketClient';
-import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group } from '@/types';
+import type { ChatChannel, ChatMessage, ChannelType, NotificationLevel, User, Project, Group, ChatAttachment } from '@/types';
 import { getUsers, getProjects, getGroups } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { usePrefStore } from '@/stores/usePrefStore';
 import { useChatStore } from '@/stores/useChatStore';
+import { useUIStore } from '@/stores/useUIStore';
 
 export interface UseChatRoomProps {
   propChannelId?: number | null;
@@ -22,11 +23,14 @@ export interface UseChatRoomProps {
   onOpenAuth?: () => void;
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseChatRoomProps) => {
   const { user, token, isAuthenticated } = useAuth();
   const { selectedChannelId: wsChannelId, setSelectedChannelId: setWsChannelId } = useWorkspace();
   const activeWorkspaceId = usePrefStore((s) => s.activeWorkspaceId);
   const currentUserId = user?.id || 0;
+  const showToast = useUIStore((s) => s.showToast);
 
   // Workspace Metadata
   const [allWorkspaceUsers, setAllWorkspaceUsers] = useState<User[]>([]);
@@ -53,6 +57,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
   const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
   const [isSendingMessage, setIsSendingMessage] = useState<boolean>(false);
   const [inputText, setInputText] = useState<string>('');
+  const [selectedAttachments, setSelectedAttachments] = useState<ChatAttachment[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<number, string>>(new Map());
   const typingTimeoutRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -227,6 +232,47 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
       setChannels((prev) => prev.map((c) => ({ ...c, unreadCount: 0 })));
     };
 
+    const handleUserUpdated = (updatedUser: any) => {
+      if (!updatedUser?.userId && !updatedUser?.email) return;
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (
+            msg.senderId === updatedUser.userId ||
+            msg.sender?.email === updatedUser.email
+          ) {
+            return {
+              ...msg,
+              sender: {
+                ...msg.sender,
+                ...updatedUser,
+              },
+            };
+          }
+          return msg;
+        })
+      );
+      setChannels((prev) =>
+        prev.map((c) => ({
+          ...c,
+          members: c.members?.map((m: any) => {
+            if (
+              m.userId === updatedUser.userId ||
+              m.email === updatedUser.email ||
+              m.user?.email === updatedUser.email
+            ) {
+              return {
+                ...m,
+                user: { ...(m.user || {}), ...updatedUser },
+                avatar: updatedUser.avatar,
+                avatarColor: updatedUser.avatarColor,
+              };
+            }
+            return m;
+          }),
+        }))
+      );
+    };
+
     socket.on('chat:new_message', handleNewMessage);
     socket.on('new_message', handleNewMessage);
     socket.on('chat:reaction_updated', handleReactionUpdated);
@@ -237,6 +283,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     socket.on('chat:stop_typing', handleStopTyping);
     socket.on('channel_read', handleChannelRead);
     socket.on('chat:all_read', handleAllRead);
+    socket.on('chat:user_updated', handleUserUpdated);
 
     return () => {
       if (selectedChannelId) {
@@ -252,6 +299,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
       socket.off('chat:stop_typing', handleStopTyping);
       socket.off('channel_read', handleChannelRead);
       socket.off('chat:all_read', handleAllRead);
+      socket.off('chat:user_updated', handleUserUpdated);
     };
   }, [token, selectedChannelId, currentUserId]);
 
@@ -263,6 +311,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     (cId: number) => {
       if (cId === selectedChannelId) return;
       setSelectedChannelId(cId);
+      setSelectedAttachments([]);
       setWsChannelId(cId);
       useChatStore.getState().setSelectedChannelId(cId);
       useChatStore.getState().markChannelAsRead(cId);
@@ -282,6 +331,30 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     }));
   }, []);
 
+  const handleSelectCategory = useCallback(
+    (cat: ChannelType | 'ALL') => {
+      setActiveCategory(cat);
+      if (cat !== 'ALL') {
+        const matchesCategory = (c: ChatChannel) => {
+          if (cat === 'GLOBAL') return c.type === 'GLOBAL' || c.type === 'GENERAL';
+          return c.type === cat;
+        };
+        const currentChannel = channels.find((c) => c.id === selectedChannelId);
+        if (!currentChannel || !matchesCategory(currentChannel)) {
+          const firstInCat = channels.find(matchesCategory);
+          if (firstInCat) {
+            setSelectedChannelId(firstInCat.id);
+            setWsChannelId(firstInCat.id);
+            useChatStore.getState().setSelectedChannelId(firstInCat.id);
+            if (onSelectChannel) onSelectChannel(firstInCat.id);
+          }
+        }
+      }
+    },
+    [channels, selectedChannelId, setWsChannelId, onSelectChannel]
+  );
+
+
   const handleOpenCreateForCategory = useCallback((type: ChannelType, e: React.MouseEvent) => {
     e.stopPropagation();
     setCreateModalType(type);
@@ -293,9 +366,57 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     setShowCreateModal(true);
   }, []);
 
+  const handleFilesSelected = useCallback(
+    async (files: FileList | File[]) => {
+      const fileArray = Array.from(files);
+      if (fileArray.length === 0) return;
+
+      for (const file of fileArray) {
+        if (file.size > MAX_FILE_SIZE) {
+          const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+          showToast(`첨부파일 크기는 최대 5MB를 초과할 수 없습니다. (${file.name}: ${sizeMb}MB)`, 'error');
+          continue;
+        }
+
+        try {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(file);
+          });
+
+          setSelectedAttachments((prev) => [
+            ...prev,
+            {
+              fileName: file.name,
+              fileSize: file.size,
+              fileUrl: dataUrl,
+              fileType: file.type || 'application/octet-stream',
+            },
+          ]);
+        } catch (err) {
+          console.error('Failed to read file as data url:', err);
+          showToast(`파일을 읽는 중 오류가 발생했습니다: ${file.name}`, 'error');
+        }
+      }
+    },
+    [showToast]
+  );
+
+  const handleRemoveAttachment = useCallback((index: number) => {
+    setSelectedAttachments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const clearAttachments = useCallback(() => {
+    setSelectedAttachments([]);
+  }, []);
+
   const handleSendMessage = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || !selectedChannelId || isSendingMessage) return;
+    const hasText = !!inputText.trim();
+    const hasAtts = selectedAttachments.length > 0;
+    if ((!hasText && !hasAtts) || !selectedChannelId || isSendingMessage) return;
 
     if (!isAuthenticated) {
       if (onOpenAuth) onOpenAuth();
@@ -303,6 +424,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     }
 
     const content = inputText;
+    const currentAtts = [...selectedAttachments];
     setIsSendingMessage(true);
     setMentionQuery(null);
 
@@ -310,21 +432,23 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     socket.emit('chat:stop_typing', { channelId: selectedChannelId });
 
     try {
-      const savedMsg = await sendMessage(selectedChannelId, { content });
+      const savedMsg = await sendMessage(selectedChannelId, { content, attachments: currentAtts });
       if (savedMsg) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === savedMsg.id)) return prev;
           return [...prev, savedMsg];
         });
         setInputText('');
+        setSelectedAttachments([]);
       }
     } catch (err) {
       console.error('Failed to send message:', err);
       setInputText(content);
+      setSelectedAttachments(currentAtts);
     } finally {
       setIsSendingMessage(false);
     }
-  }, [inputText, selectedChannelId, isSendingMessage, isAuthenticated, onOpenAuth]);
+  }, [inputText, selectedAttachments, selectedChannelId, isSendingMessage, isAuthenticated, onOpenAuth]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -467,7 +591,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     selectedChannelId,
     setSelectedChannelId,
     activeCategory,
-    setActiveCategory,
+    setActiveCategory: handleSelectCategory,
     searchQuery,
     setSearchQuery,
     collapsedCategories,
@@ -484,6 +608,11 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     isSendingMessage,
     inputText,
     setInputText,
+    selectedAttachments,
+    setSelectedAttachments,
+    handleFilesSelected,
+    handleRemoveAttachment,
+    clearAttachments,
     showPinnedOnly,
     setShowPinnedOnly,
     showNotificationMenu,

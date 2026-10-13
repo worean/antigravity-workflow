@@ -1,5 +1,5 @@
 ﻿import React, { type RefObject } from 'react';
-import type { ChatChannel, ChatMessage, NotificationLevel } from '@/types';
+import type { ChatChannel, ChatMessage, NotificationLevel, ChatAttachment } from '@/types';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInputArea } from './ChatInputArea';
@@ -27,6 +27,9 @@ interface ChatMainAreaProps {
   isSendingMessage: boolean;
   inputText: string;
   setInputText: (val: string) => void;
+  selectedAttachments?: ChatAttachment[];
+  handleFilesSelected?: (files: FileList | File[]) => Promise<void>;
+  handleRemoveAttachment?: (index: number) => void;
   handleSendMessage: (e?: React.FormEvent) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   mentionSuggestions: { id: string | number; name: string; type: string }[];
@@ -59,6 +62,9 @@ export const ChatMainArea: React.FC<ChatMainAreaProps> = ({
   isSendingMessage,
   inputText,
   setInputText,
+  selectedAttachments = [],
+  handleFilesSelected,
+  handleRemoveAttachment,
   handleSendMessage,
   handleKeyDown,
   mentionSuggestions,
@@ -114,6 +120,9 @@ export const ChatMainArea: React.FC<ChatMainAreaProps> = ({
         isSendingMessage={isSendingMessage}
         inputText={inputText}
         setInputText={setInputText}
+        selectedAttachments={selectedAttachments}
+        handleFilesSelected={handleFilesSelected}
+        handleRemoveAttachment={handleRemoveAttachment}
         handleSendMessage={handleSendMessage}
         handleKeyDown={handleKeyDown}
         mentionSuggestions={mentionSuggestions}

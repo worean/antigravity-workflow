@@ -46,6 +46,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     isSendingMessage,
     inputText,
     setInputText,
+    selectedAttachments,
+    handleFilesSelected,
+    handleRemoveAttachment,
     showPinnedOnly,
     setShowPinnedOnly,
     showNotificationMenu,
@@ -121,6 +124,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         isSendingMessage={isSendingMessage}
         inputText={inputText}
         setInputText={setInputText}
+        selectedAttachments={selectedAttachments}
+        handleFilesSelected={handleFilesSelected}
+        handleRemoveAttachment={handleRemoveAttachment}
         handleSendMessage={handleSendMessage}
         handleKeyDown={handleKeyDown}
         mentionSuggestions={mentionSuggestions}

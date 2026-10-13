@@ -48,6 +48,14 @@ export const ChatChannelSidebar: React.FC<ChatChannelSidebarProps> = memo(({
     return true;
   });
 
+  const dmChannels = filteredChannels.filter((c) => c.type === 'DM');
+  const showDmList = (activeCategory === 'ALL' && dmChannels.length > 0) || activeCategory === 'DM';
+  const showWorkspaceTree =
+    activeCategory === 'ALL' ||
+    activeCategory === 'GLOBAL' ||
+    activeCategory === 'PROJECT' ||
+    activeCategory === 'GROUP';
+
   const totalUnread = channels.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   return (
@@ -134,25 +142,29 @@ export const ChatChannelSidebar: React.FC<ChatChannelSidebarProps> = memo(({
       {/* 2. Workspace Channel Tree & Direct Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
         {/* 🏢 1) 워크스페이스 채널 트리 (전체 / 프로젝트 / 그룹) */}
-        {(activeCategory === 'ALL' || activeCategory === 'GLOBAL' || activeCategory === 'PROJECT' || activeCategory === 'GROUP') && (
+        {showWorkspaceTree && (
           <WorkspaceChannelTree
             workspaceName={currentWorkspace?.name || '내 워크스페이스'}
             channels={filteredChannels}
             selectedChannelId={selectedChannelId}
             onSelectChannel={onSelectChannel}
+            activeCategory={activeCategory}
             collapsedCategories={collapsedCategories}
             toggleCategoryCollapse={toggleCategoryCollapse}
             handleOpenCreateForCategory={handleOpenCreateForCategory}
+            searchQuery={searchQuery}
           />
         )}
 
         {/* 💬 2) 다이렉트 메시지 목록 (전역/독립) */}
-        {(activeCategory === 'ALL' || activeCategory === 'DM') && (
+        {showDmList && (
           <DirectMessageList
             channels={filteredChannels}
             selectedChannelId={selectedChannelId}
             onSelectChannel={onSelectChannel}
             onOpenCreateDm={(e) => handleOpenCreateForCategory('DM', e)}
+            isCollapsed={collapsedCategories['DM'] ?? false}
+            onToggleCollapse={() => toggleCategoryCollapse('DM')}
           />
         )}
       </div>

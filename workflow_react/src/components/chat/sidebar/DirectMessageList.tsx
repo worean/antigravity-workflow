@@ -1,5 +1,5 @@
 ﻿import React, { memo } from 'react';
-import { MessageCircle, Plus } from 'lucide-react';
+import { MessageCircle, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import type { ChatChannel } from '@/types';
 import { ChannelItem } from './ChannelItem';
 
@@ -8,6 +8,8 @@ interface DirectMessageListProps {
   selectedChannelId: number | null;
   onSelectChannel: (channelId: number) => void;
   onOpenCreateDm: (e: React.MouseEvent) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
@@ -15,6 +17,8 @@ export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
   selectedChannelId,
   onSelectChannel,
   onOpenCreateDm,
+  isCollapsed = false,
+  onToggleCollapse,
 }) => {
   const dmChannels = channels.filter((c) => c.type === 'DM');
 
@@ -27,9 +31,15 @@ export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
           justifyContent: 'space-between',
           padding: '3px 6px',
           marginBottom: '4px',
+          cursor: onToggleCollapse ? 'pointer' : 'default',
+          userSelect: 'none',
         }}
+        onClick={onToggleCollapse}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {onToggleCollapse && (
+            isCollapsed ? <ChevronRight size={12} color="var(--text-muted)" /> : <ChevronDown size={12} color="var(--text-muted)" />
+          )}
           <MessageCircle size={13} color="var(--primary)" />
           <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             다이렉트 메시지 ({dmChannels.length})
@@ -37,7 +47,10 @@ export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
         </div>
         <button
           type="button"
-          onClick={onOpenCreateDm}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenCreateDm(e);
+          }}
           title="새 다이렉트 메시지 시작"
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-bright)')}
@@ -47,19 +60,21 @@ export const DirectMessageList: React.FC<DirectMessageListProps> = memo(({
         </button>
       </div>
 
-      {dmChannels.length === 0 ? (
-        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px 8px' }}>
-          진행 중인 1:1 대화가 없습니다.
-        </div>
-      ) : (
-        dmChannels.map((channel) => (
-          <ChannelItem
-            key={channel.id}
-            channel={channel}
-            isSelected={channel.id === selectedChannelId}
-            onSelectChannel={onSelectChannel}
-          />
-        ))
+      {!isCollapsed && (
+        dmChannels.length === 0 ? (
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '4px 8px' }}>
+            진행 중인 1:1 대화가 없습니다.
+          </div>
+        ) : (
+          dmChannels.map((channel) => (
+            <ChannelItem
+              key={channel.id}
+              channel={channel}
+              isSelected={channel.id === selectedChannelId}
+              onSelectChannel={onSelectChannel}
+            />
+          ))
+        )
       )}
     </div>
   );

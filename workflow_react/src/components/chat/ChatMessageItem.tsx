@@ -1,7 +1,8 @@
 ﻿import React, { memo } from 'react';
-import { Pin, Paperclip } from 'lucide-react';
+import { Pin } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 import { Avatar } from '@/components/common';
+import { ChatMessageAttachmentList } from './ChatMessageAttachmentList';
 
 export const QUICK_EMOJIS = ['👍', '❤️', '🔥', '🎉', '🚀', '👀', '😄', '💯'];
 
@@ -116,35 +117,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
         </div>
 
         {/* Attachments */}
-        {msg.attachments && msg.attachments.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-            {msg.attachments.map((att: any, idx: number) => (
-              <div
-                key={idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'var(--bg-subtle)',
-                  border: '1px solid var(--border-light)',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '0.72rem',
-                }}
-              >
-                <Paperclip size={12} color="var(--text-muted)" />
-                <a
-                  href={att.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: 'var(--primary)', textDecoration: 'none' }}
-                >
-                  {att.filename || '첨부파일'}
-                </a>
-              </div>
-            ))}
-          </div>
-        )}
+        <ChatMessageAttachmentList attachments={msg.attachments} />
 
         {/* Reactions List */}
         {msg.reactions && msg.reactions.length > 0 && (

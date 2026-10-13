@@ -65,4 +65,64 @@ describe('💬 [Chat: sendMessage & Smart Throttler] Unit Tests', () => {
     expect(msg.hasMention).toBe(true);
     expect(msg.mentions).toContain(user2.id);
   });
+
+  it('3. 첨부파일(이미지/문서)과 함께 메시지 전송 시 attachments가 정상적으로 저장되어야 합니다.', async () => {
+    const attachments = [
+      {
+        fileName: 'screenshot.png',
+        fileSize: 102400,
+        fileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        fileType: 'image/png',
+      },
+    ];
+
+    const msg = await sendMessageService({
+      channelId: channel.id,
+      senderId: user1.id,
+      content: '스크린샷 첨부합니다.',
+      attachments,
+    });
+
+    expect(msg.content).toBe('스크린샷 첨부합니다.');
+    expect(msg.attachments).toBeDefined();
+
+    const history = await getMessagesService(channel.id, user1.id, {});
+    const savedMsg = history.messages.find((m: any) => m.id === msg.id);
+    expect(savedMsg).toBeDefined();
+    const parsedAtts = typeof savedMsg.attachments === 'string' ? JSON.parse(savedMsg.attachments) : savedMsg.attachments;
+    expect(parsedAtts.length).toBe(1);
+    expect(parsedAtts[0].fileName).toBe('screenshot.png');
+  });
+
+  it('4. 텍스트 내용 없이 첨부파일만 전송하는 경우에도 정상적으로 메시지가 생성되어야 합니다.', async () => {
+    const attachments = [
+      {
+        fileName: 'document.pdf',
+        fileSize: 204800,
+        fileUrl: 'data:application/pdf;base64,JVBERi0xLjQK...',
+        fileType: 'application/pdf',
+      },
+    ];
+
+    const msg = await sendMessageService({
+      channelId: channel.id,
+      senderId: user1.id,
+      content: '',
+      attachments,
+    });
+
+    expect(msg.content).toBe('');
+    expect(msg.attachments).toBeDefined();
+  });
+
+  it('5. 텍스트와 첨부파일이 모두 없는 경우 에러를 반환해야 합니다.', async () => {
+    await expect(
+      sendMessageService({
+        channelId: channel.id,
+        senderId: user1.id,
+        content: '',
+        attachments: [],
+      })
+    ).rejects.toThrow('Channel ID, Sender ID, and Content or Attachments are required');
+  });
 });

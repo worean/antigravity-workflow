@@ -1,4 +1,4 @@
-import { globalPrisma } from '#lib/globalPrisma.js';
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
 import { broadcastToChannel, broadcastGlobal } from '#lib/socket.js';
 
 export interface SendMessageDTO {
@@ -12,8 +12,11 @@ export const sendMessageService = async (data: SendMessageDTO, customDb?: any, c
   const { channelId, senderId, content, attachments } = data;
   const gdb = (customDb ?? globalPrisma) as any;
 
-  if (!channelId || !senderId || !content?.trim()) {
-    throw new Error('Channel ID, Sender ID, and Content are required');
+  const hasContent = typeof content === 'string' && content.trim().length > 0;
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+
+  if (!channelId || !senderId || (!hasContent && !hasAttachments)) {
+    throw new Error('Channel ID, Sender ID, and Content or Attachments are required');
   }
 
   // 1. 채널 및 멤버십 확인
@@ -40,7 +43,7 @@ export const sendMessageService = async (data: SendMessageDTO, customDb?: any, c
   }
 
   // 2. 멘션 파싱 (@유저명)
-  const mentionMatches = content.match(/@([a-zA-Z0-9가-힣_]+)/g) || [];
+  const mentionMatches = hasContent ? (content.match(/@([a-zA-Z0-9가-힣_]+)/g) || []) : [];
   const mentionedNames = mentionMatches.map((m) => m.substring(1));
   const hasMention = mentionedNames.length > 0;
 
@@ -58,8 +61,8 @@ export const sendMessageService = async (data: SendMessageDTO, customDb?: any, c
     data: {
       channelId,
       senderId,
-      content: content.trim(),
-      attachments: attachments ? JSON.stringify(attachments) : null,
+      content: hasContent ? content.trim() : '',
+      attachments: hasAttachments ? JSON.stringify(attachments) : null,
     },
     include: {
       sender: {
