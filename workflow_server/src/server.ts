@@ -1,9 +1,13 @@
+﻿import './lib/env.js';
+import { printEnvSummary } from './lib/env.js';
 import http from 'http';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { app } from './app.js';
 import { initSocketServer } from './lib/socket.js';
+
+printEnvSummary();
 
 const PORT = process.env.PORT || 4000;
 const USE_HTTPS = process.env.USE_HTTPS === 'true' || process.env.ENABLE_HTTPS === 'true';
@@ -84,6 +88,8 @@ async function logDatabaseConnection() {
   }
 }
 
+import { startCalDavPeriodicSync, stopCalDavPeriodicSync } from './modules/calendar/services/caldavScheduler.service.js';
+
 // OpenSSL 테스트용 SSL 인증서가 존재하거나 USE_HTTPS=true인 경우 HTTPS 서버 구동
 if (fs.existsSync(certKeyPath) && fs.existsSync(certOutPath)) {
   const options = {
@@ -98,6 +104,7 @@ if (fs.existsSync(certKeyPath) && fs.existsSync(certOutPath)) {
     console.log(`🚀 Address: https://localhost:${PORT}`);
     console.log(`📜 Certs: ${certOutPath}`);
     await logDatabaseConnection();
+    startCalDavPeriodicSync();
     console.log(`==================================================\n`);
   });
 } else {
@@ -106,8 +113,16 @@ if (fs.existsSync(certKeyPath) && fs.existsSync(certOutPath)) {
   server.listen(PORT, async () => {
     console.log(`🚀 Authenticated REST API & Socket.IO Server running at http://localhost:${PORT}`);
     await logDatabaseConnection();
+    startCalDavPeriodicSync();
   });
 }
+
+process.on('SIGTERM', () => {
+  stopCalDavPeriodicSync();
+});
+process.on('SIGINT', () => {
+  stopCalDavPeriodicSync();
+});
 
 server.on('error', (err: any) => {
   if (err.code === 'EADDRINUSE') {

@@ -70,7 +70,8 @@ export const sprintSkill: ChatbotSkill = {
       const filters: string[] = [];
       if (args.projectName) filters.push(`프로젝트: ${args.projectName}`);
       if (args.status) {
-        const sKo = { active: '진행 중', planned: '계획됨', completed: '완료됨' }[args.status] || args.status;
+        const statusMap: Record<string, string> = { active: '진행 중', planned: '계획됨', completed: '완료됨' };
+        const sKo = statusMap[String(args.status)] || args.status;
         filters.push(`상태: ${sKo}`);
       }
       const suffix = filters.length > 0 ? ` (${filters.join(', ')})` : '';
@@ -102,7 +103,8 @@ export const sprintSkill: ChatbotSkill = {
     if (name === 'update_sprint') {
       const details: string[] = [];
       if (args.status) {
-        const sKo = { active: '진행 중', planned: '계획됨', completed: '완료됨' }[args.status] || args.status;
+        const statusMap: Record<string, string> = { active: '진행 중', planned: '계획됨', completed: '완료됨' };
+        const sKo = statusMap[String(args.status)] || args.status;
         details.push(`상태: ${sKo}`);
       }
       if (args.name) details.push(`이름: ${args.name}`);

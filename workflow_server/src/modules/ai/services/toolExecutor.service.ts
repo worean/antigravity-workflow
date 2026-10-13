@@ -184,7 +184,7 @@ export class ToolExecutor {
    * 특정 이슈의 상세 정보 조회
    */
   private static async getIssueDetail(
-    args: { issueId: number },
+    args: { issueId?: any } & Record<string, any>,
     currentUserId?: number
   ): Promise<ToolExecutionResult> {
     const issueId = Number(args.issueId);

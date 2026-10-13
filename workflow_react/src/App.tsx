@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -25,6 +25,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useChatStore } from '@/stores/useChatStore';
 import { useProjects, projectKeys } from '@/api/projects';
 import { issueKeys } from '@/api/issues';
+import { calendarKeys } from '@/api/calendar';
 import { getSocket } from '@/lib/socketClient';
 import { sendDesktopNotification } from '@/utils/notificationUtils';
 import type { Issue } from '@/types';
@@ -130,16 +131,22 @@ const AppContent: React.FC = () => {
       setIssueRefreshKey(Date.now());
     };
 
+    const handleRealtimeCalendarSynced = () => {
+      queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+    };
+
     socket.on('issue:created', handleRealtimeIssueCreated);
     socket.on('issue:updated', handleRealtimeIssueUpdated);
     socket.on('issue:deleted', handleRealtimeIssueDeleted);
     socket.on('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
+    socket.on('calendar:synced', handleRealtimeCalendarSynced);
 
     return () => {
       socket.off('issue:created', handleRealtimeIssueCreated);
       socket.off('issue:updated', handleRealtimeIssueUpdated);
       socket.off('issue:deleted', handleRealtimeIssueDeleted);
       socket.off('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
+      socket.off('calendar:synced', handleRealtimeCalendarSynced);
     };
   }, [user?.id]);
 
@@ -403,6 +410,16 @@ const AppContent: React.FC = () => {
               key={`tab-project-detail-${selectedProjectId || 1}`}
               projectId={selectedProjectId || 1}
               onBack={() => navigate('projects')}
+              onGoToBoard={(pId) => {
+                navigate('issues', pId);
+              }}
+              onGoToWBS={(pId) => {
+                navigate('wbs', pId);
+              }}
+              onGoToSprints={(pId) => {
+                navigate('sprints', pId);
+              }}
+              onSelectIssue={handleSelectIssue}
               onProjectUpdated={() => {
                 queryClient.invalidateQueries({ queryKey: projectKeys.all });
               }}

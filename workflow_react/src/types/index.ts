@@ -342,6 +342,13 @@ export interface ChatReactionGroup {
   hasReacted: boolean;
 }
 
+export interface ChatAttachment {
+  fileName: string;
+  fileSize: number;
+  fileUrl: string;
+  fileType?: string | null;
+}
+
 export interface ChatMessage {
   id: number;
   channelId: number;
@@ -355,7 +362,7 @@ export interface ChatMessage {
     role?: string;
   };
   content: string;
-  attachments?: any[];
+  attachments?: ChatAttachment[] | string | any[] | null;
   mentions?: (number | string)[];
   hasMention?: boolean;
   isPinned?: boolean;
@@ -411,5 +418,7 @@ export interface WorkspaceDetail extends Workspace {
 export * from './wbs';
 export * from './chatbot';
 export * from './calendar';
+export * from './widget';
+export * from './dashboard';
 
 

@@ -1,6 +1,6 @@
+﻿import './lib/env.js';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
 import { authRouter } from './modules/auth/auth.routes.js';
 import { userRouter } from './modules/users/users.routes.js';
@@ -22,8 +22,6 @@ import { aiRouter } from './modules/ai/ai.routes.js';
 import { calendarRouter } from './modules/calendar/calendar.routes.js';
 import { memoRouter } from './modules/memos/memos.routes.js';
 import { systemRouter } from './modules/system/system.routes.js';
-
-dotenv.config();
 
 export const app = express();
 

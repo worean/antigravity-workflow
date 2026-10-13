@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import type { HealthStatus } from '@/types';
 import { prefRepository } from '@/lib/prefRepository';
 
@@ -29,9 +29,12 @@ export const getCurrentBackendHostUrl = (): string => {
       const fallback = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://localhost:4000';
       return normalizeBackendUrl(fallback);
     }
+
+    // 웹 브라우저 환경: Vite 프록시를 통해 자체 서명 SSL 차단 없이 다중 브라우저 원활 접속
+    return window.location.origin;
   }
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
-  return normalizeBackendUrl(envUrl || window.location.origin);
+  return normalizeBackendUrl(envUrl || 'https://localhost:4000');
 };
 
 /**
@@ -46,6 +49,9 @@ export const getApiBaseUrl = (): string => {
       const fallback = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://localhost:4000';
       return normalizeBackendUrl(fallback) + '/api';
     }
+
+    // 웹 브라우저 환경에서는 상대 경로 /api 프록시 우선 사용
+    return '/api';
   }
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   return envUrl ? `${normalizeBackendUrl(envUrl)}/api` : '/api';

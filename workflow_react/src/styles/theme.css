@@ -1,4 +1,4 @@
-﻿/* AntiGravity Workflow - Design Tokens & Theme Specification */
+/* AntiGravity Workflow - Design Tokens & Theme Specification */
 
 /* =======================================================================
    1. Default & Dark Theme Tokens (:root & [data-theme="dark"])
@@ -264,3 +264,12 @@
   --shimmer-mid: rgba(0, 0, 0, 0.08);
   --shimmer-end: rgba(0, 0, 0, 0.04);
 }
+
+/* Dashboard Widget Drag-to-Resize Handles */
+.widget-resize-handle-right:hover {
+  background: rgba(0, 122, 204, 0.4) !important;
+}
+.widget-resize-handle-bottom:hover {
+  background: rgba(0, 122, 204, 0.4) !important;
+}
+

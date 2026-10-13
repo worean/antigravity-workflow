@@ -101,20 +101,20 @@ model TestStepType {
 
 // 워크스페이스 내 유저 모델 (Global User 미러/캐시 및 로컬 호환)
 model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
+  id          Int     @id @default(autoincrement())
+  email       String  @unique
   name        String?
   password    String?
-  role        String   @default("MEMBER")
+  role        String  @default("MEMBER")
   avatar      String?
   avatarColor String?
   pushToken   String?
-  preferences String?  @default("{}")
-  bio         String?  // 자기 설명 / 소개
-  department  String?  // 소속 부서
-  jobTitle    String?  // 직책 / 포지션
+  preferences String? @default("{}")
+  bio         String? // 자기 설명 / 소개
+  department  String? // 소속 부서
+  jobTitle    String? // 직책 / 포지션
 
-  socialAccounts   SocialAccount[]
+  socialAccounts SocialAccount[]
 
   issues           Issue[]           @relation("AuthorIssues")
   assigned         Issue[]           @relation("AssigneeIssues")
@@ -133,12 +133,12 @@ model User {
   watchedIssues    IssueWatcher[]
   likes            IssueLike[]
 
-  chatMembers      ChatMember[]
-  chatMessages     ChatMessage[]
-  chatReactions    ChatMessageReaction[]
+  chatMembers   ChatMember[]
+  chatMessages  ChatMessage[]
+  chatReactions ChatMessageReaction[]
 
-  favorites        Favorite[]
-  memos            Memo[]
+  favorites Favorite[]
+  memos     Memo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -153,11 +153,11 @@ model SocialAccount {
   refreshToken String?
   tokenExpiry  DateTime?
 
-  userId       Int
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([provider, providerId])
 }
@@ -260,7 +260,7 @@ model Sprint {
   id        Int       @id @default(autoincrement())
   name      String
   goal      String?
-  notes     String?   // 스프린트 회의록, 데일리 스크럼 메모, 의사결정 노트 (Markdown 지원)
+  notes     String? // 스프린트 회의록, 데일리 스크럼 메모, 의사결정 노트 (Markdown 지원)
   startDate DateTime?
   endDate   DateTime?
   status    String    @default("PLANNED") // PLANNED, ACTIVE, COMPLETED
@@ -276,7 +276,7 @@ model Sprint {
 // 통합 일감/이슈 모델 (Task, Bug, Epic, Story 등)
 model Issue {
   id          Int     @id @default(autoincrement())
-  issueNumber Int?    // 프로젝트 내 순번 (예: PRJ-101의 101)
+  issueNumber Int? // 프로젝트 내 순번 (예: PRJ-101의 101)
   title       String
   description String? // Markdown 형식 지원
 
@@ -290,7 +290,7 @@ model Issue {
   status   IssueStatus @relation(fields: [statusId], references: [id], onDelete: SetDefault)
 
   progress       Int    @default(0) // 진척도 (0 ~ 100%)
-  estimatedHours Float?             // 추정 소요 시간
+  estimatedHours Float? // 추정 소요 시간
   loggedHours    Float? @default(0) // 실제 투입 시간 누적
 
   plannedStartDate DateTime?
@@ -375,15 +375,15 @@ model IssueLink {
 
 // 커스텀 필드 정의 (메타데이터)
 model CustomFieldDefinition {
-  id           Int      @id @default(autoincrement())
-  key          String   @unique
+  id           Int     @id @default(autoincrement())
+  key          String  @unique
   name         String
   description  String?
-  fieldType    String   @default("JSON") // STRING, NUMBER, DATE, SELECT, JSON 등
-  schemaJson   String?  // validation 스키마 JSON string
+  fieldType    String  @default("JSON") // STRING, NUMBER, DATE, SELECT, JSON 등
+  schemaJson   String? // validation 스키마 JSON string
   defaultValue String?
-  isRequired   Boolean  @default(false)
-  isGlobal     Boolean  @default(true)
+  isRequired   Boolean @default(false)
+  isGlobal     Boolean @default(true)
 
   projectId Int?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -395,11 +395,11 @@ model CustomFieldDefinition {
 // 마크다운 및 커뮤니케이션 댓글
 model Comment {
   id         Int     @id @default(autoincrement())
-  content    String  // Markdown 형식 지원
+  content    String // Markdown 형식 지원
   isInternal Boolean @default(false)
 
   authorId Int
-  author   User @relation(fields: [authorId], references: [id])
+  author   User  @relation(fields: [authorId], references: [id])
   issueId  Int
   issue    Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
@@ -527,7 +527,7 @@ model Worklog {
   issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
-  timeSpent   Int      // 분 단위
+  timeSpent   Int // 분 단위
   startedAt   DateTime @default(now())
   description String?
   createdAt   DateTime @default(now())
@@ -703,57 +703,57 @@ model ActivityLog {
 }
 
 model Group {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
-  code        String?  @unique
+  code        String? @unique
   description String?
-  order       Int      @default(0)
+  order       Int     @default(0)
 
-  parentId    Int?
-  parent      Group?   @relation("GroupHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children    Group[]  @relation("GroupHierarchy")
+  parentId Int?
+  parent   Group?  @relation("GroupHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Group[] @relation("GroupHierarchy")
 
   members       GroupMember[]
   projectGroups ProjectGroup[]
   chatChannels  ChatChannel[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model GroupMember {
-  id        Int      @id @default(autoincrement())
-  groupId   Int
-  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      String   @default("MEMBER")
-  title     String?
-  joinedAt  DateTime @default(now())
+  id       Int      @id @default(autoincrement())
+  groupId  Int
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("MEMBER")
+  title    String?
+  joinedAt DateTime @default(now())
 
   @@unique([groupId, userId])
 }
 
 // 💬 Chat System Models
 model ChatChannel {
-  id          Int      @id @default(autoincrement())
-  name        String
-  type        String   @default("GLOBAL") // GLOBAL, PROJECT, GROUP, DM
-  topic       String?
-  icon        String?
-  isPrivate   Boolean  @default(false)
+  id        Int     @id @default(autoincrement())
+  name      String
+  type      String  @default("GLOBAL") // GLOBAL, PROJECT, GROUP, DM
+  topic     String?
+  icon      String?
+  isPrivate Boolean @default(false)
 
-  projectId   Int?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  groupId     Int?
-  group       Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId Int?
+  group   Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  members     ChatMember[]
-  messages    ChatMessage[]
+  members  ChatMember[]
+  messages ChatMessage[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([projectId])
@@ -772,8 +772,8 @@ model ChatMember {
   lastNotificationAt DateTime?
   lastReadAt         DateTime    @default(now())
 
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([channelId, userId])
   @@index([userId])
@@ -781,21 +781,21 @@ model ChatMember {
 }
 
 model ChatMessage {
-  id          Int         @id @default(autoincrement())
+  id          Int                   @id @default(autoincrement())
   channelId   Int
-  channel     ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channel     ChatChannel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
   senderId    Int
-  sender      User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  sender      User                  @relation(fields: [senderId], references: [id], onDelete: Cascade)
   content     String
   attachments String?
   mentions    String?
-  hasMention  Boolean     @default(false)
-  isPinned    Boolean     @default(false)
-  isSystem    Boolean     @default(false)
+  hasMention  Boolean               @default(false)
+  isPinned    Boolean               @default(false)
+  isSystem    Boolean               @default(false)
   reactions   ChatMessageReaction[]
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([channelId, createdAt])
   @@index([senderId])
@@ -809,7 +809,7 @@ model ChatMessageReaction {
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   emoji     String
 
-  createdAt DateTime    @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([messageId, userId, emoji])
   @@index([messageId])
@@ -820,7 +820,7 @@ model Favorite {
   id         Int      @id @default(autoincrement())
   userId     Int
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetType String   // PROJECT, ISSUE, SPRINT, CHAT_CHANNEL
+  targetType String // PROJECT, ISSUE, SPRINT, CHAT_CHANNEL
   targetId   Int
   createdAt  DateTime @default(now())
 
@@ -831,15 +831,15 @@ model Favorite {
 
 // 공유 메모장
 model Memo {
-  id          Int              @id @default(autoincrement())
-  workspaceId Int              @default(1) @map("workspace_id")
-  authorId    Int              @map("author_id")
-  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id          Int      @id @default(autoincrement())
+  workspaceId Int      @default(1) @map("workspace_id")
+  authorId    Int      @map("author_id")
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   title       String
-  content     String           @db.Text
-  isPublic    Boolean          @default(false) @map("is_public")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  content     String   @db.Text
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   attachments MemoAttachment[]
 

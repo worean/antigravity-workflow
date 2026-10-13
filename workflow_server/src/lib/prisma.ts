@@ -1,3 +1,4 @@
+﻿import './env.js';
 import {
   PrismaClient as WorkspacePrismaClient,
   Prisma as WorkspacePrisma,
@@ -7,7 +8,7 @@ export const getPrismaClient = () => {
   const dbUrl =
     process.env.WORKSPACE_DATABASE_URL ||
     process.env.DATABASE_URL ||
-    'file:C:/Users/admin/antigravity-workflow/workflow_server/.tmp/workspaces/default.db';
+    'postgresql://postgres:postgres@localhost:5432/workspace?schema=public';
 
   return new WorkspacePrismaClient({
     datasources: {

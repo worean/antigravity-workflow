@@ -1,14 +1,20 @@
-﻿import { PrismaClient as GlobalPrismaClient, Prisma as GlobalPrisma } from '../generated/global-client/index.js';
+﻿import './env.js';
+import { PrismaClient as GlobalPrismaClient, Prisma as GlobalPrisma } from '../generated/global-client/index.js';
 
 export const getGlobalPrismaClient = () => {
+  const url = process.env.GLOBAL_DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      '❌ [GlobalPrisma] GLOBAL_DATABASE_URL 환경변수가 설정되지 않았습니다. .env 파일을 확인해 주세요.'
+    );
+  }
+
   return new GlobalPrismaClient({
-    datasources: process.env.GLOBAL_DATABASE_URL
-      ? {
-          db: {
-            url: process.env.GLOBAL_DATABASE_URL,
-          },
-        }
-      : undefined,
+    datasources: {
+      db: {
+        url,
+      },
+    },
   });
 };
 
