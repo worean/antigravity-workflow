@@ -2,9 +2,25 @@
 import { apiClient } from '@/lib/apiClient';
 import type { Worklog } from '@/types';
 
-export const getWorklogs = async (issueId?: number): Promise<Worklog[]> => {
-  const url = issueId ? `/worklogs?issueId=${issueId}` : '/worklogs';
-  const res = await apiClient.get(url);
+export interface WorklogQueryParams {
+  issueId?: number;
+  projectId?: number;
+  userId?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export const getWorklogs = async (
+  paramsOrIssueId?: number | WorklogQueryParams
+): Promise<Worklog[]> => {
+  let params: any = {};
+  if (typeof paramsOrIssueId === 'number') {
+    params.issueId = paramsOrIssueId;
+  } else if (paramsOrIssueId) {
+    params = { ...paramsOrIssueId };
+  }
+
+  const res = await apiClient.get('/worklogs', { params });
   return Array.isArray(res.data) ? res.data : (res.data.worklogs || []);
 };
 
@@ -21,13 +37,13 @@ export const createWorklog = async (data: {
 
 export const worklogKeys = {
   all: ['worklogs'] as const,
-  list: (issueId?: number) => [...worklogKeys.all, 'list', issueId] as const,
+  list: (params?: number | WorklogQueryParams) => [...worklogKeys.all, 'list', params] as const,
 };
 
-export const useWorklogs = (issueId?: number) => {
+export const useWorklogs = (params?: number | WorklogQueryParams) => {
   return useQuery({
-    queryKey: worklogKeys.list(issueId),
-    queryFn: () => getWorklogs(issueId),
+    queryKey: worklogKeys.list(params),
+    queryFn: () => getWorklogs(params),
   });
 };
 

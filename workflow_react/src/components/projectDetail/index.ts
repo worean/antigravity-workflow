@@ -4,3 +4,6 @@ export * from './ProjectMembersTab';
 export * from './ProjectGroupsTab';
 export * from './ProjectParticipationSection';
 export * from './ProjectSidebar';
+export * from './ProjectIssuesOverviewWidget';
+export * from './ProjectTodoIssuesTab';
+export * from './ProjectWorklogsTab';

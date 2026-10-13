@@ -22,6 +22,8 @@ export interface IssueQueryParams {
   order?: 'asc' | 'desc';
   sortOrder?: 'asc' | 'desc';
   all?: boolean | string;
+  onlyInvolved?: boolean | string;
+  myScope?: boolean | string;
 }
 
 // ----------------------------------------------------
@@ -49,6 +51,8 @@ export const getIssues = async (filters?: IssueQueryParams): Promise<Issue[]> =>
     if (filters.order) params.order = filters.order;
     if (filters.sortOrder) params.sortOrder = filters.sortOrder;
     if (filters.all) params.all = 'true';
+    if (filters.onlyInvolved) params.onlyInvolved = 'true';
+    if (filters.myScope) params.myScope = 'true';
   }
 
   const res = await apiClient.get('/issues', { params });

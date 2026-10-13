@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import type { Project, User, Group, ProjectVisibility } from '@/types';
+﻿import React, { useState, useEffect } from 'react';
+import type { Project, User, Group, ProjectVisibility, Issue } from '@/types';
 import {
   getProject,
   updateProject,
@@ -25,6 +25,7 @@ import {
   ProjectInfoCard,
   ProjectParticipationSection,
   ProjectSidebar,
+  ProjectIssuesOverviewWidget,
 } from '@/components/projectDetail';
 
 interface ProjectDetailPageProps {
@@ -33,6 +34,7 @@ interface ProjectDetailPageProps {
   onGoToBoard?: (projectId: number) => void;
   onGoToWBS?: (projectId: number) => void;
   onGoToSprints?: (projectId: number) => void;
+  onSelectIssue?: (issue: Issue) => void;
   onProjectUpdated?: (project: Project) => void;
   onProjectDeleted?: (projectId: number) => void;
   onOpenAuth?: () => void;
@@ -44,6 +46,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   onGoToBoard,
   onGoToWBS,
   onGoToSprints,
+  onSelectIssue,
   onProjectUpdated,
   onProjectDeleted,
   onOpenAuth,
@@ -412,6 +415,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
             selectedGroupRole={selectedGroupRole}
             setSelectedGroupRole={setSelectedGroupRole}
             handleAddGroup={handleAddGroup}
+          />
+
+          {/* ⭐️ Bottom Widget: 프로젝트 이슈 현황 및 작업 로그 위젯 */}
+          <ProjectIssuesOverviewWidget
+            projectId={project.id}
+            projectKey={project.key}
+            onSelectIssue={onSelectIssue}
+            onGoToBoard={onGoToBoard}
           />
         </div>
 

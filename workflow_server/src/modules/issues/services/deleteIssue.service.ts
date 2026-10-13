@@ -1,11 +1,18 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export const deleteIssueService = async (id: number, userId?: number) => {
   if (!id) throw new Error('Issue ID is required');
 
   const existingIssue = await prisma.issue.findUnique({
     where: { id },
-    select: { id: true, title: true, projectId: true, issueNumber: true, parentId: true }
+    select: {
+      id: true,
+      title: true,
+      projectId: true,
+      issueNumber: true,
+      parentId: true,
+      tags: { select: { id: true } },
+    },
   });
 
   if (!existingIssue) {
@@ -13,6 +20,7 @@ export const deleteIssueService = async (id: number, userId?: number) => {
   }
 
   const parentIdOfTarget = existingIssue.parentId ? Number(existingIssue.parentId) : null;
+  const connectedTagIds = existingIssue.tags?.map((t) => t.id) || [];
 
   // 1. 이슈 삭제 전, 하위 이슈가 있다면 하위 이슈들의 상위 이슈 ID를 자신의 상위 이슈 ID(parentId)로 변경
   await prisma.issue.updateMany({
@@ -27,6 +35,12 @@ export const deleteIssueService = async (id: number, userId?: number) => {
   await prisma.favorite.deleteMany({
     where: { targetType: 'ISSUE', targetId: id }
   });
+
+  // 2.2 연결되어 있던 태그 중 참조 수가 0이 된 태그 자동 삭제
+  if (connectedTagIds.length > 0) {
+    const { cleanupUnusedTagsService } = await import('../../tags/services/cleanupUnusedTags.service.js');
+    await cleanupUnusedTagsService(connectedTagIds);
+  }
 
   // 3. 상위 부모 이슈가 있는 경우, 승계된 하위 이슈들의 날짜를 기반으로 부모 이슈 날짜 롤업 동기화
   if (parentIdOfTarget) {

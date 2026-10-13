@@ -7,11 +7,19 @@ export const deleteProjectService = async (id: number, userId?: number) => {
 
   const existingProject = await prisma.project.findUnique({
     where: { id },
-    select: { name: true, key: true }
+    select: { name: true, key: true, tags: { select: { id: true } } }
   });
+
+  const connectedTagIds = existingProject?.tags?.map((t) => t.id) || [];
 
   // 1. Workspace DB에서 프로젝트 삭제
   await prisma.project.delete({ where: { id } });
+
+  // 1.1 연결되어 있던 태그 중 참조 수가 0이 된 태그 자동 삭제
+  if (connectedTagIds.length > 0) {
+    const { cleanupUnusedTagsService } = await import('../../tags/services/cleanupUnusedTags.service.js');
+    await cleanupUnusedTagsService(connectedTagIds);
+  }
 
   // 2. Global DB에서 연관된 PROJECT 채팅방 동시 삭제 (Dual DB Cascade)
   try {

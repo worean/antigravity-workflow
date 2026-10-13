@@ -90,6 +90,45 @@ export const getIssuesService = async (query: any = {}, currentUserId?: number) 
     }
   }
 
+  // ⭐️ 자신이 속한 프로젝트이거나 자신이 담당/보고한 일감만 필터링 (onlyInvolved=true 또는 myScope=true)
+  const isOnlyInvolved =
+    query.onlyInvolved === 'true' ||
+    query.onlyInvolved === true ||
+    query.myScope === 'true' ||
+    query.myScope === true;
+
+  if (isOnlyInvolved && currentUserId) {
+    const userProjects = await prisma.project.findMany({
+      where: {
+        OR: [
+          { ownerId: currentUserId },
+          { members: { some: { userId: currentUserId } } },
+          { groups: { some: { group: { members: { some: { userId: currentUserId } } } } } }
+        ]
+      },
+      select: { id: true }
+    });
+    const myProjectIds = userProjects.map((p) => p.id);
+
+    const involvedConditions: any[] = [
+      { assigneeId: currentUserId },
+      { authorId: currentUserId }
+    ];
+    if (myProjectIds.length > 0) {
+      involvedConditions.push({ projectId: { in: myProjectIds } });
+    }
+
+    if (where.OR) {
+      where.AND = [
+        { OR: where.OR },
+        { OR: involvedConditions }
+      ];
+      delete where.OR;
+    } else {
+      where.OR = involvedConditions;
+    }
+  }
+
   // 정렬 (Sorting) 처리
   const validSortFields = [
     'id',

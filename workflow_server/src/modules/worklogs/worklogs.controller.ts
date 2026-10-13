@@ -6,9 +6,11 @@ export const getWorklogs = async (req: Request, res: Response) => {
   try {
     const issueId = req.params.issueId || req.query.issueId;
     const userId = req.query.userId;
+    const projectId = req.query.projectId;
     const worklogs = await getWorklogsService({
       issueId: issueId ? Number(issueId) : undefined,
       userId: userId ? Number(userId) : undefined,
+      projectId: projectId ? Number(projectId) : undefined,
       limit: req.query.limit ? Number(req.query.limit) : undefined,
       offset: req.query.offset ? Number(req.query.offset) : undefined
     });

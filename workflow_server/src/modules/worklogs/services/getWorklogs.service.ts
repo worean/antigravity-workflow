@@ -3,16 +3,23 @@
 export interface GetWorklogsQuery {
   issueId?: number;
   userId?: number;
+  projectId?: number;
   limit?: number;
   offset?: number;
 }
 
 export const getWorklogsService = async (query: GetWorklogsQuery = {}) => {
-  const { issueId, userId, limit = 100, offset = 0 } = query;
+  const { issueId, userId, projectId, limit = 100, offset = 0 } = query;
 
   const where: any = {};
   if (issueId) where.issueId = Number(issueId);
   if (userId) where.userId = Number(userId);
+  if (projectId) {
+    where.issue = {
+      ...(where.issue || {}),
+      projectId: Number(projectId),
+    };
+  }
 
   const worklogs = await prisma.worklog.findMany({
     where,
