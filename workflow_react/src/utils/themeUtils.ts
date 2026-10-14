@@ -1,4 +1,4 @@
-﻿export type ThemeMode = 'dark' | 'light' | 'system';
+export type ThemeMode = 'dark' | 'light' | 'system';
 
 let systemThemeListener: ((e: MediaQueryListEvent) => void) | null = null;
 let mediaQueryList: MediaQueryList | null = null;
@@ -48,8 +48,36 @@ export const applyTheme = (themeMode: ThemeMode): 'dark' | 'light' => {
 };
 
 /**
+ * 현재 테마 모드가 시스템일 경우 OS 설정까지 감안한 실제 적용 테마('dark' | 'light')를 반환합니다.
+ */
+export const getEffectiveTheme = (themeMode: ThemeMode): 'dark' | 'light' => {
+  return themeMode === 'system' ? getSystemTheme() : themeMode;
+};
+
+/**
  * 앱 최초 로드 시 테마를 즉각 적용합니다.
  */
 export const initTheme = (initialTheme: ThemeMode = 'dark'): 'dark' | 'light' => {
   return applyTheme(initialTheme);
+};
+
+/**
+ * DOM의 root(document.documentElement)로부터 계산된 CSS 변수 값을 조회합니다.
+ * @param varName CSS 변수명 (예: '--primary', '--bg-card')
+ * @param fallback 변수 미정의 시 대체할 기본값
+ */
+export const getCssVar = (varName: string, fallback: string = ''): string => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return fallback;
+  const name = varName.startsWith('--') ? varName : `--${varName}`;
+  const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return val || fallback;
+};
+
+/**
+ * DOM의 root(document.documentElement)에 CSS 변수 값을 동적으로 설정합니다.
+ */
+export const setCssVar = (varName: string, value: string): void => {
+  if (typeof document === 'undefined') return;
+  const name = varName.startsWith('--') ? varName : `--${varName}`;
+  document.documentElement.style.setProperty(name, value);
 };
