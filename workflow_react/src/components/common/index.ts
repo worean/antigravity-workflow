@@ -1,4 +1,4 @@
-﻿export { Button, type ButtonProps } from './Button';
+export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export {
   Spinner,
@@ -26,4 +26,5 @@ export { TagBadge } from './TagBadge';
 export { TagInput } from './TagInput';
 export { GlobalToast } from './GlobalToast';
 export { ServerHealthBadge } from './ServerHealthBadge';
+export { ColorPicker, type ColorPickerProps } from './ColorPicker';
 

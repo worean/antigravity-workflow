@@ -140,3 +140,67 @@ export const getOptimalContrastText = (
     tone: 'dark',
   };
 };
+
+/**
+ * 16진수 HEX 색상 코드(#RGB, #RRGGBB, #RRGGBBAA)의 유효성을 검증합니다.
+ */
+export const isValidHex = (hex?: string | null): boolean => {
+  if (!hex) return false;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(hex.trim());
+};
+
+/**
+ * r, g, b 수치를 #RRGGBB 형식의 HEX 문자열로 변환합니다.
+ */
+export const rgbToHex = (r: number, g: number, b: number): string => {
+  const clamp = (val: number) => Math.min(255, Math.max(0, Math.round(val)));
+  const toHex = (c: number) => clamp(c).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+/**
+ * HEX 색상을 rgba(r, g, b, alpha) 문자열로 변환합니다.
+ */
+export const hexToRgba = (hexStr: string, alpha: number = 1): string => {
+  const { r, g, b } = parseColorToRgb(hexStr);
+  const clampedAlpha = Math.min(1, Math.max(0, alpha));
+  return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
+};
+
+/**
+ * HEX 색상의 밝기를 퍼센트(-100 ~ 100) 단위로 조절합니다.
+ */
+export const adjustColorBrightness = (hexStr: string, percent: number): string => {
+  const { r, g, b } = parseColorToRgb(hexStr);
+  const factor = percent / 100;
+
+  const newR = percent > 0 ? r + (255 - r) * factor : r * (1 + factor);
+  const newG = percent > 0 ? g + (255 - g) * factor : g * (1 + factor);
+  const newB = percent > 0 ? b + (255 - b) * factor : b * (1 + factor);
+
+  return rgbToHex(newR, newG, newB);
+};
+
+/**
+ * 프로젝트, 태그, 상태, 일정 등에서 바로 사용할 수 있는 표준 테마 컬러 팔레트 프리셋
+ */
+export const PALETTE_PRESETS = [
+  '#ef4444', // Red
+  '#f97316', // Orange
+  '#f59e0b', // Amber
+  '#eab308', // Yellow
+  '#84cc16', // Lime
+  '#22c55e', // Green
+  '#10b981', // Emerald
+  '#14b8a6', // Teal
+  '#06b6d4', // Cyan
+  '#0ea5e9', // Sky
+  '#3b82f6', // Blue
+  '#6366f1', // Indigo
+  '#8b5cf6', // Violet
+  '#a855f7', // Purple
+  '#d946ef', // Fuchsia
+  '#ec4899', // Pink
+  '#f43f5e', // Rose
+  '#64748b', // Slate
+] as const;
