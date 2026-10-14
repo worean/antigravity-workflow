@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { useIssues } from '@/api/issues';
 import { Spinner } from '@/components/common';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
@@ -6,6 +6,7 @@ import type { Issue } from '@/types';
 import type { WidgetProps, Widgetable } from '@/types/widget';
 import { CalendarMiniList } from './CalendarMiniList';
 import { usePrefStore } from '@/stores/usePrefStore';
+import { useCalendarStore } from '@/stores/useCalendarStore';
 import { generateMonthFlatDays, getWeekdayNames } from '@/utils/calendarUtils';
 
 export const CalendarMiniWidget: React.FC<WidgetProps> = ({
@@ -20,25 +21,30 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
     { enabled: true }
   );
 
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+  const miniCurrentDateStr = useCalendarStore((s) => s.miniCurrentDateStr);
+  const selectedDateStr = useCalendarStore((s) => s.miniSelectedDateStr);
+  const setSelectedDateStr = useCalendarStore((s) => s.setMiniSelectedDateStr);
+  const navigateMiniMonth = useCalendarStore((s) => s.navigateMiniMonth);
+  const goToMiniToday = useCalendarStore((s) => s.goToMiniToday);
+
+  const currentDate = useMemo(() => {
+    const d = new Date(miniCurrentDateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }, [miniCurrentDateStr]);
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
-    setSelectedDateStr(null);
+    navigateMiniMonth('prev');
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
-    setSelectedDateStr(null);
+    navigateMiniMonth('next');
   };
 
   const handleToday = () => {
-    setCurrentDate(new Date());
-    setSelectedDateStr(null);
+    goToMiniToday();
   };
 
   // 날짜별 일감 매핑
@@ -89,7 +95,7 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
   const todayStr = new Date().toISOString().split('T')[0];
 
   const handleCellClick = (dateStr: string) => {
-    setSelectedDateStr((prev) => (prev === dateStr ? null : dateStr));
+    setSelectedDateStr(selectedDateStr === dateStr ? null : dateStr);
   };
 
   // 하단에 상시 표시될 리스트 목록 결정

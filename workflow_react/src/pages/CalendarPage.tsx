@@ -6,6 +6,7 @@ import {
 import { useProjects } from '@/api/projects';
 import { useUIStore } from '@/stores/useUIStore';
 import { usePrefStore } from '@/stores/usePrefStore';
+import { useCalendarStore } from '@/stores/useCalendarStore';
 import { Spinner } from '@/components/common';
 import {
   CalendarHeader,
@@ -14,17 +15,29 @@ import {
   GoogleEventModal,
   CalDavConnectModal,
 } from '@/components/calendar';
-import type { CalendarViewMode, CalendarEvent } from '@/types';
+import type { CalendarEvent } from '@/types';
 
 interface CalendarPageProps {
   onSelectIssue?: (issueId: number) => void;
 }
 
 export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => {
-  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
-  const [selectedProjectId, setSelectedProjectId] = useState<number | 'ALL'>('ALL');
-  const [onlyMyEvents, setOnlyMyEvents] = useState<boolean>(false);
+  const currentDateStr = useCalendarStore((s) => s.currentDateStr);
+  const viewMode = useCalendarStore((s) => s.viewMode);
+  const selectedProjectId = useCalendarStore((s) => s.selectedProjectId);
+  const onlyMyEvents = useCalendarStore((s) => s.onlyMyEvents);
+
+  const setViewMode = useCalendarStore((s) => s.setViewMode);
+  const setSelectedProjectId = useCalendarStore((s) => s.setSelectedProjectId);
+  const setOnlyMyEvents = useCalendarStore((s) => s.setOnlyMyEvents);
+  const navigateDate = useCalendarStore((s) => s.navigateDate);
+  const goToToday = useCalendarStore((s) => s.goToToday);
+
+  const currentDate = useMemo(() => {
+    const d = new Date(currentDateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }, [currentDateStr]);
+
   const [selectedDetailEvent, setSelectedDetailEvent] = useState<CalendarEvent | null>(null);
   const [isCalDavModalOpen, setIsCalDavModalOpen] = useState<boolean>(false);
 
@@ -89,31 +102,15 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({ onSelectIssue }) => 
 
   // 4. 날짜 이동 핸들러
   const handlePrev = () => {
-    setCurrentDate((prev) => {
-      const nextDate = new Date(prev);
-      if (viewMode === 'month') {
-        nextDate.setMonth(nextDate.getMonth() - 1);
-      } else {
-        nextDate.setDate(nextDate.getDate() - 7);
-      }
-      return nextDate;
-    });
+    navigateDate('prev');
   };
 
   const handleNext = () => {
-    setCurrentDate((prev) => {
-      const nextDate = new Date(prev);
-      if (viewMode === 'month') {
-        nextDate.setMonth(nextDate.getMonth() + 1);
-      } else {
-        nextDate.setDate(nextDate.getDate() + 7);
-      }
-      return nextDate;
-    });
+    navigateDate('next');
   };
 
   const handleToday = () => {
-    setCurrentDate(new Date());
+    goToToday();
   };
 
   // 5. 일정 선택 및 일자 클릭 핸들러
