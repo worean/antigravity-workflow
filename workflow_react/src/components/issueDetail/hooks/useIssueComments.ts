@@ -1,6 +1,6 @@
-﻿﻿import { useState } from 'react';
+﻿import { useState } from 'react';
 import type { Issue, Comment } from '@/types';
-import { getComments, createComment, deleteComment } from '@/services/api';
+import { getComments, createComment, deleteComment, addCommentReaction } from '@/services/api';
 import { organizeComments } from '@/utils/commentTree';
 
 interface UseIssueCommentsProps {
@@ -71,6 +71,21 @@ export const useIssueComments = ({
     });
   };
 
+  const handleToggleReaction = async (commentId: number, emoji: string) => {
+    if (!issue) return;
+    if (!isAuthenticated) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+
+    await executeAction(async () => {
+      await addCommentReaction(commentId, emoji);
+      const refreshed = await getComments(issue.id);
+      setComments(organizeComments(refreshed));
+      if (onIssueUpdated) onIssueUpdated();
+    });
+  };
+
   return {
     comments,
     setComments,
@@ -83,5 +98,6 @@ export const useIssueComments = ({
     handleAddComment,
     handleReplySubmit,
     handleDeleteComment,
+    handleToggleReaction,
   };
 };

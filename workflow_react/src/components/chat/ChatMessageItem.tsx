@@ -1,8 +1,9 @@
-﻿import React, { memo } from 'react';
+﻿import React, { memo, useMemo } from 'react';
 import { Pin } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 import { Avatar } from '@/components/common';
 import { ChatMessageAttachmentList } from './ChatMessageAttachmentList';
+import { groupReactions, formatReactionTooltip } from '@/utils/reactionUtils';
 
 export const QUICK_EMOJIS = ['👍', '❤️', '🔥', '🎉', '🚀', '👀', '😄', '💯'];
 
@@ -25,6 +26,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
   handleTogglePin,
   handleReplyToMessage,
 }) => {
+  const groupedReactions = useMemo(
+    () => groupReactions(msg.reactions, currentUserId),
+    [msg.reactions, currentUserId]
+  );
+
   return (
     <div
       key={msg.id}
@@ -120,31 +126,37 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = memo(({
         <ChatMessageAttachmentList attachments={msg.attachments} />
 
         {/* Reactions List */}
-        {msg.reactions && msg.reactions.length > 0 && (
+        {groupedReactions.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-            {msg.reactions.map((r, idx) => {
-              const isReactedByMe = r.hasReacted !== undefined ? r.hasReacted : r.users?.some((u: any) => u.id === currentUserId);
+            {groupedReactions.map((r) => {
+              const isReactedByMe = r.hasReacted;
               return (
                 <button
-                  key={idx}
+                  key={r.emoji}
                   type="button"
                   onClick={() => handleToggleReaction(msg.id, r.emoji)}
                   style={{
                     background: isReactedByMe ? 'rgba(0, 122, 204, 0.15)' : 'var(--bg-card)',
-                    border: `1px solid ${isReactedByMe ? 'var(--primary)' : 'var(--border-light)'}`,
+                    border: `1.5px solid ${isReactedByMe ? 'var(--primary, #007acc)' : 'var(--border-light)'}`,
+                    outline: isReactedByMe ? '1px solid var(--primary, #007acc)' : 'none',
                     borderRadius: '6px',
                     padding: '2px 6px',
                     fontSize: '0.72rem',
-                    color: isReactedByMe ? 'var(--primary)' : 'var(--text-sub)',
+                    color: isReactedByMe ? 'var(--primary, #007acc)' : 'var(--text-sub)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
+                    transition: 'all 0.15s ease',
                   }}
-                  title={r.users?.map((u: any) => u.name).join(', ')}
+                  title={formatReactionTooltip(r, currentUserId)}
                 >
                   <span>{r.emoji}</span>
-                  <span style={{ fontWeight: 600, fontSize: '0.68rem' }}>{r.count}</span>
+                  {r.count > 1 && (
+                    <span style={{ fontWeight: 600, fontSize: '0.68rem', marginLeft: '2px' }}>
+                      {r.count}
+                    </span>
+                  )}
                 </button>
               );
             })}

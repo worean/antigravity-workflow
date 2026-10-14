@@ -12,6 +12,9 @@ import {
   MarkdownViewer,
   MarkdownEditor,
 } from '@/components/common';
+import { groupReactions, formatReactionTooltip } from '@/utils/reactionUtils';
+
+export const COMMENT_QUICK_EMOJIS = ['👍', '❤️', '🔥', '🎉', '🚀', '👀', '😄', '💯'];
 
 interface IssueCommentsProps {
   comments: Comment[];
@@ -27,6 +30,7 @@ interface IssueCommentsProps {
   handleAddComment: (e: React.FormEvent) => Promise<void>;
   handleReplySubmit: (parentId: number) => Promise<void>;
   handleDeleteComment: (commentId: number) => Promise<void>;
+  handleToggleReaction?: (commentId: number, emoji: string) => Promise<void>;
   onOpenAuth?: () => void;
 }
 
@@ -44,11 +48,15 @@ export const IssueComments: React.FC<IssueCommentsProps> = ({
   handleAddComment,
   handleReplySubmit,
   handleDeleteComment,
+  handleToggleReaction,
   onOpenAuth,
 }) => {
+  const [activeEmojiPickerCommentId, setActiveEmojiPickerCommentId] = React.useState<number | null>(null);
+
   const renderCommentItem = (c: Comment, isReply = false) => {
     const isOwner = user && (user.id === c.authorId || user.id === c.author?.id);
     const isReplying = replyTargetId === c.id;
+    const groupedReactions = groupReactions(c.reactions, user?.id);
 
     return (
       <div
@@ -82,6 +90,75 @@ export const IssueComments: React.FC<IssueCommentsProps> = ({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* Emoji Reaction Toggle Button & Picker */}
+              {isAuthenticated && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveEmojiPickerCommentId(
+                        activeEmojiPickerCommentId === c.id ? null : c.id
+                      )
+                    }
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                      padding: '1px 3px',
+                      borderRadius: '4px',
+                    }}
+                    title="이모지 반응 남기기"
+                  >
+                    <span>😊</span>
+                  </button>
+
+                  {activeEmojiPickerCommentId === c.id && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: '22px',
+                        background: 'var(--bg-modal, #252526)',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: '8px',
+                        padding: '6px',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(4, 1fr)',
+                        gap: '4px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                        zIndex: 40,
+                      }}
+                    >
+                      {COMMENT_QUICK_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            handleToggleReaction?.(c.id, emoji);
+                            setActiveEmojiPickerCommentId(null);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '1.1rem',
+                            padding: '3px',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {isAuthenticated && !isReply && (
                 <button
                   type="button"
@@ -133,6 +210,44 @@ export const IssueComments: React.FC<IssueCommentsProps> = ({
           <div style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
             <MarkdownViewer content={c.content} placeholder="" />
           </div>
+
+          {/* Reactions List */}
+          {groupedReactions.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+              {groupedReactions.map((r) => {
+                const isReactedByMe = r.hasReacted;
+                return (
+                  <button
+                    key={r.emoji}
+                    type="button"
+                    onClick={() => handleToggleReaction?.(c.id, r.emoji)}
+                    style={{
+                      background: isReactedByMe ? 'rgba(0, 122, 204, 0.15)' : 'var(--bg-card)',
+                      border: `1.5px solid ${isReactedByMe ? 'var(--primary, #007acc)' : 'var(--border-light)'}`,
+                      outline: isReactedByMe ? '1px solid var(--primary, #007acc)' : 'none',
+                      borderRadius: '6px',
+                      padding: '2px 6px',
+                      fontSize: '0.72rem',
+                      color: isReactedByMe ? 'var(--primary, #007acc)' : 'var(--text-sub)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title={formatReactionTooltip(r, user?.id)}
+                  >
+                    <span>{r.emoji}</span>
+                    {r.count > 1 && (
+                      <span style={{ fontWeight: 600, fontSize: '0.68rem', marginLeft: '2px' }}>
+                        {r.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Inline Reply Editor */}

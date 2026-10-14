@@ -1,4 +1,4 @@
-import { globalPrisma } from '#lib/globalPrisma.js';
+﻿import { globalPrisma } from '#lib/globalPrisma.js';
 
 export const getMessagesService = async (
   channelId: number,
@@ -40,8 +40,28 @@ export const getMessagesService = async (
     },
   });
 
+  const formattedMessages = messages.map((msg: any) => {
+    const reactionMap = new Map<string, { emoji: string; count: number; users: any[] }>();
+    for (const r of msg.reactions || []) {
+      if (!reactionMap.has(r.emoji)) {
+        reactionMap.set(r.emoji, { emoji: r.emoji, count: 0, users: [] });
+      }
+      const item = reactionMap.get(r.emoji)!;
+      item.count += 1;
+      if (r.user) {
+        item.users.push(r.user);
+      } else if (r.userId) {
+        item.users.push({ id: r.userId });
+      }
+    }
+    return {
+      ...msg,
+      reactions: Array.from(reactionMap.values()),
+    };
+  });
+
   return {
-    messages: messages.reverse(),
+    messages: formattedMessages.reverse(),
     nextCursor: messages.length === limit ? messages[0].id : null,
   };
 };

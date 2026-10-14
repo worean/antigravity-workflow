@@ -110,6 +110,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
     handleAddComment,
     handleReplySubmit,
     handleDeleteComment,
+    handleToggleCommentReaction,
   } = useIssueDrawerData({
     isOpen,
     issueId,
@@ -261,6 +262,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
                 handleAddComment={handleAddComment}
                 handleReplySubmit={handleReplySubmit}
                 handleDeleteComment={handleDeleteComment}
+                handleToggleReaction={handleToggleCommentReaction}
                 onOpenAuth={onOpenAuth}
               />
             </div>

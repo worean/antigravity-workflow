@@ -1,4 +1,4 @@
-﻿﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getIssue,
@@ -337,5 +337,6 @@ export const useIssueDrawerData = ({
     handleAddComment: commentsState.handleAddComment,
     handleReplySubmit: commentsState.handleReplySubmit,
     handleDeleteComment: commentsState.handleDeleteComment,
+    handleToggleCommentReaction: commentsState.handleToggleReaction,
   };
 };

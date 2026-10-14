@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   getChannels,
   getMessages,
@@ -16,6 +16,7 @@ import { useWorkspace } from '@/context/WorkspaceContext';
 import { usePrefStore } from '@/stores/usePrefStore';
 import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
+import { groupReactions } from '@/utils/reactionUtils';
 
 export interface UseChatRoomProps {
   propChannelId?: number | null;
@@ -118,7 +119,12 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     setLoadingMessages(true);
     try {
       const data = await getMessages(channelId);
-      setMessages(Array.isArray(data) ? data : data.messages || []);
+      const rawList = Array.isArray(data) ? data : data.messages || [];
+      const normalized = rawList.map((m: any) => ({
+        ...m,
+        reactions: groupReactions(m.reactions, currentUserId),
+      }));
+      setMessages(normalized);
       useChatStore.getState().markChannelAsRead(channelId);
       await markAsRead(channelId);
       setChannels((prev) =>
@@ -129,7 +135,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
     } finally {
       setLoadingMessages(false);
     }
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
     if (selectedChannelId) {
@@ -185,10 +191,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
       setMessages((prev) =>
         prev.map((m) => {
           if (m.id !== data.messageId) return m;
-          const formatted = (data.reactions || []).map((r: any) => ({
-            ...r,
-            hasReacted: r.hasReacted !== undefined ? r.hasReacted : r.users?.some((u: any) => u.id === currentUserId),
-          }));
+          const formatted = groupReactions(data.reactions, currentUserId);
           return { ...m, reactions: formatted };
         })
       );
@@ -495,10 +498,7 @@ export const useChatRoom = ({ propChannelId, onSelectChannel, onOpenAuth }: UseC
         setMessages((prev) =>
           prev.map((m) => {
             if (m.id !== messageId) return m;
-            const formatted = res.reactions.map((r: any) => ({
-              ...r,
-              hasReacted: r.hasReacted !== undefined ? r.hasReacted : r.users?.some((u: any) => u.id === currentUserId),
-            }));
+            const formatted = groupReactions(res.reactions, currentUserId);
             return { ...m, reactions: formatted };
           })
         );

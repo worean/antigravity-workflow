@@ -29,7 +29,7 @@ export const getCommentsService = async (issueId: number, query: any = {}) => {
     include: {
       author: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
       mentions: { include: { user: { select: { id: true, name: true, avatar: true, avatarColor: true } } } },
-      reactions: true,
+      reactions: { include: { user: { select: { id: true, name: true } } } },
       attachments: true
     },
     orderBy: { createdAt: 'asc' }
