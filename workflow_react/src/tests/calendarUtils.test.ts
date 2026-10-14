@@ -1,10 +1,12 @@
-﻿﻿import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import {
   generateMonthMatrix,
   generateMonthFlatDays,
   generateWeekDays,
   getWeekdayNames,
   calculateWeekEventSegments,
+  getKoreanHolidays,
+  isKoreanHoliday,
 } from '../utils/calendarUtils';
 
 describe('calendarUtils', () => {
@@ -78,6 +80,73 @@ describe('calendarUtils', () => {
       expect(seg1?.trackIndex).not.toBe(seg2?.trackIndex);
       // Task 1(11~13) 종료 후 Task 3(14~17)은 슬롯 재사용 가능
       expect(seg3?.trackIndex).toBe(seg1?.trackIndex);
+    });
+  });
+
+  describe('대한민국 공휴일 및 대체공휴일 연산', () => {
+    it('2026년 양력 고정 공휴일 및 대체공휴일이 정확히 계산되어야 한다', () => {
+      const holidays2026 = getKoreanHolidays(2026);
+
+      // 신정, 삼일절, 어린이날, 현충일, 광복절, 개천절, 한글날, 성탄절
+      expect(holidays2026['2026-01-01']).toBe('신정');
+      expect(holidays2026['2026-03-01']).toBe('삼일절');
+      expect(holidays2026['2026-05-05']).toBe('어린이날');
+      expect(holidays2026['2026-06-06']).toBe('현충일');
+      expect(holidays2026['2026-08-15']).toBe('광복절');
+      expect(holidays2026['2026-10-03']).toBe('개천절');
+      expect(holidays2026['2026-10-09']).toBe('한글날');
+      expect(holidays2026['2026-12-25']).toBe('기독탄신일(성탄절)');
+
+      // 2026-03-01(일요일) -> 2026-03-02(월요일) 삼일절 대체공휴일
+      expect(holidays2026['2026-03-02']).toBe('대체공휴일(삼일절)');
+
+      // 2026-08-15(토요일) -> 2026-08-17(월요일) 광복절 대체공휴일
+      expect(holidays2026['2026-08-17']).toBe('대체공휴일(광복절)');
+
+      // 2026-10-03(토요일) -> 2026-10-05(월요일) 개천절 대체공휴일
+      expect(holidays2026['2026-10-05']).toBe('대체공휴일(개천절)');
+    });
+
+    it('2026년 음력 명절(설날, 부처님오신날, 추석) 및 대체공휴일이 계산되어야 한다', () => {
+      const holidays2026 = getKoreanHolidays(2026);
+
+      // 2026년 설날 연휴 (2/16 ~ 2/18)
+      expect(holidays2026['2026-02-16']).toBe('설날 연휴');
+      expect(holidays2026['2026-02-17']).toBe('설날');
+      expect(holidays2026['2026-02-18']).toBe('설날 연휴');
+
+      // 2026년 부처님오신날 (5/24, 일요일) -> 5/25(월) 대체공휴일
+      expect(holidays2026['2026-05-24']).toBe('부처님오신날');
+      expect(holidays2026['2026-05-25']).toBe('대체공휴일(부처님오신날)');
+
+      // 2026년 추석 연휴 (9/24 ~ 9/26)
+      expect(holidays2026['2026-09-24']).toBe('추석 연휴');
+      expect(holidays2026['2026-09-25']).toBe('추석');
+      expect(holidays2026['2026-09-26']).toBe('추석 연휴');
+    });
+
+    it('isKoreanHoliday로 개별 날짜 판별이 정상 동작해야 한다', () => {
+      const march1 = isKoreanHoliday('2026-03-01');
+      expect(march1.isHoliday).toBe(true);
+      expect(march1.name).toBe('삼일절');
+
+      const march2 = isKoreanHoliday('2026-03-02');
+      expect(march2.isHoliday).toBe(true);
+      expect(march2.name).toBe('대체공휴일(삼일절)');
+
+      const regularDay = isKoreanHoliday('2026-03-03');
+      expect(regularDay.isHoliday).toBe(false);
+      expect(regularDay.name).toBeUndefined();
+    });
+
+    it('generateMonthFlatDays에서 공휴일 플래그 및 이름이 주입되어야 한다', () => {
+      // 2026년 3월 (0-indexed: 2)
+      const march2026Days = generateMonthFlatDays(2026, 2, true);
+      const march2 = march2026Days.find((d) => d.dateStr === '2026-03-02');
+
+      expect(march2).toBeDefined();
+      expect(march2?.isHoliday).toBe(true);
+      expect(march2?.holidayName).toBe('대체공휴일(삼일절)');
     });
   });
 });

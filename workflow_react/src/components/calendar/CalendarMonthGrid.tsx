@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import type { CalendarEvent } from '@/types';
 import { usePrefStore } from '@/stores/usePrefStore';
 import { parseColorToRgb } from '@/utils/colorUtils';
@@ -112,17 +112,45 @@ export const CalendarMonthGrid: React.FC<CalendarMonthGridProps> = ({
                     className={`calendar-month-cell ${d.monthOffset !== 0 ? 'other-month' : ''}`}
                     style={{ position: 'relative', padding: '6px 8px' }}
                   >
-                    {/* 일자 번호 */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {/* 일자 번호 및 공휴일 표시 */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
                       <span
                         style={
                           d.isToday
                             ? { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '50%', background: 'var(--primary)', color: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem' }
-                            : { fontSize: '0.78rem', fontWeight: 500, color: d.monthOffset !== 0 ? 'var(--text-muted)' : d.isWeekend ? (d.dayOfWeek === 0 ? '#f14c4c' : '#9cdcfe') : 'var(--text-bright)', paddingLeft: '2px' }
+                            : {
+                                fontSize: '0.78rem',
+                                fontWeight: 500,
+                                color: d.monthOffset !== 0
+                                  ? 'var(--text-muted)'
+                                  : d.isHoliday
+                                  ? '#f14c4c'
+                                  : d.dayOfWeek === 6
+                                  ? '#9cdcfe'
+                                  : 'var(--text-bright)',
+                                paddingLeft: '2px',
+                              }
                         }
                       >
                         {d.date}
                       </span>
+                      {d.holidayName && (
+                        <span
+                          title={d.holidayName}
+                          style={{
+                            fontSize: '0.65rem',
+                            color: d.monthOffset !== 0 ? 'var(--text-muted)' : '#f14c4c',
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '70%',
+                            letterSpacing: '-0.3px',
+                          }}
+                        >
+                          {d.holidayName}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}

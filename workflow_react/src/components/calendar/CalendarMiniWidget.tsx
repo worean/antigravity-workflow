@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useIssues } from '@/api/issues';
 import { Spinner } from '@/components/common';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
@@ -80,6 +80,9 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
       dayNumber: c.date,
       dateStr: c.dateStr,
       isCurrentMonth: c.monthOffset === 0,
+      isHoliday: c.isHoliday,
+      holidayName: c.holidayName,
+      dayOfWeek: c.dayOfWeek,
     }));
   }, [currentYear, currentMonth, isSundayStart]);
 
@@ -224,6 +227,7 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
             <div
               key={cell.dateStr}
               onClick={() => handleCellClick(cell.dateStr)}
+              title={cell.holidayName ? `${cell.dateStr} (${cell.holidayName})` : cell.dateStr}
               style={{
                 minHeight: '28px',
                 padding: '2px',
@@ -254,6 +258,10 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
                     ? 'var(--text-placeholder)'
                     : isToday
                     ? 'var(--primary)'
+                    : cell.isHoliday
+                    ? '#ff6b6b'
+                    : cell.dayOfWeek === 6
+                    ? '#4ec9b0'
                     : 'var(--text-main)',
                 }}
               >
