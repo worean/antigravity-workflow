@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Bold,
   Italic,
@@ -13,6 +13,7 @@ import {
   Edit2,
 } from 'lucide-react';
 import { MemoMarkdownRenderer } from './MemoMarkdownRenderer';
+import { applyMarkdownSyntax, handleMarkdownKeyAction } from '@/utils/markdownUtils';
 
 export interface MemoMarkdownEditorProps {
   value: string;
@@ -32,26 +33,47 @@ export const MemoMarkdownEditor: React.FC<MemoMarkdownEditorProps> = ({
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 선택된 텍스트 앞뒤로 마크다운 문법 감싸기 또는 삽입
+  // 공통 markdownUtils 기반 선택 구문 삽입
   const insertSyntax = (before: string, after: string = '', defaultText: string = '') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentText = textarea.value;
+    const res = applyMarkdownSyntax(
+      value,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      before,
+      after,
+      defaultText
+    );
+    onChange(res.newValue);
 
-    const selected = currentText.substring(start, end) || defaultText;
-    const replacement = `${before}${selected}${after}`;
-
-    const nextValue = currentText.substring(0, start) + replacement + currentText.substring(end);
-    onChange(nextValue);
-
-    // 커서 위치 재조정
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
+      textarea.setSelectionRange(res.newSelectionStart, res.newSelectionEnd);
     }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = textareaRef.current;
+    if (!textarea || e.nativeEvent.isComposing) return;
+
+    const res = handleMarkdownKeyAction(
+      e.key,
+      e.shiftKey,
+      value,
+      textarea.selectionStart,
+      textarea.selectionEnd
+    );
+
+    if (res) {
+      e.preventDefault();
+      onChange(res.newValue);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(res.newSelectionStart, res.newSelectionEnd);
+      }, 0);
+    }
   };
 
   const toolbarButtons = [
@@ -188,6 +210,7 @@ export const MemoMarkdownEditor: React.FC<MemoMarkdownEditorProps> = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           rows={rows}
           placeholder={placeholder}
           disabled={disabled}

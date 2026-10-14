@@ -1,4 +1,4 @@
-﻿import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   Bold,
   Italic,
@@ -12,6 +12,7 @@ import {
   Quote,
   Link,
 } from 'lucide-react';
+import { applyMarkdownSyntax, handleMarkdownKeyAction } from '@/utils/markdownUtils';
 
 interface MarkdownEditorProps {
   value: string;
@@ -32,26 +33,24 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Helper: 선택 구문 마크다운 포맷팅 래핑 / 텍스트 삽입
+  // Helper: 공통 markdownUtils 기반 마크다운 구문 삽입
   const insertMarkdown = (prefix: string, suffix: string = '', defaultText: string = '') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = value.substring(start, end) || defaultText;
-
-    const replacement = `${prefix}${selectedText}${suffix}`;
-    const newValue = value.substring(0, start) + replacement + value.substring(end);
-
-    onChange(newValue);
+    const res = applyMarkdownSyntax(
+      value,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      prefix,
+      suffix,
+      defaultText
+    );
+    onChange(res.newValue);
 
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(
-        start + prefix.length,
-        start + prefix.length + selectedText.length
-      );
+      textarea.setSelectionRange(res.newSelectionStart, res.newSelectionEnd);
     }, 0);
   };
 
@@ -59,102 +58,23 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
+    if (e.nativeEvent.isComposing) return;
 
-    const { selectionStart, selectionEnd } = textarea;
+    const res = handleMarkdownKeyAction(
+      e.key,
+      e.shiftKey,
+      value,
+      textarea.selectionStart,
+      textarea.selectionEnd
+    );
 
-    // 1. Tab / Shift+Tab 스마트 들여쓰기 & 내어쓰기
-    if (e.key === 'Tab') {
+    if (res) {
       e.preventDefault();
-      const tabStr = '  '; // 2 스페이스 들여쓰기
-
-      if (e.shiftKey) {
-        // Shift + Tab: 2칸 내어쓰기
-        const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
-        if (value.substring(lineStart, lineStart + 2) === tabStr) {
-          const newValue = value.substring(0, lineStart) + value.substring(lineStart + 2);
-          onChange(newValue);
-          setTimeout(() => {
-            textarea.setSelectionRange(
-              Math.max(lineStart, selectionStart - 2),
-              Math.max(lineStart, selectionEnd - 2)
-            );
-          }, 0);
-        }
-      } else {
-        // Tab: 2칸 들여쓰기 삽입
-        const newValue =
-          value.substring(0, selectionStart) + tabStr + value.substring(selectionEnd);
-        onChange(newValue);
-        setTimeout(() => {
-          textarea.setSelectionRange(selectionStart + 2, selectionStart + 2);
-        }, 0);
-      }
-      return;
-    }
-
-    // 2. Enter 키 자동 목록 이어나가기 (- , * , 1. )
-    if (e.key === 'Enter' && !e.shiftKey) {
-      if (e.nativeEvent.isComposing) return;
-
-      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
-      const currentLine = value.substring(lineStart, selectionStart);
-
-      // Unordered list (- or *)
-      const bulletMatch = currentLine.match(/^(\s*)([-*])\s+(.*)/);
-      if (bulletMatch) {
-        const indent = bulletMatch[1];
-        const symbol = bulletMatch[2];
-        const content = bulletMatch[3];
-
-        if (!content.trim()) {
-          // 비어있는 목록 줄에서 Enter 누르면 목록 종료
-          e.preventDefault();
-          const newValue = value.substring(0, lineStart) + value.substring(selectionStart);
-          onChange(newValue);
-          return;
-        }
-
-        e.preventDefault();
-        const nextListStr = `\n${indent}${symbol} `;
-        const newValue =
-          value.substring(0, selectionStart) + nextListStr + value.substring(selectionEnd);
-        onChange(newValue);
-        setTimeout(() => {
-          textarea.setSelectionRange(
-            selectionStart + nextListStr.length,
-            selectionStart + nextListStr.length
-          );
-        }, 0);
-        return;
-      }
-
-      // Ordered list (1. 2. 3.)
-      const numMatch = currentLine.match(/^(\s*)(\d+)\.\s+(.*)/);
-      if (numMatch) {
-        const indent = numMatch[1];
-        const nextNum = parseInt(numMatch[2], 10) + 1;
-        const content = numMatch[3];
-
-        if (!content.trim()) {
-          e.preventDefault();
-          const newValue = value.substring(0, lineStart) + value.substring(selectionStart);
-          onChange(newValue);
-          return;
-        }
-
-        e.preventDefault();
-        const nextListStr = `\n${indent}${nextNum}. `;
-        const newValue =
-          value.substring(0, selectionStart) + nextListStr + value.substring(selectionEnd);
-        onChange(newValue);
-        setTimeout(() => {
-          textarea.setSelectionRange(
-            selectionStart + nextListStr.length,
-            selectionStart + nextListStr.length
-          );
-        }, 0);
-        return;
-      }
+      onChange(res.newValue);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(res.newSelectionStart, res.newSelectionEnd);
+      }, 0);
     }
   };
 
