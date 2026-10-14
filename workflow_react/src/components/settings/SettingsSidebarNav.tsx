@@ -1,7 +1,7 @@
 ﻿import React from 'react';
-import { User, Layers, Users, Sliders, Palette, Server } from 'lucide-react';
+import { User, Layers, Users, Sliders, Palette, Server, GitBranch } from 'lucide-react';
 
-export type SettingsTabType = 'profile' | 'workspace' | 'organization' | 'customFields' | 'display' | 'system';
+export type SettingsTabType = 'profile' | 'workspace' | 'organization' | 'customFields' | 'display' | 'system' | 'git';
 
 interface SettingsSidebarNavProps {
   activeSubTab: SettingsTabType;
@@ -19,6 +19,7 @@ export const SettingsSidebarNav: React.FC<SettingsSidebarNavProps> = ({
     { id: 'customFields' as const, label: '이슈 커스텀 필드', icon: Sliders },
     { id: 'display' as const, label: '디스플레이 & 테마', icon: Palette },
     { id: 'system' as const, label: '시스템 상태 & 정보', icon: Server },
+    { id: 'git' as const, label: 'Git 연동 플러그인', icon: GitBranch },
   ];
 
   return (

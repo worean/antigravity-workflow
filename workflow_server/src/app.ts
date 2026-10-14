@@ -22,6 +22,8 @@ import { aiRouter } from './modules/ai/ai.routes.js';
 import { calendarRouter } from './modules/calendar/calendar.routes.js';
 import { memoRouter } from './modules/memos/memos.routes.js';
 import { systemRouter } from './modules/system/system.routes.js';
+import { gitPluginRouter } from './modules/plugins/git/gitPlugin.routes.js';
+
 
 export const app = express();
 
@@ -84,6 +86,8 @@ app.use('/api/ai', aiRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/memos', memoRouter);
 app.use('/api/system', systemRouter);
+app.use('/api/plugins/git', gitPluginRouter);
+
 
 
 

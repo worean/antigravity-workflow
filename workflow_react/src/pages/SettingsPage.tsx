@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   updateUser,
@@ -38,6 +38,8 @@ import {
   SettingsSystemTab,
   type SettingsTabType,
 } from '@/components/settings';
+import { useProjects } from '@/api/projects';
+import { GitPluginSettingTab } from '@/components/plugins/git';
 
 interface SettingsPageProps {
   onOpenAuth?: () => void;
@@ -49,6 +51,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
 
   // Active Sub-Tab
   const [activeSubTab, setActiveSubTab] = useState<SettingsTabType>('profile');
+  const { data: projects = [] } = useProjects();
 
   // --- TAB 1: User Profile State ---
   const [name, setName] = useState<string>('');
@@ -618,6 +621,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               health={health}
               healthLoading={healthLoading}
             />
+          )}
+
+          {activeSubTab === 'git' && (
+            <GitPluginSettingTab projects={projects} />
           )}
         </div>
       </div>

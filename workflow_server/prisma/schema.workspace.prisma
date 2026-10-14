@@ -197,6 +197,7 @@ model Project {
   customFieldDefs CustomFieldDefinition[]
   chatChannels    ChatChannel[]
   tags            Tag[]
+  gitMappings     GitRepositoryMapping[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -334,6 +335,8 @@ model Issue {
   likes         IssueLike[]
   worklogs      Worklog[]
   calendarLinks IssueCalendarLink[]
+  gitPullRequests GitPullRequest[]
+  gitCommitLinks GitCommitLink[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -861,4 +864,100 @@ model MemoAttachment {
 
   @@index([memoId])
   @@map("memo_attachments")
+}
+
+// ==========================================
+// Git Integration Plugin Models (GitHub & GitLab)
+// ==========================================
+
+model GitPluginConfig {
+  id                    Int      @id @default(autoincrement())
+  workspaceId           Int      @unique @map("workspace_id")
+  isEnabled             Boolean  @default(false) @map("is_enabled")
+  provider              String   @default("GITHUB") // GITHUB | GITLAB
+  serverUrl             String?  @map("server_url") // GitLab Self-hosted 등
+  encryptedToken        String?  @map("encrypted_token")
+  webhookSecret         String?  @map("webhook_secret")
+  autoCloseIssueOnMerge Boolean  @default(true) @map("auto_close_issue_on_merge")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  repositories GitRepositoryMapping[]
+
+  @@index([workspaceId])
+  @@map("git_plugin_configs")
+}
+
+model GitRepositoryMapping {
+  id             Int             @id @default(autoincrement())
+  pluginConfigId Int             @map("plugin_config_id")
+  pluginConfig   GitPluginConfig @relation(fields: [pluginConfigId], references: [id], onDelete: Cascade)
+  projectId      Int             @map("project_id")
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  repoIdentifier String          @map("repo_identifier") // "owner/repo" (GitHub) 또는 "group/project" (GitLab)
+  defaultBranch  String          @default("main") @map("default_branch")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  pullRequests GitPullRequest[]
+  commitLinks  GitCommitLink[]
+
+  @@unique([projectId, repoIdentifier])
+  @@index([pluginConfigId])
+  @@map("git_repository_mappings")
+}
+
+model GitPullRequest {
+  id            Int                  @id @default(autoincrement())
+  repoMappingId Int                  @map("repo_mapping_id")
+  repoMapping   GitRepositoryMapping @relation(fields: [repoMappingId], references: [id], onDelete: Cascade)
+  issueId       Int?                 @map("issue_id")
+  issue         Issue?               @relation(fields: [issueId], references: [id], onDelete: SetNull)
+  prNumber      Int                  @map("pr_number")
+  title         String
+  sourceBranch  String               @map("source_branch")
+  targetBranch  String               @map("target_branch")
+  state         String               @default("OPEN") // OPEN | MERGED | CLOSED
+  authorName    String               @map("author_name")
+  url           String
+  ciStatus      String?              @map("ci_status") // PENDING | RUNNING | SUCCESS | FAILED
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  @@unique([repoMappingId, prNumber])
+  @@index([issueId])
+  @@map("git_pull_requests")
+}
+
+model GitCommitLink {
+  id            Int                  @id @default(autoincrement())
+  repoMappingId Int                  @map("repo_mapping_id")
+  repoMapping   GitRepositoryMapping @relation(fields: [repoMappingId], references: [id], onDelete: Cascade)
+  issueId       Int                  @map("issue_id")
+  issue         Issue                @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  commitHash    String               @db.VarChar(40) @map("commit_hash")
+  message       String
+  authorName    String               @map("author_name")
+  authorEmail   String?              @map("author_email")
+  committedAt   DateTime             @map("committed_at")
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  @@unique([repoMappingId, commitHash, issueId])
+  @@index([issueId])
+  @@map("git_commit_links")
+}
+
+model GitWebhookLog {
+  id          Int      @id @default(autoincrement())
+  workspaceId Int      @map("workspace_id")
+  provider    String   // GITHUB | GITLAB
+  eventType   String   @map("event_type") // push, pull_request, pipeline 등
+  payload     Json
+  processed   Boolean  @default(false)
+  errorMsg    String?  @map("error_msg")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, eventType])
+  @@map("git_webhook_logs")
 }
