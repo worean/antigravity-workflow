@@ -12,8 +12,7 @@ import {
 } from './';
 import { useIssueDrawerData } from './hooks/useIssueDrawerData';
 import { IssueDrawerStickyHeader, IssueDrawerDraftBanner } from './drawer';
-import { useGitConfig } from '@/api/gitPlugin';
-import { IssueGitSection } from '@/components/plugins/git';
+import { ExtensionSlot } from '@/extensions';
 
 interface IssueDetailDrawerProps {
   isOpen: boolean;
@@ -36,7 +35,6 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
   onIssueUpdated,
   onOpenAuth,
 }) => {
-  const { data: gitConfig } = useGitConfig();
   const {
     user,
     isAuthenticated,
@@ -269,15 +267,9 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
                 onOpenAuth={onOpenAuth}
               />
 
-              {/* 5. Git Integration Plugin Section (Conditional) */}
-              {gitConfig?.isEnabled && issue && (
-                <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-divider)', paddingTop: '16px' }}>
-                  <IssueGitSection
-                    issueId={issue.id}
-                    issueNumber={issue.issueNumber || issue.id}
-                    issueTitle={issue.title}
-                  />
-                </div>
+              {/* 5. Plugin Extensions Slot */}
+              {issue && (
+                <ExtensionSlot point="issue.detail.section" context={{ issue }} />
               )}
             </div>
           )}

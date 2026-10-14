@@ -5,6 +5,10 @@ import App from '@/App.tsx';
 import './index.css';
 import { initTheme } from '@/utils/themeUtils';
 import { usePrefStore } from '@/stores/usePrefStore';
+import { registerGitExtensions } from '@/components/plugins/git';
+
+// 🔌 플러그인 UI 확장 기능 등록
+registerGitExtensions();
 
 // 앱 시작 시 저장된 테마 즉각 초기화 (FOUC 방지)
 try {

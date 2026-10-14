@@ -7,3 +7,4 @@ export { GitPullRequestList } from './GitPullRequestList';
 export { GitCommitList } from './GitCommitList';
 export { CreateBranchModal } from './CreateBranchModal';
 export { CreatePullRequestModal } from './CreatePullRequestModal';
+export * from './extensions';

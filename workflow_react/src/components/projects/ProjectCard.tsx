@@ -2,6 +2,7 @@
 import { Layers, Users, ArrowRight, Trash2, Globe, ShieldCheck, Lock } from 'lucide-react';
 import type { Project, ProjectVisibility } from '@/types';
 import { FavoriteButton } from '@/components/common';
+import { ExtensionSlot } from '@/extensions';
 
 interface ProjectCardProps {
   project: Project;
@@ -119,9 +120,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               {project.key}
             </span>
             {renderVisibilityBadge(project.visibility)}
+            <ExtensionSlot point="project.card.badge" context={{ project }} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ExtensionSlot point="project.card.action" context={{ project }} />
             <FavoriteButton
               targetType="PROJECT"
               targetId={project.id}
