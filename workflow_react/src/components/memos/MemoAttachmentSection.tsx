@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Paperclip, Trash2 } from 'lucide-react';
 import type { MemoAttachmentDto } from '@/types/memo';
 import { useUIStore } from '@/stores/useUIStore';
+import { validateFile, formatFileSize, isImageFile } from '@/utils/fileUtils';
 
 export interface MemoAttachmentSectionProps {
   memoId: number | null;
@@ -25,10 +26,9 @@ export const MemoAttachmentSection: React.FC<MemoAttachmentSectionProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > MAX_FILE_SIZE) {
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-      const errMsg = `첨부파일 크기는 최대 5MB를 초과할 수 없습니다. (선택한 파일: ${sizeMb}MB)`;
-      showToast(errMsg, 'error');
+    const validation = validateFile(file, { maxSizeBytes: MAX_FILE_SIZE });
+    if (!validation.valid) {
+      showToast(validation.error || '유효하지 않은 파일입니다.', 'error');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -91,7 +91,7 @@ export const MemoAttachmentSection: React.FC<MemoAttachmentSectionProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                {att.fileUrl && (att.fileType?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(att.fileName)) ? (
+                {att.fileUrl && isImageFile(att.fileType || att.fileName) ? (
                   <img
                     src={att.fileUrl}
                     alt={att.fileName}
@@ -119,7 +119,7 @@ export const MemoAttachmentSection: React.FC<MemoAttachmentSectionProps> = ({
                   {att.fileName}
                 </span>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                  ({(att.fileSize / (1024 * 1024)).toFixed(2)} MB)
+                  ({formatFileSize(att.fileSize)})
                 </span>
               </div>
               <button

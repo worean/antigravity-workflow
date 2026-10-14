@@ -1,23 +1,13 @@
-﻿import React from 'react';
+import React from 'react';
 import { Paperclip, X } from 'lucide-react';
 import type { ChatAttachment } from '@/types';
+import { formatFileSize, isImageFile } from '@/utils/fileUtils';
 
 export interface ChatAttachmentInputPreviewProps {
   attachments: ChatAttachment[];
   onRemove: (index: number) => void;
   disabled?: boolean;
 }
-
-const formatFileSize = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-};
-
-const isImageFile = (att: ChatAttachment): boolean => {
-  if (att.fileType?.startsWith('image/')) return true;
-  return /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(att.fileName);
-};
 
 export const ChatAttachmentInputPreview: React.FC<ChatAttachmentInputPreviewProps> = ({
   attachments,
@@ -42,7 +32,7 @@ export const ChatAttachmentInputPreview: React.FC<ChatAttachmentInputPreviewProp
       }}
     >
       {attachments.map((att, idx) => {
-        const isImg = isImageFile(att);
+        const isImg = isImageFile(att.fileType || att.fileName);
         return (
           <div
             key={`${att.fileName}-${idx}`}
