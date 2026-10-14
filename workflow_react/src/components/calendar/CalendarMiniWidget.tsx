@@ -1,17 +1,19 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useIssues } from '@/api/issues';
 import { Spinner } from '@/components/common';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import type { Issue } from '@/types';
 import type { WidgetProps, Widgetable } from '@/types/widget';
 import { CalendarMiniList } from './CalendarMiniList';
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+import { usePrefStore } from '@/stores/usePrefStore';
+import { generateMonthFlatDays, getWeekdayNames } from '@/utils/calendarUtils';
 
 export const CalendarMiniWidget: React.FC<WidgetProps> = ({
   config = {},
   onSelectIssue,
 }) => {
+  const isSundayStart = usePrefStore((s) => s.isSundayStart);
+  const weekdays = useMemo(() => getWeekdayNames(isSundayStart), [isSundayStart]);
   const projectId = config.projectId === 'ALL' ? undefined : config.projectId;
   const { data: issues = [], isLoading } = useIssues(
     { projectId: projectId || undefined, all: true },
@@ -72,41 +74,14 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
       });
   }, [issues, currentYear, currentMonth]);
 
-  // 달력 날짜 그리드 계산
+  // 달력 날짜 그리드 계산 (공통 calendarUtils 활용)
   const calendarDays = useMemo(() => {
-    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-    const days: Array<{ dayNumber: number; dateStr: string; isCurrentMonth: boolean }> = [];
-
-    // 이전 달 빈 셀
-    const prevMonthLastDate = new Date(currentYear, currentMonth, 0).getDate();
-    for (let i = firstDay - 1; i >= 0; i--) {
-      const d = prevMonthLastDate - i;
-      const m = currentMonth === 0 ? 12 : currentMonth;
-      const y = currentMonth === 0 ? currentYear - 1 : currentYear;
-      const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      days.push({ dayNumber: d, dateStr, isCurrentMonth: false });
-    }
-
-    // 이번 달 날짜
-    for (let d = 1; d <= lastDate; d++) {
-      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      days.push({ dayNumber: d, dateStr, isCurrentMonth: true });
-    }
-
-    // 다음 달 날짜 (35칸 또는 42칸 맞춤)
-    const totalSlots = days.length > 35 ? 42 : 35;
-    const remaining = totalSlots - days.length;
-    for (let d = 1; d <= remaining; d++) {
-      const m = currentMonth === 11 ? 1 : currentMonth + 2;
-      const y = currentMonth === 11 ? currentYear + 1 : currentYear;
-      const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      days.push({ dayNumber: d, dateStr, isCurrentMonth: false });
-    }
-
-    return days;
-  }, [currentYear, currentMonth]);
+    return generateMonthFlatDays(currentYear, currentMonth, isSundayStart).map((c) => ({
+      dayNumber: c.date,
+      dateStr: c.dateStr,
+      isCurrentMonth: c.monthOffset === 0,
+    }));
+  }, [currentYear, currentMonth, isSundayStart]);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -218,11 +193,15 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
           borderBottom: '1px solid var(--border-divider)',
         }}
       >
-        {WEEKDAYS.map((wd, idx) => (
-          <div key={wd} style={{ color: idx === 0 ? '#ff6b6b' : idx === 6 ? '#4ec9b0' : undefined }}>
-            {wd}
-          </div>
-        ))}
+        {weekdays.map((wd, idx) => {
+          const isSun = isSundayStart ? idx === 0 : idx === 6;
+          const isSat = isSundayStart ? idx === 6 : idx === 5;
+          return (
+            <div key={wd} style={{ color: isSun ? '#ff6b6b' : isSat ? '#4ec9b0' : undefined }}>
+              {wd}
+            </div>
+          );
+        })}
       </div>
 
       {/* Calendar Grid Cells */}
