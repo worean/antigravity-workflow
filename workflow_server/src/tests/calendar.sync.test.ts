@@ -67,6 +67,7 @@ describe('🧪 [Google Calendar Sync API] 연동 및 접근 제어 테스트', (
         password: null,
       },
     }).catch(() => {});
+    await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "User"), 1), 1));`).catch(() => {});
 
     googleSocialAccount = await globalPrisma.socialAccount.create({
       data: {

@@ -1,4 +1,4 @@
-/* AntiGravity Workflow - Design Tokens & Theme Specification */
+﻿/* AntiGravity Workflow - Design Tokens & Theme Specification */
 
 /* =======================================================================
    1. Default & Dark Theme Tokens (:root & [data-theme="dark"])
@@ -47,6 +47,9 @@
   --text-muted: #6e6e6e;
   --text-inverse: #1e1e1e;
   --text-on-primary: #ffffff;
+  --accent-caldav: #8a2be2;
+  --brand-google-bg: #ffffff;
+  --text-on-overlay: #ffffff;
   --text-placeholder: #767676;
 
   /* Border Radii */
@@ -182,6 +185,9 @@
   --text-muted: #64748b;
   --text-inverse: #ffffff;
   --text-on-primary: #ffffff;
+  --accent-caldav: #8a2be2;
+  --brand-google-bg: #ffffff;
+  --text-on-overlay: #ffffff;
   --text-placeholder: #64748b;
 
   /* Shadows */

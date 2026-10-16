@@ -118,13 +118,32 @@ model GitCommitLink {
   authorName      String
   authorEmail     String?
   committedAt     DateTime
+  url             String?              // 원격 GitHub/GitLab 커밋 상세 웹 URL
   createdAt       DateTime             @default(now())
 
   @@unique([repoMappingId, commitHash, issueId])
   @@index([issueId])
 }
 
-// 5. 웹훅 수신 감사 로그
+// 5. 작업로그와 1:1 연결된 커밋 링크
+model GitWorklogCommitLink {
+  id              Int                  @id @default(autoincrement())
+  worklogId       Int                  @unique // 작업로그 1개당 커밋 1개만 허용 (1:1 보장)
+  worklog         Worklog              @relation(fields: [worklogId], references: [id], onDelete: Cascade)
+  repoMappingId   Int
+  repoMapping     GitRepositoryMapping @relation(fields: [repoMappingId], references: [id], onDelete: Cascade)
+  commitHash      String               @db.VarChar(40)
+  message         String
+  authorName      String
+  authorEmail     String?
+  committedAt     DateTime
+  url             String?              // 원격 커밋 상세 웹 URL
+  createdAt       DateTime             @default(now())
+
+  @@index([worklogId])
+}
+
+// 6. 웹훅 수신 감사 로그
 model GitWebhookLog {
   id          Int      @id @default(autoincrement())
   workspaceId Int
@@ -147,6 +166,7 @@ model GitWebhookLog {
 | `repoIdentifier` | String | 필수 | - | 영문, 숫자, `/`, `-`, `_` 조합의 저장소 식별자 |
 | `state` | String | 필수 | `'OPEN'` | `'OPEN'`, `'MERGED'`, `'CLOSED'` 상태 값 유지 |
 | `commitHash` | String | 필수 | - | 40자 Git SHA-1 16진수 포맷 검증 |
+| `url` | String | 선택 | null | 원격 저장소 커밋/PR 웹 링크 (GitHub/GitLab 브라우저 직접 이동) |
 
 ### 2.3 비즈니스 로직 & 엣지 케이스 (Business Logic & Edge Cases)
 1. **플러그인 독립성**:
@@ -159,6 +179,16 @@ model GitWebhookLog {
 4. **일감 스마트 연동 규칙**:
    - 커밋 메시지 또는 PR 제목/본문에 `#123` 또는 `ISSUE-123`이 포함되어 있으면 해당 일감과 자동 바인딩.
    - PR 머지 시 `autoCloseIssueOnMerge === true`이면 해당 일감의 상태를 `DONE`으로 자동 변경.
+5. **작업로그(Worklog) 커밋 연계 정책 (1:1 관계)**:
+   - 작업로그는 엄격히 **1개의 커밋만 가질 수 있습니다 (1:1)**. 여러 개의 커밋을 작업로그로 기록하려면 각각 개별 작업로그를 작성해야 합니다.
+   - 작업로그 생성(`POST /api/worklogs`) 또는 커밋 연결(`POST /api/plugins/git/worklogs/:worklogId/commit`) 시 `url`과 `commitHash`가 DB에 영구 저장됩니다.
+   - 작업로그에 커밋이 연결되면, 해당 작업로그가 속한 상위 일감(`issueId`)의 커밋 링크(`GitCommitLink`)에도 동일한 커밋이 자동으로 귀속(Upsert)되어 일감 단위의 형상 추적성이 보장됩니다.
+6. **이슈 상세화면 커밋 우선순위 및 PR 커밋 일괄 동기화 (커밋 기반 영구 보존 정책)**:
+   - PR(Pull Request/Merge Request)은 브랜치 삭제나 외부 리포지토리 재구성 등으로 인해 유실될 수 있으므로, AntiGravity는 **커밋 단위 영구 관리**를 기본 원칙으로 합니다.
+   - 일감 상세 화면(`IssueGitSection`) 진입 시 PR 대신 **커밋 히스토리(`commits`) 탭이 기본(우선)으로 표시**되며, 탭 순서도 커밋이 첫 번째, PR이 두 번째로 배치됩니다.
+   - 일감에서 PR을 생성하거나 동기화할 때, **해당 PR에 포함된 모든 커밋이 해당 일감의 커밋 히스토리(`GitCommitLink`)로 자동 일괄 등록**됩니다.
+7. **AI 및 Workflow 자동화를 위한 백엔드 REST API 지원**:
+   - 향후 AI 에이전트 및 자동화 워크플로우 엔진이 백그라운드에서 직접 일감 및 작업로그의 커밋을 관리할 수 있도록 배치(Batch) 등록 및 PR 커밋 자동 동기화 REST API를 완비합니다.
 
 ---
 
@@ -173,8 +203,14 @@ model GitWebhookLog {
 | 저장소 매핑 목록 | `GET` | `/api/plugins/git/mappings` | 인증 사용자 | 프로젝트별 연결된 Git 저장소 매핑 목록 |
 | 저장소 매핑 등록 | `POST` | `/api/plugins/git/mappings` | 관리자 | 특정 프로젝트에 Git 저장소 연결 매핑 추가 |
 | 저장소 매핑 삭제 | `DELETE`| `/api/plugins/git/mappings/:id` | 관리자 | Git 저장소 연결 매핑 해제 |
-| 일감 Git 정보 조회 | `GET` | `/api/plugins/git/issues/:issueId` | 인증 사용자 | 특정 일감에 연결된 PR/MR, 커밋 목록 조회 |
-| PR 생성 | `POST` | `/api/plugins/git/pull-requests` | 멤버/관리자 | AntiGravity 일감에서 원격 저장소 PR/MR 생성 |
+| 일감 Git 정보 조회 | `GET` | `/api/plugins/git/issues/:issueId` | 인증 사용자 | 특정 일감에 연결된 PR/MR, 커밋 목록 조회 (커밋 탭 우선) |
+| 이슈 커밋 수동 연결 | `POST` | `/api/plugins/git/issues/:issueId/commits` | 멤버/관리자 | 일감에 단일 커밋 수동 연결 (`url` 포함) |
+| 이슈 커밋 일괄 연결 (AI/배치) | `POST` | `/api/plugins/git/issues/:issueId/commits/batch` | 멤버/관리자 | AI/워크플로우 자동화를 위한 다중 커밋 일괄 등록 |
+| 이슈 커밋 연결 해제 | `DELETE`| `/api/plugins/git/issues/:issueId/commits/:commitLinkId` | 멤버/관리자 | 일감과 커밋의 연결 해제 |
+| 작업로그 커밋 연결 (1:1) | `POST` | `/api/plugins/git/worklogs/:worklogId/commit` | 멤버/관리자 | 작업로그에 1개 커밋 연결 (상위 일감 커밋 링크 자동 반영) |
+| 작업로그 커밋 연결 해제 | `DELETE`| `/api/plugins/git/worklogs/:worklogId/commit` | 멤버/관리자 | 작업로그에 연결된 커밋 해제 |
+| PR 생성 (커밋 자동동기화) | `POST` | `/api/plugins/git/pull-requests` | 멤버/관리자 | PR/MR 생성 및 PR에 속한 전체 커밋 일감 자동 등록 |
+| PR 커밋 수동/자동 동기화 | `POST` | `/api/plugins/git/pull-requests/:prId/sync-commits` | 멤버/관리자 | 원격 PR 커밋 전체를 일감 커밋 히스토리로 일괄 동기화 |
 | CI/CD 파이프라인 | `GET` | `/api/plugins/git/pipelines/:repoId` | 인증 사용자 | 최신 파이프라인 실행 상태 조회 |
 | Webhook 수신 | `POST` | `/api/plugins/git/webhook` | 퍼블릭(서명검증) | GitHub/GitLab 원격 웹훅 이벤트 수신 및 자동화 처리 |
 
@@ -253,11 +289,19 @@ model GitWebhookLog {
 | :--- | :--- | :---: |
 | [`GitPluginSettingTab.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitPluginSettingTab.tsx) | 워크스페이스 설정 내 Git 플러그인 On/Off 토글, Provider 선택, 토큰 입력 | ~250줄 |
 | [`GitRepoMappingModal.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitRepoMappingModal.tsx) | 프로젝트별 Git 저장소 매핑 등록/수정/삭제 Portal 모달 | ~200줄 |
-| [`IssueGitSection.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/IssueGitSection.tsx) | 일감 상세 드로어에 삽입되는 Git 종합 탭 컨테이너 | ~180줄 |
+| [`IssueGitSection.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/IssueGitSection.tsx) | 일감 상세 드로어에 삽입되는 Git 종합 탭 컨테이너 (커밋 탭 우선 배치) | ~270줄 |
+| [`GitCommitList.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitCommitList.tsx) | 일감과 매핑된 커밋 SHA, 메시지, 작성자, 외부링크 및 Diff 팝업 연동 | ~180줄 |
 | [`GitPullRequestList.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitPullRequestList.tsx) | 연결된 PR/MR 상태 칩, CI/CD 뱃지, 머지 버튼 및 외부 링크 | ~220줄 |
-| [`GitCommitList.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitCommitList.tsx) | 일감과 매핑된 커밋 SHA, 메시지, 작성자, 타임스탬프 리스트 | ~150줄 |
+| [`GitCommitPickerModal.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitCommitPickerModal.tsx) | 저장소 매핑에서 최근 커밋을 검색하여 일감/작업로그에 수동 연결하는 모달 | ~220줄 |
+| [`GitCommitDetailModal.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitCommitDetailModal.tsx) | 특정 커밋의 변경 파일 목록 및 Unified Diff 상세 팝업 (Single/All 뷰 지원) | ~250줄 |
+| [`GitCommitDiffCard.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/GitCommitDiffCard.tsx) | 파일별 문법/라인별 Unified Diff 시각화 카드 (CRLF/줄바꿈 완벽 보정) | ~230줄 |
 | [`CreateBranchModal.tsx`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/CreateBranchModal.tsx) | 일감 번호 및 제목 기반 자동 브랜치명 추천 및 원격 생성 모달 | ~180줄 |
-| [`index.ts`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/index.ts) | 외부 노출용 통합 배럴(Barrel) 익스포트 | ~30줄 |
+| [`index.ts`](file:///C:/Users/admin/antigravity-workflow/workflow_react/src/components/plugins/git/index.ts) | 외부 노출용 통합 배럴(Barrel) 익스포트 | ~40줄 |
+
+### 4.2 일감 상세 화면 탭 노출 우선순위 규칙 (Tab Layout & Priority)
+- **커밋 탭 기본 활성화**: 일감 상세 화면 열람 시, 외부 저장소의 브랜치 삭제나 변경에 영향받지 않는 확실한 코드 이력 확인을 위해 **[Commits] 탭이 기본 선택(Default Active)**되어 렌더링됩니다.
+- **탭 정렬 순서**: 좌측부터 `[1. Commits (N개)]` -> `[2. Pull Requests (N개)]` 순서로 일관되게 정렬됩니다.
+- **수정사항 뷰어 (Diff Viewer)**: 커밋 클릭 시 `GitCommitDetailModal`을 통해 변경된 파일들을 단일 파일 집중 보기(Single Focus)와 전체 연속 보기(All)로 자유롭게 전환하며 검토할 수 있습니다.
 
 ### 4.2 프론트엔드 Mock Data 코드 블록 (Mock Data for Pre-integration)
 ```typescript

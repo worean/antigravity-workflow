@@ -274,6 +274,7 @@ export const SprintDetailPage: React.FC<SprintDetailPageProps> = ({
 
       {/* Manage Issues Modal */}
       <SprintManageIssuesModal
+        isOpen={showManageModal}
         showManageModal={showManageModal}
         setShowManageModal={setShowManageModal}
         managingSprint={sprint}

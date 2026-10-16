@@ -23,10 +23,10 @@ export const ChatbotLauncher: React.FC = () => {
           borderRadius: '26px',
           background: isOpen
             ? 'var(--bg-card)'
-            : 'linear-gradient(135deg, #007acc 0%, #0098ff 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          boxShadow: '0 8px 24px rgba(0, 122, 204, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4)',
-          color: '#ffffff',
+            : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)',
+          border: '1px solid var(--border-light)',
+          boxShadow: 'var(--shadow-lg)',
+          color: 'var(--text-on-primary)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -53,7 +53,7 @@ export const ChatbotLauncher: React.FC = () => {
                 position: 'absolute',
                 top: '-4px',
                 right: '-6px',
-                color: '#ffe066',
+                color: 'var(--accent-amber)',
               }}
             />
           </div>
@@ -69,7 +69,7 @@ export const ChatbotLauncher: React.FC = () => {
               right: '-3px',
               bottom: '-3px',
               borderRadius: '28px',
-              border: '2px solid #4ec9b0',
+              border: '2px solid var(--secondary)',
               animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
               pointerEvents: 'none',
             }}

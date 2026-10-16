@@ -1,10 +1,11 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Bell,
   CheckCircle2,
   Sliders,
   Palette,
   Calendar,
+  Clock,
   Sun,
   Moon,
   Monitor,
@@ -26,6 +27,9 @@ interface SettingsDisplayTabProps {
   isSundayStart: boolean;
   handleWeekStartChange: (isSunday: boolean) => void;
   weekStartSavedFeedback: boolean;
+  timeFormat?: '12h' | '24h';
+  handleTimeFormatChange?: (format: '12h' | '24h') => void;
+  timeFormatSavedFeedback?: boolean;
 }
 
 export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
@@ -41,6 +45,9 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
   isSundayStart,
   handleWeekStartChange,
   weekStartSavedFeedback,
+  timeFormat = '24h',
+  handleTimeFormatChange,
+  timeFormatSavedFeedback,
 }) => {
   const theme = usePrefStore((s) => s.theme);
   const setTheme = usePrefStore((s) => s.setTheme);
@@ -299,6 +306,46 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
             <option value="monday">월요일 시작</option>
           </select>
           {weekStartSavedFeedback && (
+            <span style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <CheckCircle2 size={12} /> 저장됨
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 5. 시간 표기 방식 (12시간 / 24시간) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-xs)',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Clock size={14} color="var(--primary)" />
+            일정 시간 표기 방식
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+            캘린더 일정 및 팝오버에서 시작 시각의 12시간제(오전/오후) 또는 24시간제 표기 방식을 설정합니다.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <select
+            className="input-field"
+            value={timeFormat}
+            onChange={(e) => handleTimeFormatChange?.(e.target.value as '12h' | '24h')}
+            style={{ width: '130px', fontSize: '0.75rem', height: '26px' }}
+          >
+            <option value="24h">24시간제 (14:00)</option>
+            <option value="12h">12시간제 (오후 2:00)</option>
+          </select>
+          {timeFormatSavedFeedback && (
             <span style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <CheckCircle2 size={12} /> 저장됨
             </span>

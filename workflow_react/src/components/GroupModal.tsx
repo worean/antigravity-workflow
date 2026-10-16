@@ -12,6 +12,8 @@ import { createGroup, updateGroup } from '@/services/api';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { useModalLayer } from '@/hooks/useModalLayer';
+import { Portal } from '@/components/common/Portal';
 import { useUIStore } from '@/stores/useUIStore';
 
 export interface GroupModalProps {
@@ -33,6 +35,10 @@ export const GroupModal: React.FC<GroupModalProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
+  const { zIndex: dynamicZIndex } = useModalLayer(isOpen, {
+    onClose,
+    triggerKey: group?.id ?? parentId ?? 'new',
+  });
   const overlayProps = useOverlayClickClose(onClose);
 
   const [name, setName] = useState<string>('');
@@ -40,7 +46,6 @@ export const GroupModal: React.FC<GroupModalProps> = ({
   const [description, setDescription] = useState<string>('');
   const [selectedParentId, setSelectedParentId] = useState<number | null>(parentId);
 
-  // 🔒 이전 열림 상태 및 대상 그룹 ID 추적용 Ref (타이핑 중 원복 방어)
   const prevIsOpenRef = useRef<boolean>(false);
   const prevGroupIdRef = useRef<number | null>(null);
 
@@ -81,14 +86,13 @@ export const GroupModal: React.FC<GroupModalProps> = ({
             description: description.trim(),
             parentId: selectedParentId ? Number(selectedParentId) : null,
           });
-        } else {
-          return await createGroup({
-            name: name.trim(),
-            code: code.trim() || undefined,
-            description: description.trim() || undefined,
-            parentId: selectedParentId || undefined,
-          });
         }
+        return await createGroup({
+          name: name.trim(),
+          code: code.trim() || undefined,
+          description: description.trim() || undefined,
+          parentId: selectedParentId || undefined,
+        });
       },
       {
         onSuccess: (saved) => {
@@ -106,19 +110,18 @@ export const GroupModal: React.FC<GroupModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <>
+    <Portal>
       <div
         className="modal-overlay"
+        role="dialog"
+        aria-modal="true"
         style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1100,
+          zIndex: dynamicZIndex,
           background: 'rgba(0, 0, 0, 0.65)',
           backdropFilter: 'blur(2px)',
         }}
@@ -141,14 +144,14 @@ export const GroupModal: React.FC<GroupModalProps> = ({
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {/* Header (IssueModal 100% 동일 구조) */}
+          {/* Header */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: '14px',
-              borderBottom: '1px solid var(--border-light, #3c3c3c)',
+              borderBottom: '1px solid var(--border-light)',
               paddingBottom: '8px',
             }}
           >
@@ -159,33 +162,34 @@ export const GroupModal: React.FC<GroupModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                color: 'var(--text-bright, #fff)',
+                color: 'var(--text-bright)',
               }}
             >
               {group ? (
                 <>
-                  <Edit3 size={16} color="var(--primary, #007acc)" />
+                  <Edit3 size={16} color="var(--primary)" />
                   <span>그룹 정보 수정</span>
                 </>
               ) : selectedParentId ? (
                 <>
-                  <FolderPlus size={16} color="var(--primary, #007acc)" />
+                  <FolderPlus size={16} color="var(--primary)" />
                   <span>하위 서브그룹/팀 추가</span>
                 </>
               ) : (
                 <>
-                  <Building2 size={16} color="var(--primary, #007acc)" />
+                  <Building2 size={16} color="var(--primary)" />
                   <span>최상위 그룹 추가</span>
                 </>
               )}
             </div>
 
             <button
+              type="button"
               onClick={onClose}
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-muted, #888)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 padding: '2px',
                 display: 'flex',
@@ -198,11 +202,10 @@ export const GroupModal: React.FC<GroupModalProps> = ({
             </button>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                그룹/부서명 <span style={{ color: '#f43f5e' }}>*</span>
+                그룹/부서명 <span style={{ color: 'var(--status-urgent)' }}>*</span>
               </label>
               <input
                 type="text"
@@ -261,7 +264,6 @@ export const GroupModal: React.FC<GroupModalProps> = ({
               />
             </div>
 
-            {/* Actions */}
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
               <button
                 type="button"
@@ -300,6 +302,6 @@ export const GroupModal: React.FC<GroupModalProps> = ({
       </div>
 
       <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />
-    </>
+    </Portal>
   );
 };

@@ -1,12 +1,11 @@
 ﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
 import { app } from '../app.js';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 
-describe('POST /api/workspaces - Workspace Creation & Dynamic DB Allocation', () => {
+describe('POST /api/workspaces - Single-Workspace Initialization & Ownership Binding', () => {
   const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
   let testUser: any;
   let userToken: string;
@@ -41,7 +40,7 @@ describe('POST /api/workspaces - Workspace Creation & Dynamic DB Allocation', ()
     expect(res.status).toBe(401);
   });
 
-  it('2. 신규 워크스페이스 생성 시 고유한 dbUrl이 발급되고 전용 DB 파일이 물리적으로 생성되어야 한다', async () => {
+  it('2. 워크스페이스 생성 요청 시 단일 활성 워크스페이스로 귀속되고 UserWorkspace(OWNER) 매핑이 보장되어야 한다', async () => {
     const res = await request(app)
       .post('/api/workspaces')
       .set('Authorization', `Bearer ${userToken}`)
@@ -55,11 +54,7 @@ describe('POST /api/workspaces - Workspace Creation & Dynamic DB Allocation', ()
     expect(res.body.name).toBe('Innovate AI Team');
     expect(res.body.ownerId).toBe(testUser.id);
     expect(res.body.dbUrl).toBeDefined();
-    expect(res.body.dbUrl).toContain('ws_innovate-ai-team');
-
-    // 물리적 SQLite DB 파일이 생성되었는지 검증
-    const filePath = res.body.dbUrl.replace(/^file:/, '');
-    expect(fs.existsSync(filePath)).toBe(true);
+    expect(res.body.status).toBe('ACTIVE');
 
     // Global DB에 UserWorkspace(OWNER) 매핑이 생성되었는지 검증
     const membership = await globalPrisma.userWorkspace.findUnique({

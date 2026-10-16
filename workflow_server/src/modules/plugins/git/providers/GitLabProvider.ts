@@ -1,4 +1,17 @@
-﻿﻿import { IGitProvider, GitTokenVerifyResult, GitBranchCreateResult, GitPullRequestItem, GitPullRequestCreateResult, GitPipelineItem } from './IGitProvider.js';
+import {
+  IGitProvider,
+  GitTokenVerifyResult,
+  GitBranchCreateResult,
+  GitPullRequestItem,
+  GitPullRequestCreateResult,
+  GitPipelineItem,
+  GitRemoteRepoItem,
+  GitCommitItem,
+  GitCommitDetail,
+  GitCommitFileDiff,
+} from './IGitProvider.js';
+import { summarizeErrorBody } from './gitErrorUtils.js';
+
 
 export class GitLabProvider implements IGitProvider {
   readonly providerName = 'GITLAB' as const;
@@ -171,4 +184,172 @@ export class GitLabProvider implements IGitProvider {
       return [];
     }
   }
+
+  async listRepositories(token: string, serverUrl?: string): Promise<GitRemoteRepoItem[]> {
+    try {
+      const baseUrl = this.getBaseUrl(serverUrl);
+      const res = await fetch(`${baseUrl}/projects?membership=true&per_page=100&order_by=updated`, {
+        headers: this.getHeaders(token),
+      });
+      if (!res.ok) return [];
+      const data = (await res.json()) as any[];
+
+      return data.map((proj) => ({
+        id: proj.id,
+        name: proj.name || '',
+        fullName: proj.path_with_namespace || proj.name || '',
+        description: proj.description || '',
+        isPrivate: proj.visibility !== 'public',
+        defaultBranch: proj.default_branch || 'main',
+        webUrl: proj.web_url || '',
+        updatedAt: proj.last_activity_at || proj.created_at || new Date().toISOString(),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async listCommits(
+    token: string,
+    repo: string,
+    options?: { branch?: string; page?: number; perPage?: number },
+    serverUrl?: string
+  ): Promise<GitCommitItem[]> {
+    try {
+      const baseUrl = this.getBaseUrl(serverUrl);
+      const params = new URLSearchParams();
+      if (options?.branch) params.set('ref_name', options.branch);
+      if (options?.page) params.set('page', String(options.page));
+      params.set('per_page', String(options?.perPage || 30));
+
+      const res = await fetch(`${baseUrl}/projects/${this.encodeRepo(repo)}/repository/commits?${params.toString()}`, {
+        headers: this.getHeaders(token),
+      });
+      if (!res.ok) {
+        throw new Error(`GitLab 커밋 조회 실패: HTTP ${res.status} ${summarizeErrorBody(await res.text())}`);
+      }
+      const data = (await res.json()) as any[];
+
+      return data.map((item) => ({
+        commitHash: item.id,
+        shortHash: item.short_id || (item.id || '').slice(0, 7),
+        message: item.message || item.title || '',
+        authorName: item.author_name || 'unknown',
+        authorEmail: item.author_email,
+        committedAt: item.committed_date || item.created_at || new Date().toISOString(),
+        url: item.web_url,
+      }));
+    } catch (err: any) {
+      if (err?.message?.startsWith('GitLab 커밋 조회 실패')) throw err;
+      throw new Error(`GitLab 서버 연결 실패: ${err?.message || err}`);
+    }
+  }
+
+  async getCommitDetail(
+    token: string,
+    repo: string,
+    sha: string,
+    serverUrl?: string
+  ): Promise<GitCommitDetail> {
+    const baseUrl = this.getBaseUrl(serverUrl);
+    const [commitRes, diffRes] = await Promise.all([
+      fetch(`${baseUrl}/projects/${this.encodeRepo(repo)}/repository/commits/${sha}`, {
+        headers: this.getHeaders(token),
+      }),
+      fetch(`${baseUrl}/projects/${this.encodeRepo(repo)}/repository/commits/${sha}/diff`, {
+        headers: this.getHeaders(token),
+      }),
+    ]);
+
+    if (!commitRes.ok) {
+      throw new Error(`GitLab Commit not found: ${commitRes.status}`);
+    }
+
+    const commitData = (await commitRes.json()) as any;
+    let diffList: any[] = [];
+    if (diffRes.ok) {
+      diffList = (await diffRes.json()) as any[];
+    }
+
+    let calculatedAdditions = 0;
+    let calculatedDeletions = 0;
+
+    const files: GitCommitFileDiff[] = diffList.map((d: any) => {
+      let status: 'added' | 'modified' | 'deleted' | 'renamed' = 'modified';
+      if (d.new_file) status = 'added';
+      else if (d.deleted_file) status = 'deleted';
+      else if (d.renamed_file) status = 'renamed';
+
+      const diffText = d.diff || '';
+      let fileAdditions = 0;
+      let fileDeletions = 0;
+
+      for (const line of diffText.split('\n')) {
+        if (line.startsWith('+') && !line.startsWith('+++')) fileAdditions++;
+        else if (line.startsWith('-') && !line.startsWith('---')) fileDeletions++;
+      }
+
+      calculatedAdditions += fileAdditions;
+      calculatedDeletions += fileDeletions;
+
+      return {
+        filename: d.new_path || d.old_path,
+        oldPath: d.renamed_file ? d.old_path : undefined,
+        status,
+        additions: fileAdditions,
+        deletions: fileDeletions,
+        patch: diffText,
+      };
+    });
+
+    const stats = commitData.stats || {
+      additions: calculatedAdditions,
+      deletions: calculatedDeletions,
+      total: calculatedAdditions + calculatedDeletions,
+    };
+
+    return {
+      commitHash: commitData.id,
+      shortHash: commitData.short_id || (commitData.id || '').slice(0, 7),
+      message: commitData.message || commitData.title || '',
+      authorName: commitData.author_name || 'unknown',
+      authorEmail: commitData.author_email,
+      committedAt: commitData.committed_date || commitData.created_at || new Date().toISOString(),
+      url: commitData.web_url,
+      stats,
+      files,
+    };
+  }
+
+  async listPullRequestCommits(
+    token: string,
+    repo: string,
+    prNumber: number,
+    serverUrl?: string
+  ): Promise<GitCommitItem[]> {
+    try {
+      const baseUrl = this.getBaseUrl(serverUrl);
+      const res = await fetch(`${baseUrl}/projects/${this.encodeRepo(repo)}/merge_requests/${prNumber}/commits?per_page=100`, {
+        headers: this.getHeaders(token),
+      });
+      if (!res.ok) {
+        throw new Error(`GitLab MR 커밋 조회 실패: HTTP ${res.status} ${summarizeErrorBody(await res.text())}`);
+      }
+      const data = (await res.json()) as any[];
+
+      return data.map((item) => ({
+        commitHash: item.id,
+        shortHash: item.short_id || (item.id || '').slice(0, 7),
+        message: item.message || item.title || '',
+        authorName: item.author_name || 'unknown',
+        authorEmail: item.author_email,
+        committedAt: item.committed_date || item.created_at || new Date().toISOString(),
+        url: item.web_url,
+      }));
+    } catch (err: any) {
+      if (err?.message?.startsWith('GitLab MR 커밋 조회 실패')) throw err;
+      throw new Error(`GitLab MR 커밋 조회 서버 연결 실패: ${err?.message || err}`);
+    }
+  }
 }
+

@@ -1,32 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import {
-  updateUser,
-  getUsers,
-  getCustomFields,
-  createCustomField,
-  deleteCustomField,
-  checkHealth,
-  getGroups,
-  deleteGroup,
-  addGroupMember,
-  updateGroupMember,
-  removeGroupMember,
-  getMe,
-  saveCustomBackendUrl,
-  resetCustomBackendUrl,
-  testApiConnection,
-  getCurrentBackendHostUrl,
-} from '@/services/api';
-import type { CustomFieldDefinition, HealthStatus, Group, GroupMember, User as UserType } from '@/types';
-import {
-  sendDesktopNotification,
-  requestWebNotificationPermission,
-} from '@/utils/notificationUtils';
-import { useActionFeedback } from '@/hooks/useActionFeedback';
+import React, { useState } from 'react';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import { AvatarCropModal } from '@/components/AvatarCropModal';
-import { usePrefStore } from '@/stores/usePrefStore';
 import {
   SettingsHeaderToolbar,
   SettingsSidebarNav,
@@ -36,9 +10,8 @@ import {
   SettingsCustomFieldsTab,
   SettingsDisplayTab,
   SettingsSystemTab,
-  type SettingsTabType,
 } from '@/components/settings';
-import { useProjects } from '@/api/projects';
+import { useSettingsPageData } from '@/components/settings/useSettingsPageData';
 import { GitPluginSettingTab } from '@/components/plugins/git';
 
 interface SettingsPageProps {
@@ -46,436 +19,8 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = () => {
-  const { user, isAuthenticated, updateUserLocal } = useAuth();
-  const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
-
-  // Active Sub-Tab
-  const [activeSubTab, setActiveSubTab] = useState<SettingsTabType>('profile');
-  const { data: projects = [] } = useProjects();
-
-  // --- TAB 1: User Profile State ---
-  const [name, setName] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [avatar, setAvatar] = useState<string | null>(null);
-  const [avatarColor, setAvatarColor] = useState<string | null>(null);
-  const [bio, setBio] = useState<string>('');
-  const [department, setDepartment] = useState<string>('');
-  const [jobTitle, setJobTitle] = useState<string>('');
-  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
-
-  // Avatar Crop Modal State
+  const s = useSettingsPageData();
   const [showCropModal, setShowCropModal] = useState<boolean>(false);
-  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
-  const [cropFileName, setCropFileName] = useState<string>('');
-
-  // --- TAB 2: Organization (Groups & Permissions) State ---
-  const [treeGroups, setTreeGroups] = useState<Group[]>([]);
-  const [flatGroups, setFlatGroups] = useState<Group[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState<boolean>(false);
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<number>>(new Set());
-  const [allUsers, setAllUsers] = useState<UserType[]>([]);
-
-  // Create Group Form State
-  const [showGroupForm, setShowGroupForm] = useState<boolean>(false);
-  const [groupParentId, setGroupParentId] = useState<number | null>(null);
-
-  // Add Member to Group Form State
-  const [showMemberForm, setShowMemberForm] = useState<boolean>(false);
-  const [newMemberUserId, setNewMemberUserId] = useState<number | ''>('');
-  const [newMemberRole, setNewMemberRole] = useState<string>('MEMBER');
-  const [newMemberTitle, setNewMemberTitle] = useState<string>('');
-
-  // --- TAB 3: Custom Fields State ---
-  const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
-  const [loadingFields, setLoadingFields] = useState<boolean>(false);
-  const [showFieldForm, setShowFieldForm] = useState<boolean>(false);
-  const [fieldKey, setFieldKey] = useState<string>('');
-  const [fieldName, setFieldName] = useState<string>('');
-  const [fieldType, setFieldType] = useState<string>('TEXT');
-  const [fieldDesc, setFieldDesc] = useState<string>('');
-  const [fieldRequired, setFieldRequired] = useState<boolean>(false);
-
-  // --- TAB 4: Display & Notification Preferences State (Zustand 실시간 반응형) ---
-  const desktopNotifications = usePrefStore((s) => s.desktopNotifications);
-  const compactCards = usePrefStore((s) => s.compactCards);
-  const defaultPriority = usePrefStore((s) => s.defaultPriority);
-  const isSundayStart = usePrefStore((s) => s.isSundayStart);
-  const setDesktopNotifications = usePrefStore((s) => s.setDesktopNotifications);
-  const setCompactCards = usePrefStore((s) => s.setCompactCards);
-  const setDefaultPriority = usePrefStore((s) => s.setDefaultPriority);
-  const setSundayStart = usePrefStore((s) => s.setSundayStart);
-  const [testNotificationSent, setTestNotificationSent] = useState<boolean>(false);
-  const [prioritySavedFeedback, setPrioritySavedFeedback] = useState<boolean>(false);
-  const [weekStartSavedFeedback, setWeekStartSavedFeedback] = useState<boolean>(false);
-
-  // --- TAB 5: System & Backend Endpoint State ---
-  const [backendUrlInput, setBackendUrlInput] = useState<string>(() => getCurrentBackendHostUrl());
-  const [testingConnection, setTestingConnection] = useState<boolean>(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    status?: string;
-    latencyMs: number;
-    error?: string;
-    timestamp?: string;
-  } | null>(null);
-  const [backendSaveFeedback, setBackendSaveFeedback] = useState<string | null>(null);
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [healthLoading, setHealthLoading] = useState<boolean>(false);
-
-  // Load Profile
-  const loadProfileData = async () => {
-    if (!isAuthenticated) return;
-    setLoadingProfile(true);
-    try {
-      const me: any = await getMe();
-      const u = me.user || me;
-      if (u) {
-        setName(u.name || '');
-        setEmail(u.email || '');
-        setAvatar(u.avatar || null);
-        setAvatarColor(u.avatarColor || null);
-        setBio(u.bio || '');
-        setDepartment(u.department || '');
-        setJobTitle(u.jobTitle || '');
-        if (updateUserLocal) {
-          updateUserLocal(u);
-        }
-      }
-    } catch (err: any) {
-      console.error('Failed to load profile data:', err);
-    } finally {
-      setLoadingProfile(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthenticated && activeSubTab === 'profile') {
-      loadProfileData();
-    }
-  }, [isAuthenticated, activeSubTab]);
-
-  // Load Organization
-  const loadGroupsData = async () => {
-    if (!isAuthenticated) return;
-    setLoadingGroups(true);
-    try {
-      const [treeData, flatData, usersData] = await Promise.all([
-        getGroups(true),
-        getGroups(false),
-        getUsers(),
-      ]);
-      setTreeGroups(treeData);
-      setFlatGroups(flatData);
-      setAllUsers(usersData);
-
-      if (!selectedGroupId && flatData.length > 0) {
-        setSelectedGroupId(flatData[0].id);
-      }
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      setLoadingGroups(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeSubTab === 'organization' && isAuthenticated) {
-      loadGroupsData();
-    }
-  }, [activeSubTab, isAuthenticated]);
-
-  // Load Custom Fields
-  const loadCustomFieldsData = async () => {
-    setLoadingFields(true);
-    try {
-      const fields = await getCustomFields();
-      setCustomFields(fields);
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      setLoadingFields(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeSubTab === 'customFields') {
-      loadCustomFieldsData();
-    }
-  }, [activeSubTab]);
-
-  // Load Health Status
-  const loadHealthData = async () => {
-    setHealthLoading(true);
-    try {
-      const h = await checkHealth();
-      setHealth(h);
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      setHealthLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeSubTab === 'system') {
-      loadHealthData();
-    }
-  }, [activeSubTab]);
-
-  // Profile Save
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return alert('이름을 입력해주세요.');
-
-    await executeAction(
-      async () => {
-        const updated = await updateUser(user!.id, {
-          name: name.trim(),
-          avatar: avatar ?? null,
-          avatarColor: avatarColor ?? null,
-          bio: bio.trim() || null,
-          department: department.trim() || null,
-          jobTitle: jobTitle.trim() || null,
-        });
-        if (updated && updateUserLocal) {
-          updateUserLocal(updated);
-        }
-        return updated;
-      },
-      {
-        onSuccess: async () => {
-          setProfileSuccessMsg('프로필이 성공적으로 저장되었습니다.');
-          setTimeout(() => setProfileSuccessMsg(null), 3000);
-          await loadProfileData();
-        },
-      }
-    );
-  };
-
-  // Group Handlers
-  const handleGroupCreated = (saved?: Group) => {
-    if (saved?.id) {
-      setSelectedGroupId(saved.id);
-    }
-    loadGroupsData();
-    loadProfileData();
-  };
-
-  const handleDeleteGroup = async (groupId: number, groupName: string) => {
-    if (!confirm(`'${groupName}' 그룹을 정말 삭제하시겠습니까? 소속 멤버 연결이 모두 해제됩니다.`)) return;
-
-    await executeAction(
-      async () => {
-        await deleteGroup(groupId);
-      },
-      {
-        onSuccess: () => {
-          if (selectedGroupId === groupId) {
-            setSelectedGroupId(null);
-          }
-          loadGroupsData();
-          loadProfileData();
-        },
-      }
-    );
-  };
-
-  const handleAddMemberToGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedGroupId || !newMemberUserId) {
-      return alert('추가할 멤버를 선택해주세요.');
-    }
-
-    await executeAction(
-      async () => {
-        return await addGroupMember(selectedGroupId, {
-          userId: Number(newMemberUserId),
-          role: newMemberRole,
-          title: newMemberTitle.trim() || undefined,
-        });
-      },
-      {
-        onSuccess: () => {
-          setShowMemberForm(false);
-          setNewMemberUserId('');
-          setNewMemberRole('MEMBER');
-          setNewMemberTitle('');
-          loadGroupsData();
-          loadProfileData();
-        },
-      }
-    );
-  };
-
-  const handleUpdateMemberRole = async (member: GroupMember, newRole: string) => {
-    if (!selectedGroupId) return;
-
-    await executeAction(
-      async () => {
-        return await updateGroupMember(selectedGroupId, member.userId || member.user?.id || 0, {
-          role: newRole,
-          title: member.title || undefined,
-        });
-      },
-      {
-        onSuccess: () => {
-          loadGroupsData();
-          loadProfileData();
-        },
-      }
-    );
-  };
-
-  const handleRemoveMemberFromGroup = async (membershipId: number, memberName: string) => {
-    if (!selectedGroupId) return;
-    if (!confirm(`'${memberName}' 멤버를 그룹에서 제외하시겠습니까?`)) return;
-
-    await executeAction(
-      async () => {
-        await removeGroupMember(selectedGroupId, membershipId);
-      },
-      {
-        onSuccess: () => {
-          loadGroupsData();
-          loadProfileData();
-        },
-      }
-    );
-  };
-
-  // Custom Field Handlers
-  const handleCreateCustomField = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fieldKey.trim() || !fieldName.trim()) {
-      return alert('필드 키와 필드명은 필수 입력 항목입니다.');
-    }
-
-    await executeAction(
-      async () => {
-        return await createCustomField({
-          key: fieldKey.trim().toUpperCase(),
-          name: fieldName.trim(),
-          fieldType: fieldType,
-          description: fieldDesc.trim() || undefined,
-          isRequired: fieldRequired,
-        });
-      },
-      {
-        onSuccess: () => {
-          setShowFieldForm(false);
-          setFieldKey('');
-          setFieldName('');
-          setFieldType('TEXT');
-          setFieldDesc('');
-          setFieldRequired(false);
-          loadCustomFieldsData();
-        },
-      }
-    );
-  };
-
-  const handleDeleteCustomField = async (fieldId: number) => {
-    const cf = customFields.find((f) => f.id === fieldId);
-    if (!confirm(`'${cf?.name}' 커스텀 필드를 정말 삭제하시겠습니까?`)) return;
-
-    await executeAction(
-      async () => {
-        await deleteCustomField(fieldId);
-      },
-      {
-        onSuccess: () => {
-          loadCustomFieldsData();
-        },
-      }
-    );
-  };
-
-  // Display Preferences Handlers
-  const handleToggleDesktopNotifications = async (enabled: boolean) => {
-    if (enabled) {
-      const granted = await requestWebNotificationPermission();
-      if (granted) {
-        setDesktopNotifications(true);
-        sendDesktopNotification({
-          title: '데스크톱 알림 활성화',
-          body: 'AntiGravity Workflow 데스크톱 알림이 성공적으로 활성화되었습니다.',
-        });
-      } else {
-        alert('OS 알림 권한이 거부되었거나 지원되지 않는 환경입니다.');
-        setDesktopNotifications(false);
-      }
-    } else {
-      setDesktopNotifications(false);
-    }
-  };
-
-  const handleSendTestNotification = () => {
-    sendDesktopNotification({
-      title: 'AntiGravity 알림 테스트',
-      body: '정상적으로 데스크톱 OS 토스트 알림을 수신하고 있습니다!',
-    });
-    setTestNotificationSent(true);
-    setTimeout(() => setTestNotificationSent(false), 3000);
-  };
-
-  const handleToggleCompactCards = (enabled: boolean) => {
-    setCompactCards(enabled);
-  };
-
-  const handleDefaultPriorityChange = (priorityId: number) => {
-    setDefaultPriority(priorityId);
-    setPrioritySavedFeedback(true);
-    setTimeout(() => setPrioritySavedFeedback(false), 2000);
-  };
-
-  const handleWeekStartChange = (isSunday: boolean) => {
-    setSundayStart(isSunday);
-    setWeekStartSavedFeedback(true);
-    setTimeout(() => setWeekStartSavedFeedback(false), 2000);
-  };
-
-  // Backend Endpoint Handlers
-  const handleTestBackendConnection = async (targetUrl?: string) => {
-    setTestingConnection(true);
-    setTestResult(null);
-    try {
-      const res = await testApiConnection(targetUrl || backendUrlInput.trim());
-      setTestResult({
-        success: res.success,
-        status: res.status,
-        latencyMs: res.latencyMs,
-        error: res.error,
-        timestamp: new Date().toLocaleTimeString(),
-      });
-    } catch (err: any) {
-      setTestResult({
-        success: false,
-        latencyMs: 0,
-        error: err.message || '연결 실패',
-        timestamp: new Date().toLocaleTimeString(),
-      });
-    } finally {
-      setTestingConnection(false);
-    }
-  };
-
-  const handleSaveBackendUrl = async () => {
-    if (!backendUrlInput.trim()) return;
-    await saveCustomBackendUrl(backendUrlInput.trim());
-    setBackendSaveFeedback('백엔드 접속 주소가 성공적으로 저장되었습니다. (새로고침 시 자동 적용)');
-    setTimeout(() => setBackendSaveFeedback(null), 4000);
-    loadHealthData();
-  };
-
-  const handleResetBackendUrl = async () => {
-    await resetCustomBackendUrl();
-    setBackendUrlInput(getCurrentBackendHostUrl());
-    setBackendSaveFeedback('기본 백엔드 주소로 재설정되었습니다.');
-    setTimeout(() => setBackendSaveFeedback(null), 3000);
-    loadHealthData();
-  };
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '10px' }}>
@@ -486,8 +31,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       <div style={{ display: 'flex', gap: '10px', flex: 1, minHeight: 0 }}>
         {/* Left Sub-Tab Menu */}
         <SettingsSidebarNav
-          activeSubTab={activeSubTab}
-          setActiveSubTab={setActiveSubTab}
+          activeSubTab={s.activeSubTab}
+          setActiveSubTab={s.setActiveSubTab}
         />
 
         {/* Right Content Panel */}
@@ -502,143 +47,145 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
             minHeight: 0,
           }}
         >
-          {activeSubTab === 'profile' && (
+          {s.activeSubTab === 'profile' && (
             <SettingsProfileTab
-              user={user}
-              name={name}
-              setName={setName}
-              email={email}
-              avatar={avatar}
-              setAvatar={setAvatar}
-              avatarColor={avatarColor}
-              setAvatarColor={setAvatarColor}
-              bio={bio}
-              setBio={setBio}
-              department={department}
-              setDepartment={setDepartment}
-              jobTitle={jobTitle}
-              setJobTitle={setJobTitle}
-              profileSuccessMsg={profileSuccessMsg}
-              loadingProfile={loadingProfile}
-              isPending={isPending}
-              handleSaveProfile={handleSaveProfile}
-              loadProfileData={loadProfileData}
-              setSelectedGroupId={setSelectedGroupId}
-              setActiveSubTab={setActiveSubTab}
+              user={s.user}
+              name={s.name}
+              setName={s.setName}
+              email={s.email}
+              avatar={s.avatar}
+              setAvatar={s.setAvatar}
+              avatarColor={s.avatarColor}
+              setAvatarColor={s.setAvatarColor}
+              bio={s.bio}
+              setBio={s.setBio}
+              department={s.department}
+              setDepartment={s.setDepartment}
+              jobTitle={s.jobTitle}
+              setJobTitle={s.setJobTitle}
+              profileSuccessMsg={s.profileSuccessMsg}
+              loadingProfile={s.loadingProfile}
+              isPending={s.isPending}
+              handleSaveProfile={s.handleSaveProfile}
+              loadProfileData={s.loadProfileData}
+              setSelectedGroupId={s.setSelectedGroupId}
+              setActiveSubTab={s.setActiveSubTab}
               onOpenCropModal={(img, fName) => {
-                setCropImageSrc(img);
-                setCropFileName(fName);
+                s.setCropTarget({ src: img, fileName: fName });
                 setShowCropModal(true);
               }}
             />
           )}
 
-          {activeSubTab === 'workspace' && <SettingsWorkspaceTab />}
+          {s.activeSubTab === 'workspace' && <SettingsWorkspaceTab />}
 
-          {activeSubTab === 'organization' && (
+          {s.activeSubTab === 'organization' && (
             <SettingsOrgTab
-              isAuthenticated={isAuthenticated}
-              user={user}
-              treeGroups={treeGroups}
-              flatGroups={flatGroups}
-              loadingGroups={loadingGroups}
-              selectedGroupId={selectedGroupId}
-              setSelectedGroupId={setSelectedGroupId}
-              expandedGroupIds={expandedGroupIds}
-              setExpandedGroupIds={setExpandedGroupIds}
-              allUsers={allUsers}
-              showGroupForm={showGroupForm}
-              setShowGroupForm={setShowGroupForm}
-              groupParentId={groupParentId}
-              setGroupParentId={setGroupParentId}
-              showMemberForm={showMemberForm}
-              setShowMemberForm={setShowMemberForm}
-              newMemberUserId={newMemberUserId}
-              setNewMemberUserId={setNewMemberUserId}
-              newMemberRole={newMemberRole}
-              setNewMemberRole={setNewMemberRole}
-              newMemberTitle={newMemberTitle}
-              setNewMemberTitle={setNewMemberTitle}
-              isPending={isPending}
-              onGroupCreated={handleGroupCreated}
-              handleDeleteGroup={handleDeleteGroup}
-              handleAddMember={handleAddMemberToGroup}
-              handleUpdateMemberRole={handleUpdateMemberRole}
-              handleRemoveMember={handleRemoveMemberFromGroup}
+              isAuthenticated={s.isAuthenticated}
+              user={s.user}
+              treeGroups={s.treeGroups}
+              flatGroups={s.flatGroups}
+              loadingGroups={s.loadingGroups}
+              selectedGroupId={s.selectedGroupId}
+              setSelectedGroupId={s.setSelectedGroupId}
+              expandedGroupIds={s.expandedGroupIds}
+              setExpandedGroupIds={s.setExpandedGroupIds}
+              allUsers={s.allUsers}
+              showGroupForm={s.showGroupForm}
+              setShowGroupForm={s.setShowGroupForm}
+              groupParentId={s.groupParentId}
+              setGroupParentId={s.setGroupParentId}
+              showMemberForm={s.showMemberForm}
+              setShowMemberForm={s.setShowMemberForm}
+              newMemberUserId={s.newMemberUserId}
+              setNewMemberUserId={s.setNewMemberUserId}
+              newMemberRole={s.newMemberRole}
+              setNewMemberRole={s.setNewMemberRole}
+              newMemberTitle={s.newMemberTitle}
+              setNewMemberTitle={s.setNewMemberTitle}
+              isPending={s.isPending}
+              onGroupCreated={s.handleGroupCreated}
+              handleDeleteGroup={s.handleDeleteGroup}
+              handleAddMember={s.handleAddMemberToGroup}
+              handleUpdateMemberRole={s.handleUpdateMemberRole}
+              handleRemoveMember={s.handleRemoveMemberFromGroup}
             />
           )}
 
-          {activeSubTab === 'customFields' && (
+          {s.activeSubTab === 'customFields' && (
             <SettingsCustomFieldsTab
-              isAuthenticated={isAuthenticated}
-              customFields={customFields}
-              loadingFields={loadingFields}
-              showFieldForm={showFieldForm}
-              setShowFieldForm={setShowFieldForm}
-              fieldKey={fieldKey}
-              setFieldKey={setFieldKey}
-              fieldName={fieldName}
-              setFieldName={setFieldName}
-              fieldType={fieldType}
-              setFieldType={setFieldType}
-              fieldDesc={fieldDesc}
-              setFieldDesc={setFieldDesc}
-              fieldRequired={fieldRequired}
-              setFieldRequired={setFieldRequired}
-              isPending={isPending}
-              handleCreateCustomField={handleCreateCustomField}
-              handleDeleteCustomField={handleDeleteCustomField}
+              isAuthenticated={s.isAuthenticated}
+              customFields={s.customFields}
+              loadingFields={s.loadingFields}
+              showFieldForm={s.showFieldForm}
+              setShowFieldForm={s.setShowFieldForm}
+              fieldKey={s.fieldKey}
+              setFieldKey={s.setFieldKey}
+              fieldName={s.fieldName}
+              setFieldName={s.setFieldName}
+              fieldType={s.fieldType}
+              setFieldType={s.setFieldType}
+              fieldDesc={s.fieldDesc}
+              setFieldDesc={s.setFieldDesc}
+              fieldRequired={s.fieldRequired}
+              setFieldRequired={s.setFieldRequired}
+              isPending={s.isPending}
+              handleCreateCustomField={s.handleCreateCustomField}
+              handleDeleteCustomField={s.handleDeleteCustomField}
             />
           )}
 
-          {activeSubTab === 'display' && (
+          {s.activeSubTab === 'display' && (
             <SettingsDisplayTab
-              desktopNotifications={desktopNotifications}
-              handleToggleDesktopNotifications={handleToggleDesktopNotifications}
-              handleSendTestNotification={handleSendTestNotification}
-              testNotificationSent={testNotificationSent}
-              compactCards={compactCards}
-              handleToggleCompactCards={handleToggleCompactCards}
-              defaultPriority={defaultPriority}
-              handleDefaultPriorityChange={handleDefaultPriorityChange}
-              prioritySavedFeedback={prioritySavedFeedback}
-              isSundayStart={isSundayStart}
-              handleWeekStartChange={handleWeekStartChange}
-              weekStartSavedFeedback={weekStartSavedFeedback}
+              desktopNotifications={s.desktopNotifications}
+              handleToggleDesktopNotifications={s.handleToggleDesktopNotifications}
+              handleSendTestNotification={s.handleSendTestNotification}
+              testNotificationSent={s.testNotificationSent}
+              compactCards={s.compactCards}
+              handleToggleCompactCards={s.handleToggleCompactCards}
+              defaultPriority={s.defaultPriority}
+              handleDefaultPriorityChange={s.handleDefaultPriorityChange}
+              prioritySavedFeedback={s.prioritySavedFeedback}
+              isSundayStart={s.isSundayStart}
+              handleWeekStartChange={s.handleWeekStartChange}
+              weekStartSavedFeedback={s.weekStartSavedFeedback}
+              timeFormat={s.timeFormat}
+              handleTimeFormatChange={s.handleTimeFormatChange}
+              timeFormatSavedFeedback={s.timeFormatSavedFeedback}
             />
           )}
 
-          {activeSubTab === 'system' && (
+          {s.activeSubTab === 'system' && (
             <SettingsSystemTab
-              backendUrlInput={backendUrlInput}
-              setBackendUrlInput={setBackendUrlInput}
-              testingConnection={testingConnection}
-              handleTestBackendConnection={handleTestBackendConnection}
-              handleSaveBackendUrl={handleSaveBackendUrl}
-              handleResetBackendUrl={handleResetBackendUrl}
-              backendSaveFeedback={backendSaveFeedback}
-              testResult={testResult}
-              health={health}
-              healthLoading={healthLoading}
+              backendUrlInput={s.backendUrlInput}
+              setBackendUrlInput={s.setBackendUrlInput}
+              testingConnection={s.testingConnection}
+              handleTestBackendConnection={s.handleTestBackendConnection}
+              handleSaveBackendUrl={s.handleSaveBackendUrl}
+              handleResetBackendUrl={s.handleResetBackendUrl}
+              backendSaveFeedback={s.backendSaveFeedback}
+              testResult={s.testResult}
+              health={s.health}
+              healthLoading={s.healthLoading}
             />
           )}
 
-          {activeSubTab === 'git' && (
-            <GitPluginSettingTab projects={projects} />
+          {s.activeSubTab === 'git' && (
+            <GitPluginSettingTab projects={s.projects} />
           )}
         </div>
       </div>
 
-      <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />
+      <ActionFeedbackModal state={s.errorState} onClose={s.closeErrorModal} />
 
       {showCropModal && (
         <AvatarCropModal
           isOpen={showCropModal}
-          imageSrc={cropImageSrc}
-          fileName={cropFileName}
+          imageSrc={s.cropTarget?.src || null}
+          fileName={s.cropTarget?.fileName || ''}
           onClose={() => setShowCropModal(false)}
           onCropComplete={(croppedPngDataUrl) => {
-            setAvatar(croppedPngDataUrl);
+            s.setAvatar(croppedPngDataUrl);
             setShowCropModal(false);
           }}
         />

@@ -1,4 +1,4 @@
-﻿﻿import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { createWorkspaceService } from './services/createWorkspace.service.js';
 import { getMyWorkspacesService } from './services/getMyWorkspaces.service.js';
 import { getWorkspaceDetailService } from './services/getWorkspaceDetail.service.js';
@@ -14,7 +14,7 @@ function resolveWorkspaceId(req: Request): number {
   if (req.params.id && req.params.id !== 'current' && !isNaN(Number(req.params.id))) {
     return Number(req.params.id);
   }
-  return req.workspace?.id || 1;
+  return req.workspace?.id || 0;
 }
 
 export const createWorkspaceController = async (req: Request, res: Response) => {
@@ -121,7 +121,8 @@ export const acceptInvitationController = async (req: Request, res: Response) =>
     const user = req.user;
     if (!user) return res.status(401).json({ error: 'Unauthorized: Login required' });
 
-    const token = String(req.body.token || req.query.token);
+    const rawToken = req.body.token || req.body.inviteToken || req.query.token;
+    const token = rawToken ? String(rawToken) : '';
     const membership = await acceptInvitationService(token, user);
     res.status(200).json(membership);
   } catch (error: any) {

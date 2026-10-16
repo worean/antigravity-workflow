@@ -1,19 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import {
-  X,
-  Calendar,
-  Globe,
-  User,
-  Key,
-  AlertCircle,
-  RefreshCw,
-  ExternalLink,
-  ShieldCheck,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, Globe, User, Key, AlertCircle, RefreshCw, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCalDavStatus, useConnectCalDav, useDisconnectCalDav, calendarKeys } from '@/api/calendar';
 import { useUIStore } from '@/stores/useUIStore';
+import { useModalLayer } from '@/hooks/useModalLayer';
+import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { Portal } from '@/components/common/Portal';
 import { CalDavAccountCard } from './CalDavAccountCard';
 
 interface CalDavConnectModalProps {
@@ -24,6 +16,8 @@ interface CalDavConnectModalProps {
 export const CalDavConnectModal: React.FC<CalDavConnectModalProps> = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
   const showToast = useUIStore((s) => s.showToast);
+  const { zIndex: dynamicZIndex } = useModalLayer(isOpen, { onClose });
+  const overlayProps = useOverlayClickClose(onClose);
 
   const { data: caldavStatus, isLoading: isStatusLoading, refetch: refetchStatus } = useCalDavStatus();
   const connectMutation = useConnectCalDav();
@@ -37,10 +31,7 @@ export const CalDavConnectModal: React.FC<CalDavConnectModalProps> = ({ isOpen, 
   const [color, setColor] = useState('#8a2be2');
   const [isEditing, setIsEditing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [lastConnectResult, setLastConnectResult] = useState<{
-    message: string;
-    discoveredCalendars?: string[];
-  } | null>(null);
+  const [lastConnectResult, setLastConnectResult] = useState<{ message: string; discoveredCalendars?: string[] } | null>(null);
 
   useEffect(() => {
     if (caldavStatus?.isConnected) {
@@ -123,279 +114,278 @@ export const CalDavConnectModal: React.FC<CalDavConnectModalProps> = ({ isOpen, 
 
   const isConnected = Boolean(caldavStatus?.isConnected);
 
-  return createPortal(
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        background: 'rgba(0, 0, 0, 0.65)',
-        backdropFilter: 'blur(3px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+  return (
+    <Portal>
       <div
-        className="animate-scale-in"
+        role="dialog"
+        aria-modal="true"
         style={{
-          width: '100%',
-          maxWidth: '540px',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-light)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: '0 16px 36px rgba(0, 0, 0, 0.4)',
-          overflow: 'hidden',
+          position: 'fixed',
+          inset: 0,
+          zIndex: dynamicZIndex,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(3px)',
           display: 'flex',
-          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
         }}
+        {...overlayProps}
       >
-        {/* 헤더 */}
         <div
+          className="animate-scale-in"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           style={{
+            width: '100%',
+            maxWidth: '540px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.4)',
+            overflow: 'hidden',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '14px 18px',
-            borderBottom: '1px solid var(--border-light)',
-            background: 'var(--bg-subtle, rgba(255, 255, 255, 0.02))',
+            flexDirection: 'column',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '6px',
-                background: 'rgba(138, 43, 226, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#b366ff',
-              }}
-            >
-              <Calendar size={16} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 600, color: 'var(--text-bright)', margin: 0 }}>
-                CalDAV 캘린더 계정 추가 및 관리
-              </h3>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
-                다우오피스(DaouOffice), Nextcloud 등의 외부 사내 캘린더를 계정 단위로 연결합니다.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary btn-icon btn-sm"
-            style={{ width: '26px', height: '26px', padding: 0 }}
+          {/* 헤더 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 18px',
+              borderBottom: '1px solid var(--border-light)',
+              background: 'var(--bg-subtle)',
+            }}
           >
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* 바디 */}
-        <div style={{ padding: '18px', maxHeight: '78vh', overflowY: 'auto' }}>
-          {/* 연동된 계정 카드 */}
-          {isConnected && !isEditing && (
-            <CalDavAccountCard
-              status={caldavStatus}
-              domain={domain}
-              activeCalendars={activeCalendars}
-              lastConnectMessage={lastConnectResult?.message}
-              isDisconnectPending={disconnectMutation.isPending}
-              onEdit={() => setIsEditing(true)}
-              onDisconnect={handleDisconnect}
-            />
-          )}
-
-          {/* 에러 메시지 알림 */}
-          {errorMessage && (
-            <div
-              style={{
-                marginBottom: '14px',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(234, 76, 76, 0.12)',
-                border: '1px solid rgba(234, 76, 76, 0.35)',
-                color: '#ff6b6b',
-                fontSize: '0.76rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <AlertCircle size={15} style={{ flexShrink: 0 }} />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* 계정 추가 / 수정 폼 */}
-          {(!isConnected || isEditing) && (
-            <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px' }}>
-                  <Globe size={13} />
-                  서버 도메인 (Host) <span style={{ color: '#ff6b6b' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="예: hanilprotech.daouoffice.com (https/http 제외)"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  className="input-field"
-                  style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
-                />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={useSsl}
-                      onChange={(e) => setUseSsl(e.target.checked)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <ShieldCheck size={13} style={{ color: useSsl ? '#4ec9b0' : 'var(--text-muted)' }} />
-                    <span>SSL/TLS 보안 연결 사용 (권장, 포트 443)</span>
-                  </label>
-                </div>
-                <span style={{ fontSize: '0.69rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-                  * 도메인만 입력하시면 RFC 6764 표준에 따라 사내 모든 캘린더가 자동 탐색됩니다.
-                </span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px' }}>
-                    <User size={13} />
-                    사용자 계정 (ID / 이메일) <span style={{ color: '#ff6b6b' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="예: user@company.com"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="input-field"
-                    style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px' }}>
-                    <Key size={13} />
-                    비밀번호 <span style={{ color: '#ff6b6b' }}>*</span>
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="로그인 비밀번호"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-field"
-                    style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px', display: 'block' }}>
-                    캘린더 계정 이름
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="예: 사내 CalDAV 달력"
-                    value={calendarName}
-                    onChange={(e) => setCalendarName(e.target.value)}
-                    className="input-field"
-                    style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px', display: 'block' }}>
-                    표시 색상
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '32px' }}>
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        padding: 0,
-                        border: 'none',
-                        borderRadius: 'var(--radius-xs)',
-                        cursor: 'pointer',
-                        background: 'transparent',
-                      }}
-                    />
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{color}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 버튼 영역 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div
                 style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  background: 'var(--primary-subtle)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'flex-end',
-                  gap: '8px',
-                  marginTop: '10px',
-                  paddingTop: '12px',
-                  borderTop: '1px solid var(--border-light)',
+                  justifyContent: 'center',
+                  color: 'var(--accent-purple)',
                 }}
               >
-                {isConnected && (
+                <Calendar size={16} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 600, color: 'var(--text-bright)', margin: 0 }}>
+                  CalDAV 캘린더 계정 추가 및 관리
+                </h3>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
+                  다우오피스(DaouOffice), Nextcloud 등의 외부 사내 캘린더를 계정 단위로 연결합니다.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary btn-icon btn-sm"
+              style={{ width: '26px', height: '26px', padding: 0 }}
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          {/* 바디 */}
+          <div style={{ padding: '18px', maxHeight: '78vh', overflowY: 'auto' }}>
+            {isConnected && !isEditing && (
+              <CalDavAccountCard
+                status={caldavStatus}
+                domain={domain}
+                activeCalendars={activeCalendars}
+                lastConnectMessage={lastConnectResult?.message}
+                isDisconnectPending={disconnectMutation.isPending}
+                onEdit={() => setIsEditing(true)}
+                onDisconnect={handleDisconnect}
+              />
+            )}
+
+            {errorMessage && (
+              <div
+                style={{
+                  marginBottom: '14px',
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(234, 76, 76, 0.12)',
+                  border: '1px solid rgba(234, 76, 76, 0.35)',
+                  color: 'var(--status-urgent)',
+                  fontSize: '0.76rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {(!isConnected || isEditing) && (
+              <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px' }}>
+                    <Globe size={13} />
+                    서버 도메인 (Host) <span style={{ color: 'var(--status-urgent)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="예: hanilprotech.daouoffice.com (https/http 제외)"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    className="input-field"
+                    style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={useSsl}
+                        onChange={(e) => setUseSsl(e.target.checked)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <ShieldCheck size={13} style={{ color: useSsl ? 'var(--accent-teal)' : 'var(--text-muted)' }} />
+                      <span>SSL/TLS 보안 연결 사용 (권장, 포트 443)</span>
+                    </label>
+                  </div>
+                  <span style={{ fontSize: '0.69rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                    * 도메인만 입력하시면 RFC 6764 표준에 따라 사내 모든 캘린더가 자동 탐색됩니다.
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px' }}>
+                      <User size={13} />
+                      사용자 계정 (ID / 이메일) <span style={{ color: 'var(--status-urgent)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="예: user@company.com"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="input-field"
+                      style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px' }}>
+                      <Key size={13} />
+                      비밀번호 <span style={{ color: 'var(--status-urgent)' }}>*</span>
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="로그인 비밀번호"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="input-field"
+                      style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px', display: 'block' }}>
+                      캘린더 계정 이름
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="예: 사내 CalDAV 달력"
+                      value={calendarName}
+                      onChange={(e) => setCalendarName(e.target.value)}
+                      className="input-field"
+                      style={{ width: '100%', height: '32px', fontSize: '0.78rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '4px', display: 'block' }}>
+                      표시 색상
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '32px' }}>
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          padding: 0,
+                          border: 'none',
+                          borderRadius: 'var(--radius-xs)',
+                          cursor: 'pointer',
+                          background: 'transparent',
+                        }}
+                      />
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{color}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: '8px',
+                    marginTop: '10px',
+                    paddingTop: '12px',
+                    borderTop: '1px solid var(--border-light)',
+                  }}
+                >
+                  {isConnected && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ height: '30px' }}
+                    >
+                      수정 취소
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
+                    onClick={onClose}
                     className="btn btn-secondary btn-sm"
                     style={{ height: '30px' }}
                   >
-                    수정 취소
+                    닫기
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="btn btn-secondary btn-sm"
-                  style={{ height: '30px' }}
-                >
-                  닫기
-                </button>
-                <button
-                  type="submit"
-                  disabled={connectMutation.isPending || isStatusLoading}
-                  className="btn btn-primary btn-sm"
-                  style={{ height: '30px', gap: '5px' }}
-                >
-                  {connectMutation.isPending ? (
-                    <>
-                      <RefreshCw size={13} className="animate-spin" />
-                      <span>CalDAV 계정 통신 및 탐색 중...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink size={13} />
-                      <span>{isConnected ? '계정 정보 업데이트 및 동기화' : 'CalDAV 계정 추가 및 일정 가져오기'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
+                  <button
+                    type="submit"
+                    disabled={connectMutation.isPending || isStatusLoading}
+                    className="btn btn-primary btn-sm"
+                    style={{ height: '30px', gap: '5px' }}
+                  >
+                    {connectMutation.isPending ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        <span>CalDAV 계정 통신 및 탐색 중...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink size={13} />
+                        <span>{isConnected ? '계정 정보 업데이트 및 동기화' : 'CalDAV 계정 추가 및 일정 가져오기'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </Portal>
   );
 };

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AntiGravity Unified Modal & Layering Utilities
  * - 다중 모달 계층(z-index) 자동 계산 및 스택 레지스트리 (최상위 모달 추적)
  * - 모달이 특정 컴포넌트/엘리먼트 위에 오버레이되도록 하는 타겟 컨테이너 리졸버
@@ -6,9 +6,9 @@
  */
 
 export const MODAL_Z_INDEX = {
-  MODAL_BASE: 1000,
-  MODAL_STEP: 10,
   DRAWER_BASE: 1100,
+  MODAL_BASE: 1200,
+  MODAL_STEP: 10,
   CONFIRM_ALERT_BASE: 2000,
   TOAST_BASE: 9999,
 } as const;
@@ -25,26 +25,57 @@ class ModalStackRegistry {
   private prevBodyOverflow: string = '';
 
   /**
+   * 현재 열려 있는 모달들 중 가장 높은 z-index 값을 반환합니다.
+   */
+  public getMaxZIndex(): number {
+    let max = 0;
+    for (const id of this.stack) {
+      const z = this.zIndexMap.get(id) ?? 0;
+      if (z > max) max = z;
+    }
+    return max;
+  }
+
+  /**
+   * 다음 모달이 등록될 때 부여받을 예상 z-index를 계산합니다 (초기 렌더링 깜빡임 방지용).
+   */
+  public peekNextZIndex(options: ModalRegistrationOptions = {}): number {
+    const currentMaxZ = this.getMaxZIndex();
+    const base = options.isConfirm
+      ? MODAL_Z_INDEX.CONFIRM_ALERT_BASE
+      : (options.baseZIndex ?? MODAL_Z_INDEX.MODAL_BASE);
+    const depthCalculatedZ = base + (this.stack.length + 1) * MODAL_Z_INDEX.MODAL_STEP;
+    return Math.max(depthCalculatedZ, currentMaxZ + MODAL_Z_INDEX.MODAL_STEP);
+  }
+
+  /**
    * 모달을 스택에 등록하고, 계층 순서에 따른 고유 z-index를 반환합니다.
+   * 이미 열려 있는 어떤 모달/드로어보다도 항상 상위(currentMaxZ + MODAL_STEP 이상)에 위치하도록 보장합니다.
    */
   public register(modalId: string, options: ModalRegistrationOptions = {}): number {
-    // 이미 등록되어 있다면 스택 최상단으로 이동
+    // 이미 등록되어 있다면 스택 최상단으로 이동 (스크롤 락 중복 증가 방지)
     const existingIdx = this.stack.indexOf(modalId);
-    if (existingIdx !== -1) {
+    const wasAlreadyRegistered = existingIdx !== -1;
+    if (wasAlreadyRegistered) {
       this.stack.splice(existingIdx, 1);
+      this.zIndexMap.delete(modalId);
     }
 
+    const currentMaxZ = this.getMaxZIndex();
     this.stack.push(modalId);
 
     const base = options.isConfirm
       ? MODAL_Z_INDEX.CONFIRM_ALERT_BASE
       : (options.baseZIndex ?? MODAL_Z_INDEX.MODAL_BASE);
 
-    // 스택 깊이에 따라 z-index 자동 계산
-    const calculatedZIndex = base + this.stack.length * MODAL_Z_INDEX.MODAL_STEP;
+    // 스택 깊이 기반 계산값과 현재 활성 최대 z-index + STEP 중 더 큰 값을 채택하여 역전 원천 차단
+    const depthCalculatedZ = base + this.stack.length * MODAL_Z_INDEX.MODAL_STEP;
+    const calculatedZIndex = Math.max(depthCalculatedZ, currentMaxZ + MODAL_Z_INDEX.MODAL_STEP);
     this.zIndexMap.set(modalId, calculatedZIndex);
 
-    this.lockScroll();
+    if (!wasAlreadyRegistered) {
+      this.lockScroll();
+    }
 
     return calculatedZIndex;
   }

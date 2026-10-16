@@ -1,31 +1,29 @@
-﻿import React, { useMemo } from 'react';
-import { useIssues } from '@/api/issues';
+﻿import React, { useMemo, useState } from 'react';
+import { useCalendarEvents } from '@/api/calendar';
 import { Spinner } from '@/components/common';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import type { Issue } from '@/types';
+import type { CalendarEvent } from '@/types';
 import type { WidgetProps, Widgetable } from '@/types/widget';
-import { CalendarMiniList } from './CalendarMiniList';
+import { CalendarDayPopup, getCalendarEventColor, type CalendarPopupAnchor } from './CalendarDayPopup';
 import { usePrefStore } from '@/stores/usePrefStore';
 import { useCalendarStore } from '@/stores/useCalendarStore';
-import { generateMonthFlatDays, getWeekdayNames } from '@/utils/calendarUtils';
+import { generateMonthFlatDays, getWeekdayNames, sortCalendarEvents } from '@/utils/calendarUtils';
+import { addDays, formatDateOnly, getEffectiveEventRange, parseLocalDate } from '@/utils/dateUtils';
 
-export const CalendarMiniWidget: React.FC<WidgetProps> = ({
-  config = {},
-  onSelectIssue,
-}) => {
+const MAX_TOOLTIP_ITEMS = 5;
+
+export const CalendarMiniWidget: React.FC<WidgetProps> = ({ config = {} }) => {
   const isSundayStart = usePrefStore((s) => s.isSundayStart);
   const weekdays = useMemo(() => getWeekdayNames(isSundayStart), [isSundayStart]);
   const projectId = config.projectId === 'ALL' ? undefined : config.projectId;
-  const { data: issues = [], isLoading } = useIssues(
-    { projectId: projectId || undefined, all: true },
-    { enabled: true }
-  );
 
   const miniCurrentDateStr = useCalendarStore((s) => s.miniCurrentDateStr);
-  const selectedDateStr = useCalendarStore((s) => s.miniSelectedDateStr);
-  const setSelectedDateStr = useCalendarStore((s) => s.setMiniSelectedDateStr);
   const navigateMiniMonth = useCalendarStore((s) => s.navigateMiniMonth);
   const goToMiniToday = useCalendarStore((s) => s.goToMiniToday);
+
+  // 클릭한 날짜/좌표의 상세 팝오버 (위젯 로컬 상태)
+  const [popupAnchor, setPopupAnchor] = useState<CalendarPopupAnchor | null>(null);
+  const popupDateStr = popupAnchor?.dateStr ?? null;
 
   const currentDate = useMemo(() => {
     const d = new Date(miniCurrentDateStr);
@@ -47,39 +45,6 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
     goToMiniToday();
   };
 
-  // 날짜별 일감 매핑
-  const issuesByDate = useMemo(() => {
-    const map: Record<string, Issue[]> = {};
-    issues.forEach((iss) => {
-      const targetDate = iss.dueDate || iss.plannedStartDate;
-      if (targetDate) {
-        const dStr = new Date(targetDate).toISOString().split('T')[0];
-        if (!map[dStr]) map[dStr] = [];
-        map[dStr].push(iss);
-      }
-    });
-    return map;
-  }, [issues]);
-
-  // 이번 달 전체 일감 목록
-  const currentMonthIssues = useMemo(() => {
-    const yStr = String(currentYear);
-    const mStr = String(currentMonth + 1).padStart(2, '0');
-    const prefix = `${yStr}-${mStr}`;
-    return issues
-      .filter((iss) => {
-        const targetDate = iss.dueDate || iss.plannedStartDate;
-        if (!targetDate) return false;
-        const dStr = new Date(targetDate).toISOString().split('T')[0];
-        return dStr.startsWith(prefix);
-      })
-      .sort((a, b) => {
-        const dateA = a.dueDate || a.plannedStartDate || '';
-        const dateB = b.dueDate || b.plannedStartDate || '';
-        return dateA.localeCompare(dateB);
-      });
-  }, [issues, currentYear, currentMonth]);
-
   // 달력 날짜 그리드 계산 (공통 calendarUtils 활용)
   const calendarDays = useMemo(() => {
     return generateMonthFlatDays(currentYear, currentMonth, isSundayStart).map((c) => ({
@@ -92,19 +57,34 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
     }));
   }, [currentYear, currentMonth, isSundayStart]);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  // 캘린더 일정 화면과 동일한 이벤트 소스(이슈 + CalDAV 등, 연동 설정 반영)를 표시 범위만큼 조회
+  const { data: events = [], isLoading } = useCalendarEvents({
+    projectId: projectId || 'ALL',
+    startDate: `${calendarDays[0].dateStr}T00:00:00`,
+    endDate: `${calendarDays[calendarDays.length - 1].dateStr}T23:59:59`,
+  });
 
-  const handleCellClick = (dateStr: string) => {
-    setSelectedDateStr(selectedDateStr === dateStr ? null : dateStr);
-  };
+  // 날짜별 일정 매핑 (다일 일정은 걸친 모든 날짜에 포함)
+  const eventsByDate = useMemo(() => {
+    const map: Record<string, CalendarEvent[]> = {};
+    events.forEach((evt) => {
+      const { startDateOnly, endDateOnly } = getEffectiveEventRange(evt.startDate, evt.endDate);
+      const start = parseLocalDate(startDateOnly);
+      const end = parseLocalDate(endDateOnly);
+      if (!start || !end) return;
+      for (let d = start, guard = 0; d <= end && guard < 62; d = addDays(d, 1), guard++) {
+        const key = formatDateOnly(d);
+        (map[key] ||= []).push(evt);
+      }
+    });
+    // 정렬 우선순위: 이슈 최상단 > 종일 일정(기간 긴 순) > 시간제 일정(시작 시간 빠른 순)
+    Object.keys(map).forEach((k) => {
+      map[k] = sortCalendarEvents(map[k]);
+    });
+    return map;
+  }, [events]);
 
-  // 하단에 상시 표시될 리스트 목록 결정
-  const activeListIssues = useMemo(() => {
-    if (selectedDateStr) {
-      return issuesByDate[selectedDateStr] || [];
-    }
-    return currentMonthIssues;
-  }, [selectedDateStr, issuesByDate, currentMonthIssues]);
+  const todayStr = formatDateOnly(new Date());
 
   if (isLoading) {
     return (
@@ -225,15 +205,22 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
       >
         {calendarDays.map((cell) => {
           const isToday = cell.dateStr === todayStr;
-          const isSelected = cell.dateStr === selectedDateStr;
-          const cellIssues = issuesByDate[cell.dateStr] || [];
-          const hasIssues = cellIssues.length > 0;
+          const isSelected = cell.dateStr === popupDateStr;
+          const cellEvents = eventsByDate[cell.dateStr] || [];
+          const hasEvents = cellEvents.length > 0;
+
+          // Tooltip: 공휴일 + 일정 제목 요약
+          const tooltipLines = [cell.holidayName ? `${cell.dateStr} (${cell.holidayName})` : cell.dateStr];
+          cellEvents.slice(0, MAX_TOOLTIP_ITEMS).forEach((e) => tooltipLines.push(`• ${e.title}`));
+          if (cellEvents.length > MAX_TOOLTIP_ITEMS) {
+            tooltipLines.push(`… 외 ${cellEvents.length - MAX_TOOLTIP_ITEMS}건`);
+          }
 
           return (
             <div
               key={cell.dateStr}
-              onClick={() => handleCellClick(cell.dateStr)}
-              title={cell.holidayName ? `${cell.dateStr} (${cell.holidayName})` : cell.dateStr}
+              onClick={(e) => setPopupAnchor({ dateStr: cell.dateStr, x: e.clientX, y: e.clientY })}
+              title={tooltipLines.join('\n')}
               style={{
                 minHeight: '28px',
                 padding: '2px',
@@ -274,19 +261,22 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
                 {cell.dayNumber}
               </span>
 
-              {hasIssues && (
+              {hasEvents && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1px', marginTop: '1px' }}>
-                  <span
-                    style={{
-                      width: '4px',
-                      height: '4px',
-                      borderRadius: '50%',
-                      background: 'var(--primary)',
-                    }}
-                  />
-                  {cellIssues.length > 1 && (
+                  {cellEvents.slice(0, 3).map((e) => (
+                    <span
+                      key={e.id}
+                      style={{
+                        width: '4px',
+                        height: '4px',
+                        borderRadius: '50%',
+                        background: getCalendarEventColor(e),
+                      }}
+                    />
+                  ))}
+                  {cellEvents.length > 3 && (
                     <span style={{ fontSize: '0.55rem', color: 'var(--text-sub)', lineHeight: 1 }}>
-                      {cellIssues.length}
+                      {cellEvents.length}
                     </span>
                   )}
                 </div>
@@ -296,13 +286,11 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
         })}
       </div>
 
-      {/* Bottom Permanent Scrollable List */}
-      <CalendarMiniList
-        selectedDateStr={selectedDateStr}
-        onClearSelectedDate={() => setSelectedDateStr(null)}
-        activeListIssues={activeListIssues}
-        currentMonth={currentMonth}
-        onSelectIssue={onSelectIssue}
+      {/* 날짜 클릭 위치에 표시되는 비모달 팝오버 */}
+      <CalendarDayPopup
+        anchor={popupAnchor}
+        events={popupDateStr ? eventsByDate[popupDateStr] || [] : []}
+        onClose={() => setPopupAnchor(null)}
       />
     </div>
   );
@@ -311,7 +299,7 @@ export const CalendarMiniWidget: React.FC<WidgetProps> = ({
 export const calendarWidgetDefinition: Widgetable = {
   type: 'calendar',
   title: '캘린더 일정',
-  description: '월간 캘린더 그리드 상에서 일자별 마감 일감을 확인하고 날짜를 클릭하여 상세를 탐색합니다.',
+  description: '월간 캘린더 그리드 상에서 일자별 일정(이슈·CalDAV 등)을 확인하고 날짜를 클릭하면 간단한 팝업으로 세부 일정을 봅니다.',
   defaultColSpan: 6,
   defaultHeight: 'normal',
   icon: <CalendarIcon size={22} color="#cca700" />,

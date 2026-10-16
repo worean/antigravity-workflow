@@ -7,6 +7,7 @@ import {
   Edit3,
   Save,
   Trash2,
+  GitFork,
 } from 'lucide-react';
 import type { Project } from '@/types';
 import { Button, FavoriteButton } from '@/components/common';
@@ -17,6 +18,7 @@ interface ProjectDetailHeaderProps {
   onGoToBoard?: (projectId: number) => void;
   onGoToWBS?: (projectId: number) => void;
   onGoToSprints?: (projectId: number) => void;
+  onOpenGitBrowser?: () => void;
   isPM: boolean;
   isEditing: boolean;
   setIsEditing: (editing: boolean) => void;
@@ -27,12 +29,14 @@ interface ProjectDetailHeaderProps {
   onOpenAuth?: () => void;
 }
 
+
 export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
   project,
   onBack,
   onGoToBoard,
   onGoToWBS,
   onGoToSprints,
+  onOpenGitBrowser,
   isPM,
   isEditing,
   setIsEditing,
@@ -130,6 +134,19 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
           </Button>
         )}
 
+        {onOpenGitBrowser && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onOpenGitBrowser}
+            style={{ height: '28px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+            title="Git 리포지토리 브라우저 열기"
+          >
+            <GitFork size={13} /> Git 저장소
+          </Button>
+        )}
+
+
         {isPM && (
           <>
             {isEditing ? (
@@ -138,7 +155,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
                   variant="primary"
                   size="sm"
                   onClick={handleSaveProject}
-                  style={{ height: '28px', fontSize: '0.75rem', background: '#10b981', borderColor: '#10b981' }}
+                  style={{ height: '28px', fontSize: '0.75rem', background: 'var(--secondary)', borderColor: 'var(--secondary)' }}
                 >
                   <Save size={13} style={{ marginRight: '4px' }} /> 변경사항 저장
                 </Button>

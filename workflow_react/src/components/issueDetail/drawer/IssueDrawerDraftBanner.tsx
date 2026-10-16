@@ -1,13 +1,17 @@
-﻿﻿import React from 'react';
+﻿import React from 'react';
 import { Save, RotateCcw } from 'lucide-react';
 
-interface IssueDrawerDraftBannerProps {
+export interface IssueDrawerDraftBannerProps {
+  hasRestoredDraft?: boolean;
   onDiscardDraft: () => void;
 }
 
 export const IssueDrawerDraftBanner: React.FC<IssueDrawerDraftBannerProps> = ({
+  hasRestoredDraft = true,
   onDiscardDraft,
 }) => {
+  if (!hasRestoredDraft) return null;
+
   return (
     <div
       style={{

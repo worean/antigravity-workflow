@@ -2,8 +2,6 @@
 import {
   Check,
   Plug,
-  ShieldCheck,
-  AlertCircle,
   Loader2,
 } from 'lucide-react';
 import {
@@ -16,6 +14,7 @@ import {
 import { GitRepoMappingModal } from './GitRepoMappingModal';
 import { GitRepoMappingTable } from './GitRepoMappingTable';
 import { GitWebhookSettingCard } from './GitWebhookSettingCard';
+import { GitAuthSettingCard } from './GitAuthSettingCard';
 
 interface GitPluginSettingTabProps {
   projects?: Array<{ id: number; name: string; key: string }>;
@@ -55,9 +54,10 @@ export const GitPluginSettingTab: React.FC<GitPluginSettingTabProps> = ({ projec
   const handleTestConnection = async () => {
     setTestResult(null);
     try {
+      const activeToken = tokenInput.trim() || (config?.hasToken ? '__SAVED_TOKEN__' : '');
       const res = await testConnMutation.mutateAsync({
         provider,
-        token: tokenInput || (config?.hasToken ? '__SAVED_TOKEN__' : ''),
+        token: activeToken,
         serverUrl: provider === 'GITLAB' ? serverUrl : undefined,
       });
       setTestResult({ success: true, message: res.message });
@@ -72,11 +72,15 @@ export const GitPluginSettingTab: React.FC<GitPluginSettingTabProps> = ({ projec
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const sanitizedToken = isEditingToken && tokenInput.trim() && !tokenInput.includes('************')
+        ? tokenInput.trim()
+        : undefined;
+
       await updateConfigMutation.mutateAsync({
         isEnabled,
         provider,
-        serverUrl: provider === 'GITLAB' ? serverUrl : undefined,
-        token: isEditingToken && tokenInput ? tokenInput : undefined,
+        serverUrl: provider === 'GITLAB' ? serverUrl : '',
+        token: sanitizedToken,
         webhookSecret,
         autoCloseIssueOnMerge: autoClose,
       });
@@ -156,172 +160,23 @@ export const GitPluginSettingTab: React.FC<GitPluginSettingTabProps> = ({ projec
 
       {/* 2. 설정 폼 */}
       <form onSubmit={handleSaveConfig} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            padding: '20px',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-md)',
-          }}
-        >
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-bright)', borderBottom: '1px solid var(--border-divider)', paddingBottom: '10px' }}>
-            인증 및 Provider 설정
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-sub)' }}>Git Provider 선택</label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {(['GITHUB', 'GITLAB'] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setProvider(p)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 0',
-                    fontSize: '13px',
-                    fontWeight: provider === p ? 600 : 400,
-                    backgroundColor: provider === p ? 'var(--primary)' : 'var(--bg-input)',
-                    color: provider === p ? 'var(--text-on-primary)' : 'var(--text-main)',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: 'var(--radius-sm)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {p === 'GITHUB' ? 'GitHub (github.com)' : 'GitLab (SaaS / Self-hosted)'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {provider === 'GITLAB' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-sub)' }}>GitLab Server URL</label>
-              <input
-                type="text"
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="https://gitlab.com 또는 https://gitlab.mycompany.com"
-                style={{
-                  padding: '8px 10px',
-                  backgroundColor: 'var(--bg-input)',
-                  border: '1px solid var(--border-light)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-bright)',
-                  fontSize: '13px',
-                  outline: 'none',
-                }}
-              />
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-sub)' }}>Personal Access Token (PAT)</label>
-              {config?.hasToken && !isEditingToken && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditingToken(true)}
-                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', cursor: 'pointer' }}
-                >
-                  토큰 재설정
-                </button>
-              )}
-            </div>
-
-            {config?.hasToken && !isEditingToken ? (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  backgroundColor: 'var(--bg-input)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-light)',
-                  color: 'var(--text-bright)',
-                  fontSize: '13px',
-                  fontFamily: 'monospace',
-                }}
-              >
-                <ShieldCheck size={16} style={{ color: 'var(--secondary)' }} />
-                <span>{config.maskedToken}</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-sub)', marginLeft: 'auto' }}>암호화 저장됨</span>
-              </div>
-            ) : (
-              <input
-                type="password"
-                value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
-                placeholder={provider === 'GITHUB' ? 'ghp_xxxxxxxxxxxxxxxxxxxx' : 'glpat-xxxxxxxxxxxxxxxxxxxx'}
-                style={{
-                  padding: '8px 10px',
-                  backgroundColor: 'var(--bg-input)',
-                  border: '1px solid var(--border-light)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-bright)',
-                  fontSize: '13px',
-                  fontFamily: 'monospace',
-                  outline: 'none',
-                }}
-              />
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={handleTestConnection}
-              disabled={testConnMutation.isPending || (!tokenInput && !config?.hasToken)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 14px',
-                backgroundColor: 'var(--bg-card-hover)',
-                border: '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-bright)',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
-              {testConnMutation.isPending && <Loader2 size={13} className="animate-spin" />}
-              <span>연결 테스트</span>
-            </button>
-
-            {testResult && (
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: testResult.success ? 'var(--secondary)' : 'var(--accent-rose)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                {testResult.success ? <Check size={14} /> : <AlertCircle size={14} />}
-                {testResult.message}
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '8px' }}>
-            <input
-              type="checkbox"
-              id="autoCloseCheck"
-              checked={autoClose}
-              onChange={(e) => setAutoClose(e.target.checked)}
-              style={{ accentColor: 'var(--primary)' }}
-            />
-            <label htmlFor="autoCloseCheck" style={{ fontSize: '13px', color: 'var(--text-main)', cursor: 'pointer' }}>
-              PR / Merge Request가 머지되면 연결된 일감 상태를 자동으로 'Done'으로 변경
-            </label>
-          </div>
-        </div>
+        {/* 2. 인증 및 Provider 설정 카드 (서브 컴포넌트) */}
+        <GitAuthSettingCard
+          provider={provider}
+          onProviderChange={setProvider}
+          serverUrl={serverUrl}
+          onServerUrlChange={setServerUrl}
+          tokenInput={tokenInput}
+          onTokenInputChange={setTokenInput}
+          isEditingToken={isEditingToken}
+          onStartEditingToken={() => setIsEditingToken(true)}
+          config={config}
+          autoClose={autoClose}
+          onAutoCloseChange={setAutoClose}
+          testResult={testResult}
+          onTestConnection={handleTestConnection}
+          isTesting={testConnMutation.isPending}
+        />
 
         {/* 3. 웹훅 안내 카드 */}
         <GitWebhookSettingCard

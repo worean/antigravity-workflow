@@ -5,6 +5,7 @@ import {
   generateWeekDays,
   getWeekdayNames,
   calculateWeekEventSegments,
+  sortCalendarEvents,
   getKoreanHolidays,
   isKoreanHoliday,
 } from '../utils/calendarUtils';
@@ -147,6 +148,43 @@ describe('calendarUtils', () => {
       expect(march2).toBeDefined();
       expect(march2?.isHoliday).toBe(true);
       expect(march2?.holidayName).toBe('대체공휴일(삼일절)');
+    });
+  });
+
+  describe('sortCalendarEvents', () => {
+    it('1) 이슈는 항상 최상단에 정렬되어야 한다', () => {
+      const events = [
+        { id: '1', title: '외부 CalDAV 종일일정', startDate: '2026-10-16', endDate: '2026-10-20', type: 'caldav' },
+        { id: '2', title: '중요 이슈', startDate: '2026-10-16', endDate: '2026-10-16', type: 'issue', issueId: 101 },
+        { id: '3', title: '시간제 미팅', startDate: '2026-10-16T09:00:00', type: 'caldav' },
+      ];
+
+      const sorted = sortCalendarEvents(events);
+      expect(sorted[0].id).toBe('2'); // 이슈가 최상단
+      expect(sorted[1].id).toBe('1'); // 종일 일정이 두번째
+      expect(sorted[2].id).toBe('3'); // 시간제 일정이 마지막
+    });
+
+    it('2) 종일 일정 간에는 기간이 긴 일정이 먼저 출력되어야 한다', () => {
+      const events = [
+        { id: 'short', title: '1일 종일 일정', startDate: '2026-10-16', endDate: '2026-10-16', type: 'caldav' },
+        { id: 'long', title: '5일 종일 일정', startDate: '2026-10-16', endDate: '2026-10-20', type: 'caldav' },
+        { id: 'medium', title: '3일 종일 일정', startDate: '2026-10-16', endDate: '2026-10-18', type: 'caldav' },
+      ];
+
+      const sorted = sortCalendarEvents(events);
+      expect(sorted.map((e) => e.id)).toEqual(['long', 'medium', 'short']);
+    });
+
+    it('3) 시간제 일정은 시작 시간(오전/오후) 빠른 순으로 정렬되어야 한다', () => {
+      const events = [
+        { id: 'afternoon', title: '오후 미팅', startDate: '2026-10-16T14:30:00', type: 'caldav' },
+        { id: 'morning', title: '오전 미팅', startDate: '2026-10-16T09:15:00', type: 'caldav' },
+        { id: 'evening', title: '저녁 약속', startDate: '2026-10-16T19:00:00', type: 'caldav' },
+      ];
+
+      const sorted = sortCalendarEvents(events);
+      expect(sorted.map((e) => e.id)).toEqual(['morning', 'afternoon', 'evening']);
     });
   });
 });

@@ -1,23 +1,38 @@
 ﻿import { globalPrisma } from '#lib/globalPrisma.js';
 
-export const getInvitationsService = async (workspaceId: number) => {
-  if (!workspaceId) throw new Error('Workspace ID is required');
+async function resolveActiveWorkspaceId(workspaceId?: number): Promise<number> {
+  if (workspaceId && workspaceId > 0) {
+    return workspaceId;
+  }
+  const activeWorkspace = await globalPrisma.workspace.findFirst({
+    where: { status: 'ACTIVE' },
+    orderBy: { id: 'asc' },
+  });
+  if (!activeWorkspace) {
+    throw new Error('Workspace not found');
+  }
+  return activeWorkspace.id;
+}
+
+export const getInvitationsService = async (workspaceId?: number) => {
+  const targetWorkspaceId = await resolveActiveWorkspaceId(workspaceId);
 
   const invitations = await globalPrisma.workspaceInvitation.findMany({
-    where: { workspaceId },
+    where: { workspaceId: targetWorkspaceId },
     orderBy: { createdAt: 'desc' },
   });
 
   return invitations;
 };
 
-export const deleteInvitationService = async (workspaceId: number, invitationId: number) => {
-  if (!workspaceId || !invitationId) throw new Error('Workspace ID and Invitation ID are required');
+export const deleteInvitationService = async (workspaceId: number | undefined, invitationId: number) => {
+  if (!invitationId) throw new Error('Invitation ID is required');
+  const targetWorkspaceId = await resolveActiveWorkspaceId(workspaceId);
 
   await globalPrisma.workspaceInvitation.deleteMany({
     where: {
       id: invitationId,
-      workspaceId,
+      workspaceId: targetWorkspaceId,
     },
   });
 

@@ -13,13 +13,13 @@ import { Spinner } from '@/components/common';
 const getCategoryColor = (cat?: string): { color: string; bg: string } => {
   switch (cat?.toUpperCase()) {
     case 'DONE':
-      return { color: 'var(--success, #10b981)', bg: 'rgba(16, 185, 129, 0.15)' };
+      return { color: 'var(--badge-done-text)', bg: 'var(--badge-done-bg)' };
     case 'IN_PROGRESS':
-      return { color: 'var(--primary, #3b82f6)', bg: 'rgba(59, 130, 246, 0.15)' };
+      return { color: 'var(--primary)', bg: 'var(--badge-progress-bg)' };
     case 'IN_REVIEW':
-      return { color: 'var(--warning, #f59e0b)', bg: 'rgba(245, 158, 11, 0.15)' };
+      return { color: 'var(--badge-review-text)', bg: 'var(--badge-review-bg)' };
     default:
-      return { color: 'var(--text-sub, #64748b)', bg: 'rgba(255, 255, 255, 0.06)' };
+      return { color: 'var(--text-sub)', bg: 'var(--badge-todo-bg)' };
   }
 };
 
@@ -158,7 +158,7 @@ export const ProjectTodoIssuesTab: React.FC<ProjectTodoIssuesTabProps> = ({
             padding: '36px 16px',
             textAlign: 'center',
             color: 'var(--text-muted)',
-            background: 'var(--bg-subtle, rgba(255, 255, 255, 0.02))',
+            background: 'var(--bg-subtle)',
             borderRadius: 'var(--radius-xs)',
             border: '1px dashed var(--border-light)',
           }}
@@ -225,11 +225,11 @@ export const ProjectTodoIssuesTab: React.FC<ProjectTodoIssuesTabProps> = ({
                 {/* Left: Status Icon, Key, Title */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                   {isDone ? (
-                    <CheckCircle2 size={16} color="var(--success, #10b981)" style={{ flexShrink: 0 }} />
+                    <CheckCircle2 size={16} color="var(--badge-done-text)" style={{ flexShrink: 0 }} />
                   ) : isInProgress ? (
-                    <Clock size={16} color="var(--primary, #3b82f6)" style={{ flexShrink: 0 }} />
+                    <Clock size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
                   ) : (
-                    <Circle size={16} color="var(--text-muted, #94a3b8)" style={{ flexShrink: 0 }} />
+                    <Circle size={16} color="var(--text-muted)" style={{ flexShrink: 0 }} />
                   )}
 
                   <span
@@ -238,7 +238,7 @@ export const ProjectTodoIssuesTab: React.FC<ProjectTodoIssuesTabProps> = ({
                       fontWeight: 700,
                       fontSize: '0.75rem',
                       color: 'var(--text-sub)',
-                      background: 'var(--bg-subtle, rgba(255, 255, 255, 0.05))',
+                      background: 'var(--bg-subtle)',
                       padding: '1px 5px',
                       borderRadius: '3px',
                       flexShrink: 0,
@@ -271,7 +271,7 @@ export const ProjectTodoIssuesTab: React.FC<ProjectTodoIssuesTabProps> = ({
                         style={{
                           flex: 1,
                           height: '5px',
-                          background: 'var(--bg-subtle, rgba(255,255,255,0.1))',
+                          background: 'var(--bg-subtle)',
                           borderRadius: '3px',
                           overflow: 'hidden',
                         }}
@@ -303,7 +303,7 @@ export const ProjectTodoIssuesTab: React.FC<ProjectTodoIssuesTabProps> = ({
                           background: statusTheme.bg,
                           color: statusTheme.color,
                           fontWeight: 600,
-                          border: `1px solid ${statusTheme.color}33`,
+                          border: '1px solid var(--border-light)',
                         }}
                       >
                         {issue.status.name}
@@ -346,7 +346,7 @@ export const ProjectTodoIssuesTab: React.FC<ProjectTodoIssuesTabProps> = ({
                             height: '18px',
                             borderRadius: '50%',
                             background: issue.assignee.avatarColor || 'var(--primary)',
-                            color: '#ffffff',
+                            color: 'var(--text-on-primary)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

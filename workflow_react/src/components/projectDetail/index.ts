@@ -7,3 +7,4 @@ export * from './ProjectSidebar';
 export * from './ProjectIssuesOverviewWidget';
 export * from './ProjectTodoIssuesTab';
 export * from './ProjectWorklogsTab';
+export * from './useProjectParticipation';

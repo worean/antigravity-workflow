@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 
 interface GoogleLoginButtonProps {
@@ -46,7 +46,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
           justifyContent: 'center',
           gap: '10px',
           padding: '8px 16px',
-          background: '#ffffff',
+          background: 'var(--brand-google-bg)',
           color: '#3c4043',
           border: '1px solid #dadce0',
           borderRadius: 'var(--radius-xs)',

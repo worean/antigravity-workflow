@@ -1,7 +1,11 @@
 ﻿import { globalPrisma } from '#lib/globalPrisma.js';
+import { prisma } from '#lib/prisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 
-export const acceptInvitationService = async (inviteToken: string, currentUser: { id: number; email: string; name?: string | null; role?: string }) => {
+export const acceptInvitationService = async (
+  inviteToken: string,
+  currentUser: { id: number; email: string; name?: string | null; role?: string }
+) => {
   if (!inviteToken || !inviteToken.trim()) {
     throw new Error('초대 토큰이 필요합니다.');
   }
@@ -42,8 +46,8 @@ export const acceptInvitationService = async (inviteToken: string, currentUser: 
     },
   });
 
-  // 2. 테넌트 DB 유저 동기화
-  await workspaceManager.syncUserToWorkspace(workspace, currentUser);
+  // 2. 단일 워크스페이스 DB(싱글톤 prisma)에 유저 동기화
+  await workspaceManager.syncUserToWorkspace(prisma, currentUser);
 
   // 3. 사용된 초대장 삭제
   await globalPrisma.workspaceInvitation.delete({ where: { id: invitation.id } });

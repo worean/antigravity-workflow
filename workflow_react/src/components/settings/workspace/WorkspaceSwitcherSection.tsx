@@ -1,22 +1,19 @@
-﻿﻿import React from 'react';
-import { Layers, KeyRound, Plus } from 'lucide-react';
+﻿import React from 'react';
+import { Server, KeyRound, UserPlus } from 'lucide-react';
 import type { Workspace } from '@/types';
 import { WorkspaceSymbol } from './WorkspaceSymbol';
 
 interface WorkspaceSwitcherSectionProps {
-  workspaces: Workspace[];
+  workspaces?: Workspace[];
   currentWorkspace: Workspace | null;
-  switchWorkspace: (workspaceId: number) => void;
+  switchWorkspace?: (workspaceId: number) => void;
   onOpenInviteModal: () => void;
-  onOpenCreateModal: () => void;
+  onOpenCreateModal?: () => void;
 }
 
 export const WorkspaceSwitcherSection: React.FC<WorkspaceSwitcherSectionProps> = ({
-  workspaces,
   currentWorkspace,
-  switchWorkspace,
   onOpenInviteModal,
-  onOpenCreateModal,
 }) => {
   return (
     <div
@@ -30,94 +27,82 @@ export const WorkspaceSwitcherSection: React.FC<WorkspaceSwitcherSectionProps> =
         gap: '10px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Layers size={16} color="var(--primary)" />
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
-            참여 워크스페이스 목록 ({workspaces.length})
-          </span>
+          <Server size={16} color="var(--primary)" />
+          <div>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-bright)' }}>
+              현재 서버 워크스페이스 (1 Server = 1 Workspace)
+            </span>
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              단일 서버는 단일 워크스페이스를 전담합니다. 다른 서버의 워크스페이스 접속은 [시스템/연결] 탭의 백엔드 주소 설정을 이용하세요.
+            </p>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
           <button
             type="button"
             onClick={onOpenInviteModal}
-            className="btn btn-secondary"
-            style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-          >
-            <KeyRound size={12} />
-            <span>초대 코드로 참가</span>
-          </button>
-          <button
-            type="button"
-            onClick={onOpenCreateModal}
             className="btn btn-primary"
-            style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+            style={{ fontSize: '0.72rem', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
           >
-            <Plus size={12} />
-            <span>새 워크스페이스</span>
+            <UserPlus size={12} />
+            <span>동료 초대 / 초대 코드 참가</span>
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px' }}>
-        {workspaces.map((ws) => {
-          const isSelected = ws.id === currentWorkspace?.id;
-          return (
-            <div
-              key={ws.id}
-              onClick={() => switchWorkspace(ws.id)}
-              style={{
-                padding: '10px 12px',
-                background: isSelected ? 'var(--nav-item-active, rgba(0, 122, 204, 0.15))' : 'var(--bg-dark)',
-                border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-xs)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                <WorkspaceSymbol iconVal={ws.icon} size={28} />
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: isSelected ? 'var(--text-bright)' : 'var(--text-main)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {ws.name}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    {ws.myRole || 'MEMBER'} · 멤버 {ws.memberCount || 1}명
-                  </div>
-                </div>
+      {currentWorkspace && (
+        <div
+          style={{
+            padding: '10px 12px',
+            background: 'var(--nav-item-active)',
+            border: '1px solid var(--primary)',
+            borderRadius: 'var(--radius-xs)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <WorkspaceSymbol iconVal={currentWorkspace.icon} size={30} />
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  color: 'var(--text-bright)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {currentWorkspace.name}
               </div>
-              {isSelected && (
-                <span
-                  style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 600,
-                    color: 'var(--accent-cyan)',
-                    background: 'rgba(156, 220, 254, 0.1)',
-                    border: '1px solid rgba(156, 220, 254, 0.3)',
-                    padding: '1px 6px',
-                    borderRadius: 'var(--radius-xs)',
-                    flexShrink: 0,
-                  }}
-                >
-                  활성
-                </span>
-              )}
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                내 권한: {currentWorkspace.myRole || 'MEMBER'} · 활성 멤버 {currentWorkspace.memberCount || 1}명
+              </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+          <span
+            style={{
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              color: 'var(--accent-cyan)',
+              background: 'var(--primary-subtle)',
+              border: '1px solid var(--primary)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-xs)',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <KeyRound size={11} /> 단일 활성 워크스페이스
+          </span>
+        </div>
+      )}
     </div>
   );
 };

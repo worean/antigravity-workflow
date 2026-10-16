@@ -1,32 +1,26 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import express, { Request, Response } from 'express';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import path from 'path';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 import { requireAuth } from '../common/middlewares/authMiddleware.js';
 import { requireWorkspaceAccess, requireWorkspaceRole } from '../common/middlewares/workspaceMiddleware.js';
 
-describe('Workspace Access Security Middleware (requireWorkspaceAccess)', () => {
+describe('Workspace Access Security Middleware (requireWorkspaceAccess - Single Workspace)', () => {
   const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
-  const testDbDir = path.resolve(process.cwd(), '.tmp/workspaces/test_sec');
-  const ws1DbPath = path.join(testDbDir, 'sec_ws_1.db').replace(/\\/g, '/');
-  const ws2DbPath = path.join(testDbDir, 'sec_ws_2.db').replace(/\\/g, '/');
 
   let ownerUser: any;
   let memberUser: any;
-  let outsiderUser: any;
+  let newJoinerUser: any;
   let superAdminUser: any;
 
   let ownerToken: string;
   let memberToken: string;
-  let outsiderToken: string;
+  let newJoinerToken: string;
   let superAdminToken: string;
 
-  let workspace1: any;
-  let workspace2: any;
+  let activeWorkspace: any;
 
   // 테스트용 Express App 생성
   const testApp = express();
@@ -59,11 +53,6 @@ describe('Workspace Access Security Middleware (requireWorkspaceAccess)', () => 
   );
 
   beforeAll(async () => {
-    if (fs.existsSync(testDbDir)) {
-      fs.rmSync(testDbDir, { recursive: true, force: true });
-    }
-    fs.mkdirSync(testDbDir, { recursive: true });
-
     // 1. Global DB 사용자 생성
     ownerUser = await globalPrisma.user.upsert({
       where: { email: 'sec_owner@example.com' },
@@ -77,62 +66,59 @@ describe('Workspace Access Security Middleware (requireWorkspaceAccess)', () => 
       create: { email: 'sec_member@example.com', name: 'WS Member', role: 'MEMBER' },
     });
 
-    outsiderUser = await globalPrisma.user.upsert({
+    newJoinerUser = await globalPrisma.user.upsert({
       where: { email: 'sec_outsider@example.com' },
       update: {},
-      create: { email: 'sec_outsider@example.com', name: 'WS Outsider', role: 'MEMBER' },
+      create: { email: 'sec_outsider@example.com', name: 'WS New Joiner', role: 'MEMBER' },
     });
 
     superAdminUser = await globalPrisma.user.upsert({
       where: { email: 'sec_superadmin@example.com' },
-      update: {},
+      update: { role: 'ADMIN' },
       create: { email: 'sec_superadmin@example.com', name: 'Super Admin', role: 'ADMIN' },
     });
 
     // 2. JWT 토큰 발급
     ownerToken = jwt.sign({ userId: ownerUser.id, email: ownerUser.email }, jwtSecret, { expiresIn: '1h' });
     memberToken = jwt.sign({ userId: memberUser.id, email: memberUser.email }, jwtSecret, { expiresIn: '1h' });
-    outsiderToken = jwt.sign({ userId: outsiderUser.id, email: outsiderUser.email }, jwtSecret, { expiresIn: '1h' });
+    newJoinerToken = jwt.sign({ userId: newJoinerUser.id, email: newJoinerUser.email }, jwtSecret, { expiresIn: '1h' });
     superAdminToken = jwt.sign({ userId: superAdminUser.id, email: superAdminUser.email }, jwtSecret, { expiresIn: '1h' });
 
-    // 3. Workspace 생성
-    workspace1 = await globalPrisma.workspace.upsert({
-      where: { slug: 'sec-ws-1' },
-      update: { dbUrl: `file:${ws1DbPath}` },
-      create: {
-        slug: 'sec-ws-1',
-        name: 'Security Test Workspace 1',
-        ownerId: ownerUser.id,
-        dbType: 'sqlite',
-        dbUrl: `file:${ws1DbPath}`,
-        status: 'ACTIVE',
-      },
+    // 3. 서버의 단일 활성 워크스페이스 조회
+    activeWorkspace = await globalPrisma.workspace.findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: { id: 'asc' },
     });
 
-    workspace2 = await globalPrisma.workspace.upsert({
-      where: { slug: 'sec-ws-2' },
-      update: { dbUrl: `file:${ws2DbPath}` },
-      create: {
-        slug: 'sec-ws-2',
-        name: 'Security Test Workspace 2',
-        ownerId: ownerUser.id,
-        dbType: 'sqlite',
-        dbUrl: `file:${ws2DbPath}`,
-        status: 'ACTIVE',
-      },
-    });
+    if (!activeWorkspace) {
+      activeWorkspace = await globalPrisma.workspace.create({
+        data: {
+          slug: 'default-workspace',
+          name: 'AntiGravity Single Workspace',
+          ownerId: ownerUser.id,
+          dbType: 'postgresql',
+          dbUrl: process.env.WORKSPACE_DATABASE_URL || 'postgresql://juyeong:qkrwndud@localhost:5432/workspace_test',
+          status: 'ACTIVE',
+        },
+      });
+    }
 
-    // 4. UserWorkspace 매핑 (memberUser는 Workspace 1에만 MEMBER로 등록)
+    // 4. 단일 활성 워크스페이스에 대한 UserWorkspace 매핑 설정
     await globalPrisma.userWorkspace.upsert({
-      where: { userId_workspaceId: { userId: ownerUser.id, workspaceId: workspace1.id } },
-      update: {},
-      create: { userId: ownerUser.id, workspaceId: workspace1.id, role: 'OWNER', status: 'ACTIVE' },
+      where: { userId_workspaceId: { userId: ownerUser.id, workspaceId: activeWorkspace.id } },
+      update: { role: 'OWNER', status: 'ACTIVE' },
+      create: { userId: ownerUser.id, workspaceId: activeWorkspace.id, role: 'OWNER', status: 'ACTIVE' },
     });
 
     await globalPrisma.userWorkspace.upsert({
-      where: { userId_workspaceId: { userId: memberUser.id, workspaceId: workspace1.id } },
-      update: {},
-      create: { userId: memberUser.id, workspaceId: workspace1.id, role: 'MEMBER', status: 'ACTIVE' },
+      where: { userId_workspaceId: { userId: memberUser.id, workspaceId: activeWorkspace.id } },
+      update: { role: 'MEMBER', status: 'ACTIVE' },
+      create: { userId: memberUser.id, workspaceId: activeWorkspace.id, role: 'MEMBER', status: 'ACTIVE' },
+    });
+
+    // newJoinerUser는 초기 멤버십 없이 시작하여 자동 MEMBER 편입을 테스트
+    await globalPrisma.userWorkspace.deleteMany({
+      where: { userId: newJoinerUser.id, workspaceId: activeWorkspace.id },
     });
   });
 
@@ -143,26 +129,26 @@ describe('Workspace Access Security Middleware (requireWorkspaceAccess)', () => 
   it('1. 인증 토큰 없이 워크스페이스에 접근하면 401 Unauthorized 에러가 반환되어야 한다', async () => {
     const res = await request(testApp)
       .get('/api/test-workspace/data')
-      .set('x-workspace-id', String(workspace1.id));
+      .set('x-workspace-id', String(activeWorkspace.id));
 
     expect(res.status).toBe(401);
   });
 
-  it('2. 참여하지 않은 사용자가 워크스페이스 DB에 접근 요청 시 403 Forbidden으로 차단되어야 한다 (보안 격리)', async () => {
+  it('2. 단일 워크스페이스 정책에 따라 신규 인증 사용자가 접근 시 자동으로 MEMBER 권한으로 편입되고 200 OK를 반환해야 한다', async () => {
     const res = await request(testApp)
       .get('/api/test-workspace/data')
-      .set('Authorization', `Bearer ${outsiderToken}`)
-      .set('x-workspace-id', String(workspace1.id));
+      .set('Authorization', `Bearer ${newJoinerToken}`);
 
-    expect(res.status).toBe(403);
-    expect(res.body.code).toBe('WORKSPACE_ACCESS_DENIED');
+    expect(res.status).toBe(200);
+    expect(res.body.workspaceId).toBe(activeWorkspace.id);
+    expect(res.body.workspaceRole).toBe('MEMBER');
+    expect(res.body.hasDbClient).toBe(true);
   });
 
   it('3. 워크스페이스 소유자(Owner)가 접근 시 200 OK와 함께 OWNER 권한 및 DB 인스턴스가 주입되어야 한다', async () => {
     const res = await request(testApp)
       .get('/api/test-workspace/data')
-      .set('Authorization', `Bearer ${ownerToken}`)
-      .set('x-workspace-id', String(workspace1.id));
+      .set('Authorization', `Bearer ${ownerToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.workspaceRole).toBe('OWNER');
@@ -172,8 +158,7 @@ describe('Workspace Access Security Middleware (requireWorkspaceAccess)', () => 
   it('4. 등록된 일반 멤버(Member)가 접근 시 200 OK와 함께 MEMBER 권한 및 DB 인스턴스가 주입되어야 한다', async () => {
     const res = await request(testApp)
       .get('/api/test-workspace/data')
-      .set('Authorization', `Bearer ${memberToken}`)
-      .set('x-workspace-slug', 'sec-ws-1');
+      .set('Authorization', `Bearer ${memberToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.workspaceRole).toBe('MEMBER');
@@ -181,11 +166,9 @@ describe('Workspace Access Security Middleware (requireWorkspaceAccess)', () => 
   });
 
   it('5. 시스템 최고 관리자(Super Admin)는 워크스페이스 멤버가 아니어도 OWNER 권한으로 접근할 수 있어야 한다', async () => {
-    // superAdminUser는 workspace2에 멤버로 등록되어 있지 않음
     const res = await request(testApp)
       .get('/api/test-workspace/data')
-      .set('Authorization', `Bearer ${superAdminToken}`)
-      .set('x-workspace-id', String(workspace2.id));
+      .set('Authorization', `Bearer ${superAdminToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.workspaceRole).toBe('OWNER');
@@ -195,18 +178,16 @@ describe('Workspace Access Security Middleware (requireWorkspaceAccess)', () => 
   it('6. requireWorkspaceRole 미들웨어: 일반 MEMBER가 ADMIN 전용 API 호출 시 403 Forbidden으로 차단되어야 한다', async () => {
     const res = await request(testApp)
       .post('/api/test-workspace/admin-action')
-      .set('Authorization', `Bearer ${memberToken}`)
-      .set('x-workspace-id', String(workspace1.id));
+      .set('Authorization', `Bearer ${memberToken}`);
 
     expect(res.status).toBe(403);
-    expect(res.body.error).toContain('Minimum \'ADMIN\' role required');
+    expect(res.body.error).toContain("Minimum 'ADMIN' role required");
   });
 
   it('7. requireWorkspaceRole 미들웨어: OWNER는 ADMIN 전용 API를 성공적으로 수행할 수 있어야 한다', async () => {
     const res = await request(testApp)
       .post('/api/test-workspace/admin-action')
-      .set('Authorization', `Bearer ${ownerToken}`)
-      .set('x-workspace-id', String(workspace1.id));
+      .set('Authorization', `Bearer ${ownerToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);

@@ -4,7 +4,7 @@ import { queryClient } from '@/lib/queryClient';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { WorkspaceProvider } from '@/context/WorkspaceContext';
 import { prefRepository } from '@/lib/prefRepository';
-import { Header, type BreadcrumbItem } from '@/components/Header';
+import { Header } from '@/components/Header';
 
 import { Sidebar, type TabType } from '@/components/Sidebar';
 import { DashboardPage } from '@/pages/DashboardPage';
@@ -25,9 +25,9 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useChatStore } from '@/stores/useChatStore';
 import { useProjects, projectKeys } from '@/api/projects';
 import { issueKeys } from '@/api/issues';
-import { calendarKeys } from '@/api/calendar';
-import { getSocket } from '@/lib/socketClient';
-import { sendDesktopNotification } from '@/utils/notificationUtils';
+import { useRealtimeIssueSync } from '@/hooks/useRealtimeIssueSync';
+import { useAppBreadcrumbs } from '@/hooks/useAppBreadcrumbs';
+import { useOAuthRedirectLogin } from '@/hooks/useOAuthRedirectLogin';
 import type { Issue } from '@/types';
 import { parseRouteFromHash, buildHashFromRoute, type ActiveTabType } from '@/utils/routeUtils';
 
@@ -36,22 +36,7 @@ type IssueDetailMode = 'view' | 'edit';
 const AppContent: React.FC = () => {
   const { user, isAuthenticated, loginWithTokenAndUser } = useAuth();
 
-  // OAuth / Email Magic Link Redirect Handler (?token=...&user=...)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const redirectToken = params.get('token');
-    const redirectUserStr = params.get('user');
-
-    if (redirectToken && redirectUserStr) {
-      try {
-        const redirectUser = JSON.parse(decodeURIComponent(redirectUserStr));
-        loginWithTokenAndUser(redirectToken, redirectUser);
-        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-      } catch (err) {
-        console.error('Failed to parse redirect user info:', err);
-      }
-    }
-  }, [loginWithTokenAndUser]);
+  useOAuthRedirectLogin(loginWithTokenAndUser);
 
   const initialRoute = useMemo(() => {
     return parseRouteFromHash(window.location.hash);
@@ -87,68 +72,8 @@ const AppContent: React.FC = () => {
     setIssueRefreshKey(Date.now());
   }, [isAuthenticated, user?.id]);
 
-  // 🌐 실시간 이슈 생성/수정/삭제 이벤트 구독 및 타인 변경 알림 처리
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const handleRealtimeIssueCreated = (data: { actorId?: number; issue: Issue }) => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      setIssueRefreshKey(Date.now());
-
-      if (data && data.actorId && data.actorId !== user?.id && data.issue) {
-        sendDesktopNotification({
-          title: '신규 이슈 등록',
-          body: `#${data.issue.issueNumber || data.issue.id} ${data.issue.title}`,
-          priority: data.issue.priorityId || 2,
-        });
-      }
-    };
-
-    const handleRealtimeIssueUpdated = (data: { actorId?: number; issue: Issue }) => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      if (data?.issue?.id) {
-        queryClient.invalidateQueries({ queryKey: issueKeys.detail(data.issue.id) });
-      }
-      setIssueRefreshKey(Date.now());
-
-      if (data && data.actorId && data.actorId !== user?.id && data.issue) {
-        sendDesktopNotification({
-          title: '이슈 내용 갱신',
-          body: `#${data.issue.issueNumber || data.issue.id} ${data.issue.title}`,
-          priority: data.issue.priorityId || 2,
-        });
-      }
-    };
-
-    const handleRealtimeIssueDeleted = (_data: { actorId?: number; issueId: number }) => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      setIssueRefreshKey(Date.now());
-    };
-
-    const handleRealtimeBatchUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      setIssueRefreshKey(Date.now());
-    };
-
-    const handleRealtimeCalendarSynced = () => {
-      queryClient.invalidateQueries({ queryKey: calendarKeys.all });
-    };
-
-    socket.on('issue:created', handleRealtimeIssueCreated);
-    socket.on('issue:updated', handleRealtimeIssueUpdated);
-    socket.on('issue:deleted', handleRealtimeIssueDeleted);
-    socket.on('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
-    socket.on('calendar:synced', handleRealtimeCalendarSynced);
-
-    return () => {
-      socket.off('issue:created', handleRealtimeIssueCreated);
-      socket.off('issue:updated', handleRealtimeIssueUpdated);
-      socket.off('issue:deleted', handleRealtimeIssueDeleted);
-      socket.off('issue:batch_schedules_updated', handleRealtimeBatchUpdated);
-      socket.off('calendar:synced', handleRealtimeCalendarSynced);
-    };
-  }, [user?.id]);
+  const bumpRefreshKey = useCallback(() => setIssueRefreshKey(Date.now()), []);
+  useRealtimeIssueSync(user?.id, bumpRefreshKey);
 
   const navigate = useCallback(
     (
@@ -279,92 +204,7 @@ const AppContent: React.FC = () => {
   }, [projects, selectedProjectId]);
 
   // 상단 계층형 Breadcrumbs 계산
-  const breadcrumbs = useMemo<BreadcrumbItem[]>(() => {
-    const baseCrumbs: BreadcrumbItem[] = [];
-
-    switch (activeTab) {
-      case 'dashboard':
-        baseCrumbs.push({ label: '대시보드' });
-        break;
-      case 'projects':
-        baseCrumbs.push({ label: '프로젝트 목록' });
-        break;
-      case 'project-detail':
-        baseCrumbs.push(
-          { label: '프로젝트 목록', onClick: () => navigate('projects', null) },
-          { label: currentProject ? `${currentProject.name} (${currentProject.key})` : `프로젝트 #${selectedProjectId}` }
-        );
-        break;
-      case 'issues':
-        if (currentProject) {
-          baseCrumbs.push(
-            { label: '이슈 칸반 보드', onClick: () => navigate('issues', null) },
-            { label: `${currentProject.name} (${currentProject.key})` }
-          );
-        } else {
-          baseCrumbs.push({ label: '이슈 칸반 보드' });
-        }
-        break;
-      case 'issue-detail':
-        baseCrumbs.push(
-          { label: '이슈 목록', onClick: () => navigate('issues', selectedProjectId) },
-          ...(currentProject ? [{ label: `${currentProject.name} (${currentProject.key})`, onClick: () => navigate('issues', currentProject.id) }] : []),
-          { label: `이슈 상세 #${selectedIssueId}` }
-        );
-        break;
-      case 'sprints':
-        if (currentProject) {
-          baseCrumbs.push(
-            { label: '스프린트 관리', onClick: () => navigate('sprints', null) },
-            { label: `${currentProject.name} (${currentProject.key})` }
-          );
-        } else {
-          baseCrumbs.push({ label: '스프린트 관리' });
-        }
-        break;
-      case 'sprint-detail':
-        baseCrumbs.push(
-          { label: '스프린트 관리', onClick: () => navigate('sprints', selectedProjectId) },
-          ...(currentProject ? [{ label: `${currentProject.name} (${currentProject.key})`, onClick: () => navigate('sprints', currentProject.id) }] : []),
-          { label: `스프린트 #${selectedSprintId}` }
-        );
-        break;
-      case 'wbs':
-        if (currentProject) {
-          baseCrumbs.push(
-            { label: 'WBS 간트 차트', onClick: () => navigate('wbs', null) },
-            { label: `${currentProject.name} (${currentProject.key})` }
-          );
-        } else {
-          baseCrumbs.push({ label: 'WBS 간트 차트' });
-        }
-        break;
-      case 'calendar':
-        baseCrumbs.push({ label: '캘린더 일정' });
-        break;
-      case 'chat':
-        baseCrumbs.push({ label: '실시간 채팅' });
-        break;
-      case 'worklogs':
-        baseCrumbs.push({ label: '작업 로그' });
-        break;
-      case 'memo':
-        baseCrumbs.push({ label: '개인 메모' });
-        break;
-      case 'settings':
-        baseCrumbs.push({ label: '환경 설정' });
-        break;
-      default:
-        baseCrumbs.push({ label: '대시보드' });
-        break;
-    }
-
-    if (selectedIssueId) {
-      baseCrumbs.push({ label: `이슈 #${selectedIssueId}` });
-    }
-
-    return baseCrumbs;
-  }, [activeTab, currentProject, selectedProjectId, selectedIssueId, selectedSprintId, navigate]);
+  const breadcrumbs = useAppBreadcrumbs({ activeTab, currentProject, selectedProjectId, selectedIssueId, selectedSprintId, navigate });
 
   return (
     <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

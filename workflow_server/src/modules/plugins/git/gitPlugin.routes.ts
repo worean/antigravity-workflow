@@ -1,4 +1,4 @@
-﻿﻿﻿import { Router } from 'express';
+﻿import { Router } from 'express';
 import * as gitController from './gitPlugin.controller.js';
 import { requireAuth } from '../../../common/middlewares/authMiddleware.js';
 import { requireWorkspaceAccess } from '../../../common/middlewares/workspaceMiddleware.js';
@@ -33,3 +33,27 @@ gitPluginRouter.post('/pull-requests', gitController.createPullRequest);
 
 // 7. CI/CD 파이프라인 상태 조회
 gitPluginRouter.get('/pipelines/:repoMappingId', gitController.getPipelines);
+
+// 8. 연결된 원격 Git 계정(GitHub/GitLab)의 전체 리포지토리 목록 조회
+gitPluginRouter.get('/remote-repos', gitController.listRemoteRepositories);
+
+// 9. 특정 저장소 매핑의 커밋 로그 목록 조회 (Git Log 뷰어)
+gitPluginRouter.get('/repos/:repoMappingId/commits', gitController.listRepoCommits);
+
+// 10. 특정 커밋 상세 정보 조회 (파일 변경 및 Unified Diff)
+gitPluginRouter.get('/repos/:repoMappingId/commits/:sha', gitController.getCommitDetail);
+
+// 11. 이슈에 커밋 수동 연결 및 해제 (1:N)
+gitPluginRouter.post('/issues/:issueId/commits', gitController.linkCommitToIssue);
+gitPluginRouter.post('/issues/:issueId/commits/batch', gitController.batchLinkCommitsToIssue);
+gitPluginRouter.delete('/issues/:issueId/commits/:commitLinkId', gitController.unlinkCommitFromIssue);
+
+// 12. 작업로그에 커밋 연결 및 해제 (1:1)
+gitPluginRouter.post('/worklogs/:worklogId/commit', gitController.linkCommitToWorklog);
+gitPluginRouter.delete('/worklogs/:worklogId/commit', gitController.unlinkCommitFromWorklog);
+
+// 13. Pull Request 커밋 동기화 (PR 커밋을 이슈 커밋으로 일괄 등록)
+gitPluginRouter.post('/pull-requests/:prId/sync-commits', gitController.syncPullRequestCommits);
+gitPluginRouter.post('/pull-requests/sync-commits', gitController.syncPullRequestCommits);
+
+

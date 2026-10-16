@@ -1,4 +1,4 @@
-﻿﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -6,14 +6,13 @@ import { useWorkspace } from '@/context/WorkspaceContext';
 import {
   getWorkspaceDetail,
   updateWorkspace,
-  deleteWorkspace,
   removeWorkspaceMember,
   inviteWorkspaceMember,
   getWorkspaceInvitations,
   deleteWorkspaceInvitation,
   workspaceKeys,
 } from '@/api/workspaces';
-import { WorkspaceInviteModal, WorkspaceCreateModal } from '@/components/workspace';
+import { WorkspaceInviteModal } from '@/components/workspace';
 import { AvatarCropModal } from '@/components/AvatarCropModal';
 import type { WorkspaceRole } from '@/types';
 import {
@@ -21,15 +20,14 @@ import {
   WorkspaceProfileSection,
   WorkspaceMembersSection,
   WorkspaceInvitationsSection,
-  WorkspaceDangerSection,
 } from './workspace';
 
 export const SettingsWorkspaceTab: React.FC = () => {
-  const { currentWorkspace, switchWorkspace, workspaces, refetchWorkspaces } = useWorkspace();
+  const { currentWorkspace, refetchWorkspaces } = useWorkspace();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // 1. 워크스페이스 상세 및 멤버 쿼리
+  // 1. 단일 워크스페이스 상세 및 멤버 쿼리
   const {
     data: detail,
     refetch: refetchDetail,
@@ -57,7 +55,6 @@ export const SettingsWorkspaceTab: React.FC = () => {
 
   // Modals & Feedback
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -80,7 +77,6 @@ export const SettingsWorkspaceTab: React.FC = () => {
     user?.email === 'worean@naver.com' ||
     currentWorkspace?.myRole === 'OWNER' ||
     currentWorkspace?.myRole === 'ADMIN';
-  const isOwner = user?.role === 'ADMIN' || currentWorkspace?.myRole === 'OWNER';
 
   // 워크스페이스 정보 수정 뮤테이션
   const updateMutation = useMutation({
@@ -153,29 +149,6 @@ export const SettingsWorkspaceTab: React.FC = () => {
     }
   };
 
-  const handleDeleteWorkspace = async () => {
-    if (
-      !window.confirm(
-        `[위험] '${currentWorkspace?.name}' 워크스페이스와 연계된 모든 프로젝트, 일감, 채팅 및 물리 데이터베이스 파일이 영구 삭제됩니다.\n정말로 삭제하시겠습니까?`
-      )
-    )
-      return;
-
-    try {
-      setActionError(null);
-      await deleteWorkspace(currentWorkspace!.id);
-      queryClient.invalidateQueries();
-      const remainings = workspaces.filter((w) => w.id !== currentWorkspace?.id);
-      if (remainings.length > 0) {
-        switchWorkspace(remainings[0].id);
-      } else {
-        window.location.reload();
-      }
-    } catch (err: any) {
-      setActionError(err.response?.data?.error || err.message || '워크스페이스 삭제에 실패했습니다.');
-    }
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '850px' }}>
       {/* Notifications */}
@@ -186,7 +159,7 @@ export const SettingsWorkspaceTab: React.FC = () => {
             fontSize: '0.78rem',
             backgroundColor: 'rgba(241, 76, 76, 0.15)',
             border: '1px solid var(--accent-rose)',
-            color: '#ff8080',
+            color: 'var(--status-urgent)',
             borderRadius: 'var(--radius-xs)',
             display: 'flex',
             alignItems: 'center',
@@ -216,13 +189,10 @@ export const SettingsWorkspaceTab: React.FC = () => {
         </div>
       )}
 
-      {/* 1. 🏢 My Workspaces Switcher Grid */}
+      {/* 1. 🏢 Single Server Workspace Banner */}
       <WorkspaceSwitcherSection
-        workspaces={workspaces}
         currentWorkspace={currentWorkspace}
-        switchWorkspace={switchWorkspace}
         onOpenInviteModal={() => setIsInviteModalOpen(true)}
-        onOpenCreateModal={() => setIsCreateModalOpen(true)}
       />
 
       {/* 2. ⚙️ Active Workspace Profile & Info */}
@@ -266,9 +236,6 @@ export const SettingsWorkspaceTab: React.FC = () => {
         />
       )}
 
-      {/* 5. ⚠️ Danger Zone (Delete Workspace) */}
-      {isOwner && <WorkspaceDangerSection onDeleteWorkspace={handleDeleteWorkspace} />}
-
       {/* Modals */}
       <WorkspaceInviteModal
         isOpen={isInviteModalOpen}
@@ -276,13 +243,6 @@ export const SettingsWorkspaceTab: React.FC = () => {
           setIsInviteModalOpen(false);
           refetchDetail();
           refetchInvitations();
-        }}
-      />
-      <WorkspaceCreateModal
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          refetchWorkspaces();
         }}
       />
 

@@ -93,7 +93,7 @@ export const KanbanWidgetCard: React.FC<KanbanWidgetCardProps> = ({
                   height: '15px',
                   borderRadius: '50%',
                   background: assignee.avatarColor || 'var(--primary)',
-                  color: '#ffffff',
+                  color: 'var(--text-on-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

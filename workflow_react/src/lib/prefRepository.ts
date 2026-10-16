@@ -1,4 +1,4 @@
-﻿import type { User } from '@/types';
+import type { User } from '@/types';
 import { usePrefStore, DEFAULT_PREFS, type PrefSchema, type PrefStoreState } from '@/stores/usePrefStore';
 
 export { DEFAULT_PREFS, type PrefSchema, type PrefStoreState } from '@/stores/usePrefStore';
@@ -81,6 +81,13 @@ export class PrefRepository {
   }
   public set isSundayStart(value: boolean) {
     usePrefStore.getState().setSundayStart(value);
+  }
+
+  public get timeFormat(): '12h' | '24h' {
+    return usePrefStore.getState().timeFormat;
+  }
+  public set timeFormat(value: '12h' | '24h') {
+    usePrefStore.getState().setTimeFormat(value);
   }
 
   public get defaultPriority(): number {
@@ -187,6 +194,7 @@ export class PrefRepository {
     const s = usePrefStore.getState();
     return {
       isSundayStart: s.isSundayStart,
+      timeFormat: s.timeFormat,
       defaultPriority: s.defaultPriority,
       compactCards: s.compactCards,
       desktopNotifications: s.desktopNotifications,

@@ -4,6 +4,7 @@ import type { CalendarEvent } from '@/types';
 import { usePrefStore } from '@/stores/usePrefStore';
 import { formatDateOnly, getEffectiveEventRange } from '@/utils/dateUtils';
 import { parseColorToRgb } from '@/utils/colorUtils';
+import { sortCalendarEvents } from '@/utils/calendarUtils';
 
 interface CalendarWeekGridProps {
   currentDate: Date;
@@ -50,10 +51,11 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
   }
 
   const getEventsForDate = (dateStr: string) => {
-    return events.filter((e) => {
+    const matched = events.filter((e) => {
       const { startDateOnly: start, endDateOnly: end } = getEffectiveEventRange(e.startDate, e.endDate);
       return dateStr >= start && dateStr <= end;
     });
+    return sortCalendarEvents(matched);
   };
 
   const getStatusBadgeStyle = (status?: string): React.CSSProperties => {
@@ -138,7 +140,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                         height: '20px',
                         borderRadius: '50%',
                         background: 'var(--primary)',
-                        color: '#ffffff',
+                        color: 'var(--text-on-primary)',
                         fontWeight: 'bold',
                         fontSize: '0.75rem',
                       }
@@ -167,7 +169,7 @@ export const CalendarWeekGrid: React.FC<CalendarWeekGridProps> = ({
                     evt.status?.toUpperCase() === 'DONE' ||
                     evt.status?.toUpperCase() === 'COMPLETED';
 
-                  const calColor = isCaldav ? (evt.project?.color || '#8a2be2') : undefined;
+                  const calColor = isCaldav ? (evt.project?.color || 'var(--accent-caldav)') : undefined;
                   const calRgb = calColor ? parseColorToRgb(calColor) : null;
 
                   return (

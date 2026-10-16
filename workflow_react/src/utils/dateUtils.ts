@@ -178,3 +178,75 @@ export const getEffectiveEventRange = (
     isMultiDay: startOnly !== endOnly,
   };
 };
+
+export type TimeFormatMode = '12h' | '24h';
+
+/**
+ * 날짜 문자열이 순수 날짜(종일 일정: YYYY-MM-DD)인지, 시간 정보가 포함된 일정인지 판별합니다.
+ * - YYYY-MM-DD 형식
+ * - T00:00:00, 00:00:00 (자정 기본값)으로 저장된 종일 일정
+ * 모두 종일 일정으로 간주하여 false를 반환합니다.
+ */
+export const hasTimeComponent = (dateInput?: string | null): boolean => {
+  if (!dateInput) return false;
+  const clean = dateInput.trim();
+  // 1. 순수 YYYY-MM-DD 형식인 경우
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return false;
+
+  // 2. T 또는 공백이 없으면 날짜 전용
+  if (!clean.includes('T') && !clean.includes(' ')) return false;
+
+  // 3. 자정(00:00:00)으로 저장된 종일 일정 여부 확인 (UTC 00:00 또는 로컬 00:00)
+  if (
+    /T00:00(:00)?(\.000)?(Z|[+-]\d{2}:\d{2})?$/i.test(clean) ||
+    / 00:00(:00)?$/i.test(clean)
+  ) {
+    return false;
+  }
+
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return false;
+
+  // UTC 자정(00:00:00)인 경우 (한국시간 KST 기준 09:00으로 렌더링되던 문제 원천 차단)
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+    return false;
+  }
+
+  // 로컬 자정(00:00:00)인 경우
+  if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * 일정 시작 시각을 12시간 또는 24시간 표기법에 맞춰 간결하게 포맷합니다.
+ * - 종일 일정이거나 유효하지 않은 날짜인 경우 null 반환
+ * - 12시간제: "오전 9:30", "오후 2:00"
+ * - 24시간제: "09:30", "14:00"
+ */
+export const formatEventStartTime = (
+  dateInput?: string | null,
+  format: TimeFormatMode = '24h',
+  isAllDayProp?: boolean
+): string | null => {
+  if (isAllDayProp === true) return null;
+  if (!dateInput || !hasTimeComponent(dateInput)) return null;
+
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+
+  const hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+
+  if (format === '12h') {
+    const period = hours < 12 ? '오전' : '오후';
+    const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+    return `${period} ${displayHour}:${minutes}`;
+  }
+
+  // 24시간제 (기본)
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+};
+

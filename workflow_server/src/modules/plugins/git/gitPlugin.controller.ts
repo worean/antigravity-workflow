@@ -1,4 +1,4 @@
-﻿﻿﻿import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { getGitConfigService } from './services/getGitConfig.service.js';
 import { updateGitConfigService } from './services/updateGitConfig.service.js';
 import { testGitConnectionService } from './services/testGitConnection.service.js';
@@ -10,6 +10,16 @@ import { createBranchService } from './services/createBranch.service.js';
 import { createPullRequestService } from './services/createPullRequest.service.js';
 import { getPipelinesService } from './services/getPipelines.service.js';
 import { handleGitWebhookService } from './services/handleGitWebhook.service.js';
+import { listRemoteRepositoriesService } from './services/listRemoteRepositories.service.js';
+import { listRepoCommitsService } from './services/listRepoCommits.service.js';
+import { getCommitDetailService } from './services/getCommitDetail.service.js';
+import { linkCommitToIssueService } from './services/linkCommitToIssue.service.js';
+import { unlinkCommitFromIssueService } from './services/unlinkCommitFromIssue.service.js';
+import { linkCommitToWorklogService } from './services/linkCommitToWorklog.service.js';
+import { unlinkCommitFromWorklogService } from './services/unlinkCommitFromWorklog.service.js';
+import { batchLinkCommitsToIssueService } from './services/batchLinkCommitsToIssue.service.js';
+import { syncPullRequestCommitsService } from './services/syncPullRequestCommits.service.js';
+
 
 export async function getGitConfig(req: Request, res: Response) {
   try {
@@ -42,8 +52,9 @@ export async function updateGitConfig(req: Request, res: Response) {
 
 export async function testGitConnection(req: Request, res: Response) {
   try {
+    const workspaceId = (req as any).workspace?.id || 1;
     const { provider, token, serverUrl } = req.body;
-    const result = await testGitConnectionService({ provider, token, serverUrl });
+    const result = await testGitConnectionService({ workspaceId, provider, token, serverUrl });
     if (result.success) {
       res.json(result);
     } else {
@@ -157,3 +168,175 @@ export async function handleWebhook(req: Request, res: Response) {
     res.status(400).json({ success: false, error: err.message });
   }
 }
+
+export async function listRemoteRepositories(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const projectId = req.query.projectId ? parseInt(req.query.projectId as string, 10) : undefined;
+    const repositories = await listRemoteRepositoriesService({ workspaceId, projectId });
+    res.json({ success: true, repositories });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function listRepoCommits(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const repoMappingId = parseInt(req.params.repoMappingId, 10);
+    const branch = req.query.branch as string | undefined;
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const perPage = req.query.perPage ? parseInt(req.query.perPage as string, 10) : 30;
+
+    const result = await listRepoCommitsService({
+      workspaceId,
+      repoMappingId,
+      branch,
+      page,
+      perPage,
+    });
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function getCommitDetail(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const repoMappingId = parseInt(req.params.repoMappingId, 10);
+    const sha = req.params.sha;
+
+    const detail = await getCommitDetailService({
+      workspaceId,
+      repoMappingId,
+      sha,
+    });
+    res.json({ success: true, commit: detail });
+  } catch (err: any) {
+    res.status(404).json({ success: false, error: err.message });
+  }
+}
+
+export async function linkCommitToIssue(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const issueId = parseInt(req.params.issueId, 10);
+    const { repoMappingId, commitHash, message, authorName, authorEmail, committedAt, url } = req.body;
+
+    const commitLink = await linkCommitToIssueService({
+      workspaceId,
+      issueId,
+      repoMappingId: Number(repoMappingId),
+      commitHash,
+      message,
+      authorName: authorName || 'unknown',
+      authorEmail,
+      committedAt,
+      url,
+    });
+    res.status(201).json({ success: true, commitLink });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function unlinkCommitFromIssue(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const issueId = parseInt(req.params.issueId, 10);
+    const commitLinkId = parseInt(req.params.commitLinkId, 10);
+
+    const result = await unlinkCommitFromIssueService({
+      workspaceId,
+      issueId,
+      commitLinkId,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function linkCommitToWorklog(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const worklogId = parseInt(req.params.worklogId, 10);
+    const { repoMappingId, commitHash, message, authorName, authorEmail, committedAt, url } = req.body;
+
+    const worklogCommit = await linkCommitToWorklogService({
+      workspaceId,
+      worklogId,
+      repoMappingId: Number(repoMappingId),
+      commitHash,
+      message,
+      authorName: authorName || 'unknown',
+      authorEmail,
+      committedAt,
+      url,
+    });
+    res.status(201).json({ success: true, worklogCommit });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function unlinkCommitFromWorklog(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const worklogId = parseInt(req.params.worklogId, 10);
+
+    const result = await unlinkCommitFromWorklogService({
+      workspaceId,
+      worklogId,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function batchLinkCommitsToIssue(req: Request, res: Response) {
+  try {
+    const workspaceId = (req as any).workspace?.id || 1;
+    const issueId = parseInt(req.params.issueId, 10);
+    const { repoMappingId, commits } = req.body;
+
+    const formattedCommits = (Array.isArray(commits) ? commits : []).map((c: any) => ({
+      repoMappingId: Number(c.repoMappingId || repoMappingId),
+      commitHash: c.commitHash,
+      message: c.message || c.commitMessage || '',
+      authorName: c.authorName || 'unknown',
+      authorEmail: c.authorEmail,
+      committedAt: c.committedAt,
+      url: c.url,
+    }));
+
+    const result = await batchLinkCommitsToIssueService({
+      workspaceId,
+      issueId,
+      commits: formattedCommits,
+    });
+    res.status(201).json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function syncPullRequestCommits(req: Request, res: Response) {
+  try {
+    const prId = req.params.prId ? parseInt(req.params.prId, 10) : undefined;
+    const { repoMappingId, prNumber, issueId } = req.body || {};
+
+    const result = await syncPullRequestCommitsService({
+      prId,
+      repoMappingId: repoMappingId ? Number(repoMappingId) : undefined,
+      prNumber: prNumber ? Number(prNumber) : undefined,
+      issueId: issueId ? Number(issueId) : undefined,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+}
+

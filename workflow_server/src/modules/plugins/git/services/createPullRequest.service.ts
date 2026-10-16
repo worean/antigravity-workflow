@@ -75,5 +75,38 @@ export async function createPullRequestService(params: CreatePullRequestParams) 
     },
   });
 
+  // PR에 포함된 모든 커밋을 이슈의 커밋으로 자동 등록 (PR 유실 방지 정책)
+  if (issueId) {
+    try {
+      if (gitProvider.listPullRequestCommits) {
+        const prCommits = await gitProvider.listPullRequestCommits(
+          token,
+          repoIdentifier,
+          result.prNumber,
+          pluginConfig.serverUrl || undefined
+        );
+        if (prCommits && prCommits.length > 0) {
+          const workspaceId = mapping.pluginConfig?.workspaceId || 1;
+          const { batchLinkCommitsToIssueService } = await import('./batchLinkCommitsToIssue.service.js');
+          await batchLinkCommitsToIssueService({
+            workspaceId,
+            issueId,
+            commits: prCommits.map((c) => ({
+              repoMappingId,
+              commitHash: c.commitHash,
+              message: c.message,
+              authorName: c.authorName,
+              authorEmail: c.authorEmail,
+              committedAt: c.committedAt,
+              url: c.url,
+            })),
+          });
+        }
+      }
+    } catch (syncErr) {
+      console.warn(`[GitPlugin] PR 커밋 자동 동기화 경고: ${syncErr instanceof Error ? syncErr.message : syncErr}`);
+    }
+  }
+
   return pr;
 }

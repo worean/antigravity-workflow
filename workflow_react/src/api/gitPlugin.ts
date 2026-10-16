@@ -1,79 +1,8 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 
-export interface GitPluginConfig {
-  id: number;
-  workspaceId: number;
-  isEnabled: boolean;
-  provider: 'GITHUB' | 'GITLAB';
-  serverUrl?: string;
-  hasToken: boolean;
-  maskedToken: string;
-  autoCloseIssueOnMerge: boolean;
-  webhookSecret?: string;
-  webhookUrl: string;
-}
-
-export interface GitRepoMapping {
-  id: number;
-  projectId: number;
-  projectName: string;
-  projectKey: string;
-  repoIdentifier: string;
-  defaultBranch: string;
-  isActive: boolean;
-  prCount?: number;
-  commitCount?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface GitPullRequestItem {
-  id?: number;
-  prNumber: number;
-  title: string;
-  sourceBranch: string;
-  targetBranch: string;
-  state: 'OPEN' | 'MERGED' | 'CLOSED';
-  authorName: string;
-  url: string;
-  ciStatus?: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface GitCommitItem {
-  id: number;
-  commitHash: string;
-  message: string;
-  authorName: string;
-  authorEmail?: string | null;
-  committedAt: string;
-  createdAt: string;
-}
-
-export interface IssueGitData {
-  issueId: number;
-  issueNumber: number;
-  issueTitle: string;
-  projectKey: string;
-  availableRepositories: Array<{
-    id: number;
-    repoIdentifier: string;
-    defaultBranch: string;
-  }>;
-  pullRequests: GitPullRequestItem[];
-  commits: GitCommitItem[];
-}
-
-export interface GitPipelineItem {
-  id: string | number;
-  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'UNKNOWN';
-  branch: string;
-  commitHash: string;
-  url: string;
-  createdAt: string;
-}
+import type { GitPluginConfig, GitRepoMapping, GitPullRequestItem, GitCommitItem, GitCommitDetail, IssueGitData, GitPipelineItem, GitRemoteRepoItem } from './gitPlugin.types';
+export * from './gitPlugin.types';
 
 export const gitPluginKeys = {
   all: ['git-plugin'] as const,
@@ -81,7 +10,11 @@ export const gitPluginKeys = {
   mappings: (projectId?: number) => [...gitPluginKeys.all, 'mappings', projectId ?? 'all'] as const,
   issueData: (issueId: number) => [...gitPluginKeys.all, 'issue', issueId] as const,
   pipelines: (mappingId: number) => [...gitPluginKeys.all, 'pipelines', mappingId] as const,
+  remoteRepos: (projectId?: number) => [...gitPluginKeys.all, 'remote-repos', projectId ?? 'all'] as const,
+  repoCommits: (repoMappingId: number, branch?: string) => [...gitPluginKeys.all, 'commits', repoMappingId, branch || 'default'] as const,
+  commitDetail: (repoMappingId: number, sha: string) => [...gitPluginKeys.all, 'commit-detail', repoMappingId, sha] as const,
 };
+
 
 // 1. 설정 조회
 export const fetchGitConfig = async (): Promise<GitPluginConfig> => {
@@ -238,3 +171,156 @@ export const usePipelines = (repoMappingId: number, enabled: boolean = true) => 
     enabled: enabled && repoMappingId > 0,
   });
 };
+
+// 11. 원격 Git 계정(GitHub/GitLab)의 전체 리포지토리 목록 조회
+export const fetchRemoteRepositories = async (projectId?: number): Promise<GitRemoteRepoItem[]> => {
+  const url = projectId ? `/plugins/git/remote-repos?projectId=${projectId}` : '/plugins/git/remote-repos';
+  const { data } = await apiClient.get(url);
+  return data.repositories || [];
+};
+
+export const useRemoteRepositories = (projectId?: number, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: gitPluginKeys.remoteRepos(projectId),
+    queryFn: () => fetchRemoteRepositories(projectId),
+    enabled,
+    staleTime: 1000 * 60 * 2, // 2분 캐시
+  });
+};
+
+// 12. 저장소 커밋 로그 목록 조회
+export const fetchRepoCommits = async (
+  repoMappingId: number,
+  branch?: string,
+  page: number = 1,
+  perPage: number = 30
+): Promise<{ commits: GitCommitItem[]; branch: string; repoIdentifier: string }> => {
+  const params: any = { page, perPage };
+  if (branch) params.branch = branch;
+  const { data } = await apiClient.get(`/plugins/git/repos/${repoMappingId}/commits`, { params });
+  return data;
+};
+
+export const useRepoCommits = (
+  repoMappingId?: number,
+  branch?: string,
+  page: number = 1,
+  perPage: number = 30,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: [...gitPluginKeys.repoCommits(repoMappingId || 0, branch), page, perPage],
+    queryFn: () => fetchRepoCommits(repoMappingId!, branch, page, perPage),
+    enabled: enabled && Boolean(repoMappingId && repoMappingId > 0),
+    staleTime: 1000 * 30,
+  });
+};
+
+// 13. 커밋 상세 정보 조회 (파일 diff 및 변경통계)
+export const fetchCommitDetail = async (
+  repoMappingId: number,
+  sha: string
+): Promise<GitCommitDetail> => {
+  const { data } = await apiClient.get(`/plugins/git/repos/${repoMappingId}/commits/${sha}`);
+  return data.commit;
+};
+
+export const useCommitDetail = (
+  repoMappingId?: number,
+  sha?: string,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: gitPluginKeys.commitDetail(repoMappingId || 0, sha || ''),
+    queryFn: () => fetchCommitDetail(repoMappingId!, sha!),
+    enabled: enabled && Boolean(repoMappingId && sha && sha.trim()),
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
+// 14. 이슈에 커밋 수동 연결
+export const linkCommitToIssue = async (payload: {
+  issueId: number;
+  repoMappingId: number;
+  commitHash: string;
+  message: string;
+  authorName: string;
+  authorEmail?: string;
+  committedAt?: string;
+}): Promise<any> => {
+  const { issueId, ...rest } = payload;
+  const { data } = await apiClient.post(`/plugins/git/issues/${issueId}/commits`, rest);
+  return data.commitLink;
+};
+
+export const useLinkCommitToIssue = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: linkCommitToIssue,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: gitPluginKeys.issueData(variables.issueId) });
+    },
+  });
+};
+
+// 15. 이슈 커밋 연결 해제
+export const unlinkCommitFromIssue = async (payload: {
+  issueId: number;
+  commitLinkId: number;
+}): Promise<{ success: boolean }> => {
+  const { issueId, commitLinkId } = payload;
+  const { data } = await apiClient.delete(`/plugins/git/issues/${issueId}/commits/${commitLinkId}`);
+  return data;
+};
+
+export const useUnlinkCommitFromIssue = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: unlinkCommitFromIssue,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: gitPluginKeys.issueData(variables.issueId) });
+    },
+  });
+};
+
+// 16. 작업로그에 커밋 연결 (1:1)
+export const linkCommitToWorklog = async (payload: {
+  worklogId: number;
+  repoMappingId: number;
+  commitHash: string;
+  message: string;
+  authorName: string;
+  authorEmail?: string;
+  committedAt?: string;
+}): Promise<any> => {
+  const { worklogId, ...rest } = payload;
+  const { data } = await apiClient.post(`/plugins/git/worklogs/${worklogId}/commit`, rest);
+  return data.worklogCommit;
+};
+
+export const useLinkCommitToWorklog = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: linkCommitToWorklog,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['worklogs'] });
+    },
+  });
+};
+
+// 17. 작업로그 커밋 연결 해제
+export const unlinkCommitFromWorklog = async (worklogId: number): Promise<{ success: boolean }> => {
+  const { data } = await apiClient.delete(`/plugins/git/worklogs/${worklogId}/commit`);
+  return data;
+};
+
+export const useUnlinkCommitFromWorklog = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: unlinkCommitFromWorklog,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['worklogs'] });
+    },
+  });
+};
+

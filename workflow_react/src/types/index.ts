@@ -274,7 +274,19 @@ export interface Worklog {
   description?: string;
   startedAt?: string;
   createdAt: string;
+  gitCommit?: {
+    id: number;
+    repoMappingId: number;
+    repoMapping?: { id: number; repoIdentifier: string };
+    commitHash: string;
+    message: string;
+    authorName: string;
+    authorEmail?: string | null;
+    committedAt: string;
+    createdAt: string;
+  };
 }
+
 
 export interface HealthStatus {
   status: string;
@@ -286,134 +298,8 @@ export interface HealthStatus {
 // ----------------------------------------------------
 // 💬 Discord-style Chat System Types
 // ----------------------------------------------------
-export type ChannelType = 'GLOBAL' | 'GENERAL' | 'PROJECT' | 'GROUP' | 'DM';
-export type NotificationLevel = 'ALL' | 'MENTIONS_ONLY' | 'MUTED';
-
-export interface ChatMember {
-  id: number;
-  userId: number;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER' | string;
-  notificationLevel: NotificationLevel;
-  mutedUntil?: string | null;
-  user?: User;
-}
-
-export interface ChatChannel {
-  id: number;
-  name: string;
-  rawName: string;
-  type: ChannelType;
-  topic?: string | null;
-  icon?: string | null;
-  isPrivate?: boolean;
-  isFavorite?: boolean;
-  workspaceId?: number | null;
-  hasMention?: boolean;
-  projectId?: number | null;
-  project?: { id: number; name: string; key: string } | null;
-  groupId?: number | null;
-  group?: { id: number; name: string; code?: string | null } | null;
-  memberCount: number;
-  members: ChatMember[];
-  mySettings: {
-    notificationLevel: NotificationLevel;
-    mutedUntil?: string | null;
-    lastReadAt?: string;
-  };
-  lastMessage?: {
-    id: number;
-    content: string;
-    senderId: number;
-    senderName?: string | null;
-    createdAt: string;
-  } | null;
-  unreadCount: number;
-  displayAvatar?: string | null;
-  displayAvatarColor?: string | null;
-  otherUser?: User | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ChatReactionGroup {
-  emoji: string;
-  count: number;
-  users: { id: number; name: string }[];
-  hasReacted: boolean;
-}
-
-export interface ChatAttachment {
-  fileName: string;
-  fileSize: number;
-  fileUrl: string;
-  fileType?: string | null;
-}
-
-export interface ChatMessage {
-  id: number;
-  channelId: number;
-  senderId: number;
-  sender: {
-    id: number;
-    name?: string | null;
-    email: string;
-    avatar?: string | null;
-    avatarColor?: string | null;
-    role?: string;
-  };
-  content: string;
-  attachments?: ChatAttachment[] | string | any[] | null;
-  mentions?: (number | string)[];
-  hasMention?: boolean;
-  isPinned?: boolean;
-  isSystem?: boolean;
-  reactions: ChatReactionGroup[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST';
-
-export interface Workspace {
-  id: number;
-  slug: string;
-  name: string;
-  description?: string | null;
-  icon?: string | null;
-  ownerId: number;
-  dbType?: string;
-  status: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
-  myRole?: WorkspaceRole;
-  memberCount?: number;
-  joinedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface WorkspaceMember {
-  id: number;
-  userId: number;
-  role: WorkspaceRole;
-  status: 'ACTIVE' | 'INVITED' | 'SUSPENDED';
-  joinedAt: string;
-  user: {
-    id: number;
-    email: string;
-    name?: string | null;
-    avatar?: string | null;
-    role?: string;
-  };
-}
-
-export interface WorkspaceDetail extends Workspace {
-  owner: {
-    id: number;
-    email: string;
-    name?: string | null;
-    avatar?: string | null;
-  };
-  members: WorkspaceMember[];
-}
+export * from './chat';
+export * from './workspace';
 
 export * from './wbs';
 export * from './chatbot';

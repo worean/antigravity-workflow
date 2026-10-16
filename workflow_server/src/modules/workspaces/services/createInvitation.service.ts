@@ -3,7 +3,7 @@ import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 
 export interface CreateInvitationParams {
-  workspaceId: number;
+  workspaceId?: number;
   email: string;
   role?: string;
   inviterId: number;
@@ -15,10 +15,21 @@ export const createInvitationService = async (params: CreateInvitationParams) =>
   const role = params.role || 'MEMBER';
   const expiresInDays = params.expiresInDays || 7;
 
-  // 1. 워크스페이스 확인
-  const workspace = await globalPrisma.workspace.findUnique({
-    where: { id: params.workspaceId },
-  });
+  // 1. 워크스페이스 확인 (workspaceId가 전달되지 않거나 0이면 단일 활성 워크스페이스 자동 탐색)
+  let workspace =
+    params.workspaceId && params.workspaceId > 0
+      ? await globalPrisma.workspace.findUnique({
+          where: { id: params.workspaceId },
+        })
+      : null;
+
+  if (!workspace) {
+    workspace = await globalPrisma.workspace.findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: { id: 'asc' },
+    });
+  }
+
   if (!workspace) throw new Error('Workspace not found');
 
   // 2. 해당 이메일의 유저가 이미 가입되어 있는지 확인

@@ -32,6 +32,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       maxWidth="380px"
       title={title}
       zIndex={zIndex}
+      isConfirm={true}
       icon={
         <div
           style={{

@@ -3,12 +3,11 @@ import { globalPrisma } from '#lib/globalPrisma.js';
 import { prisma as defaultWorkspacePrisma } from '#lib/prisma.js';
 
 /**
- * 🔒 단일 워크스페이스 데이터베이스 접근 인가 미들웨어
+ * 🔒 단일 워크스페이스 데이터베이스 접근 인가 미들웨어 (1 Server = 1 Workspace)
  *
  * 구조:
- * - 시스템 전반에 단일 기본 워크스페이스만 운영합니다.
- * - 클라이언트가 x-workspace-id 헤더나 workspaceId 파라미터를 넘길 필요 없이,
- *   항상 활성화된 단일 워크스페이스와 Workspace DB PrismaClient를 자동 주입합니다.
+ * - 한 서버는 단일 기본 워크스페이스만 전담합니다.
+ * - 클라이언트의 헤더/파라미터와 무관하게 활성화된 단일 워크스페이스와 싱글톤 Workspace DB PrismaClient를 주입합니다.
  */
 export const requireWorkspaceAccess = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -17,28 +16,13 @@ export const requireWorkspaceAccess = async (req: Request, res: Response, next: 
       return res.status(401).json({ error: 'Unauthorized: Authentication required' });
     }
 
-    // 1. 단일 기본 워크스페이스 조회 (클라이언트가 넘기지 않아도 항상 자동 로드)
-    let workspace: any = null;
-    let workspaceId = Number(
-      req.headers['x-workspace-id'] ||
-        req.params.workspaceId ||
-        req.query.workspaceId ||
-        req.body?.workspaceId
-    );
-
-    if (workspaceId && !isNaN(workspaceId)) {
-      workspace = await globalPrisma.workspace.findUnique({ where: { id: workspaceId } });
-    }
+    // 1. 단일 활성 워크스페이스 조회 (없을 경우 최초 1회 자동 생성)
+    let workspace = await globalPrisma.workspace.findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: { id: 'asc' },
+    });
 
     if (!workspace) {
-      workspace = await globalPrisma.workspace.findFirst({
-        where: { status: 'ACTIVE' },
-        orderBy: { id: 'asc' },
-      });
-    }
-
-    if (!workspace) {
-      // 기본 워크스페이스가 없을 경우 최초 1회 자동 생성
       const defaultName = process.env.DEFAULT_WORKSPACE_NAME?.trim() || 'AntiGravity';
       workspace = await globalPrisma.workspace.create({
         data: {
@@ -77,7 +61,7 @@ export const requireWorkspaceAccess = async (req: Request, res: Response, next: 
           },
         });
         userRole = membership.role;
-      } catch (e) {
+      } catch {
         userRole = 'MEMBER';
       }
     }

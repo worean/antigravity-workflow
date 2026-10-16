@@ -1,19 +1,18 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getIssue,
   updateIssue,
   deleteIssue,
-  getProjects,
-  getUsers,
-  getIssues,
-  getCustomFields,
   getComments,
   toggleLikeIssue,
   getWorklogs,
 } from '@/services/api';
-import { issueKeys } from '@/api/issues';
-import type { Issue, Project, User, CustomFieldDefinition } from '@/types';
+import { issueKeys, useIssues } from '@/api/issues';
+import { useProjects } from '@/api/projects';
+import { useUsers } from '@/api/users';
+import { useCustomFields } from '@/api/customFields';
+import type { Issue } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { formatDateOnly } from '@/utils/dateUtils';
 import { organizeComments } from '@/utils/commentTree';
@@ -22,7 +21,7 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { useIssueComments } from './useIssueComments';
 import { useIssueWorklogs } from './useIssueWorklogs';
 
-interface UseIssueDrawerDataProps {
+export interface UseIssueDrawerDataProps {
   isOpen: boolean;
   issueId: number | null;
   mode?: 'view' | 'edit';
@@ -50,12 +49,6 @@ export const useIssueDrawerData = ({
   const [isEditing, setIsEditing] = useState<boolean>(mode === 'edit');
   const [hasRestoredDraft, setHasRestoredDraft] = useState<boolean>(false);
 
-  // Metadata states
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [candidateParentIssues, setCandidateParentIssues] = useState<Issue[]>([]);
-  const [customDefs, setCustomDefs] = useState<CustomFieldDefinition[]>([]);
-
   // Form Fields
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -73,18 +66,36 @@ export const useIssueDrawerData = ({
   const [actualEndDate, setActualEndDate] = useState<string>('');
   const [customFieldsData, setCustomFieldsData] = useState<Record<string, any>>({});
 
-  // Sub-Task Modal & Delete Confirm State
-  const [showCreateSubTaskModal, setShowCreateSubTaskModal] = useState<boolean>(false);
+  // Delete Confirm State
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
 
   // Social / Likes State
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likesCount, setLikesCount] = useState<number>(0);
 
+  // TanStack Query 캐시 공유 메타데이터 (중복 호출 제거)
+  const { data: projects = [] } = useProjects(undefined, { enabled: isOpen });
+  const { data: users = [] } = useUsers();
+  const { data: customDefs = [] } = useCustomFields();
+  const effectiveProjectId = projectId || issue?.projectId;
+  const { data: projectIssues = [] } = useIssues(
+    { projectId: effectiveProjectId, all: true },
+    { enabled: Boolean(isOpen && effectiveProjectId) }
+  );
+
+  const candidateParentIssues = useMemo(
+    () => projectIssues.filter((i) => i.id !== issueId),
+    [projectIssues, issueId]
+  );
+
   // Sub-hooks for Comments & Worklogs
   const commentsState = useIssueComments({ issue, isAuthenticated, onOpenAuth, onIssueUpdated, executeAction });
   const worklogsState = useIssueWorklogs({ issue, onIssueUpdated });
   const prevDrawerIssueIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setIsEditing(mode === 'edit');
+  }, [mode]);
 
   const populateFromOriginal = (issueData: Issue) => {
     setTitle(issueData.title);
@@ -123,20 +134,13 @@ export const useIssueDrawerData = ({
     if (!issueId) return;
     setLoading(true);
     try {
-      const [issueData, projList, userList, customDefList, commentList, worklogList] =
-        await Promise.all([
-          getIssue(issueId),
-          getProjects(),
-          getUsers(),
-          getCustomFields(),
-          getComments(issueId),
-          getWorklogs(issueId),
-        ]);
+      const [issueData, commentList, worklogList] = await Promise.all([
+        getIssue(issueId),
+        getComments(issueId),
+        getWorklogs(issueId),
+      ]);
 
       setIssue(issueData);
-      setProjects(projList);
-      setUsers(userList);
-      setCustomDefs(customDefList);
       commentsState.setComments(organizeComments(commentList));
       worklogsState.setWorklogs(worklogList);
       setIsLiked(!!issueData.isLiked);
@@ -166,11 +170,6 @@ export const useIssueDrawerData = ({
         populateFromOriginal(issueData);
         setHasRestoredDraft(false);
       }
-
-      if (issueData.projectId) {
-        const pIssues = await getIssues({ projectId: issueData.projectId, all: true });
-        setCandidateParentIssues(pIssues.filter((i) => i.id !== issueData.id));
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -184,7 +183,7 @@ export const useIssueDrawerData = ({
 
   // 💾 편집 내용 자동 임시 저장 (Debounced Auto Save)
   useEffect(() => {
-    if (!issueId || !issue) return;
+    if (!issueId || !issue || !isEditing) return;
     const timer = setTimeout(() => {
       saveIssueEditDraft(issueId, {
         title, description, projectId, parentId, assigneeId,
@@ -194,7 +193,7 @@ export const useIssueDrawerData = ({
     }, 600);
     return () => clearTimeout(timer);
   }, [
-    issueId, issue, title, description, projectId, parentId, assigneeId,
+    issueId, issue, isEditing, title, description, projectId, parentId, assigneeId,
     priorityId, statusId, typeId, progress, plannedStartDate, dueDate,
     actualStartDate, actualEndDate, customFieldsData,
   ]);
@@ -315,7 +314,6 @@ export const useIssueDrawerData = ({
     actualStartDate, setActualStartDate,
     actualEndDate, setActualEndDate,
     customFieldsData, setCustomFieldsData,
-    showCreateSubTaskModal, setShowCreateSubTaskModal,
     isLiked, likesCount, handleLike,
     newComment: commentsState.newComment,
     setNewComment: commentsState.setNewComment,

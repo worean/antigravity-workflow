@@ -3,15 +3,15 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { app } from '../app.js';
 import { globalPrisma } from '#lib/globalPrisma.js';
+import { prisma } from '#lib/prisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 import { createWorkspaceService } from '../modules/workspaces/services/createWorkspace.service.js';
 
-describe('Multi-Tenant Database URL Dynamic Allocation & E2E Isolation Test', () => {
+describe('Single-Workspace Server Unification & E2E Policy Test (1 Server = 1 Workspace)', () => {
   const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
   let userA: any;
   let userB: any;
   let tokenA: string;
-  let tokenB: string;
 
   let workspaceA: any;
   let workspaceB: any;
@@ -19,21 +19,23 @@ describe('Multi-Tenant Database URL Dynamic Allocation & E2E Isolation Test', ()
   beforeAll(async () => {
     // 1. Global 사용자 A, B 생성
     userA = await globalPrisma.user.upsert({
-      where: { email: 'user_a_isolation@example.com' },
+      where: { email: 'user_a_single_ws@example.com' },
       update: {},
-      create: { email: 'user_a_isolation@example.com', name: 'User Alpha', role: 'MEMBER' },
+      create: { email: 'user_a_single_ws@example.com', name: 'User Alpha', role: 'MEMBER' },
     });
 
     userB = await globalPrisma.user.upsert({
-      where: { email: 'user_b_isolation@example.com' },
+      where: { email: 'user_b_single_ws@example.com' },
       update: {},
-      create: { email: 'user_b_isolation@example.com', name: 'User Beta', role: 'MEMBER' },
+      create: { email: 'user_b_single_ws@example.com', name: 'User Beta', role: 'MEMBER' },
     });
 
-    tokenA = jwt.sign({ userId: userA.id, email: userA.email }, jwtSecret, { expiresIn: '1h' });
-    tokenB = jwt.sign({ userId: userB.id, email: userB.email }, jwtSecret, { expiresIn: '1h' });
+    await workspaceManager.syncUserToWorkspace(prisma, userA);
+    await workspaceManager.syncUserToWorkspace(prisma, userB);
 
-    // 2. 각각 독립된 워크스페이스 생성 (각각 고유한 dbUrl 자동 할당)
+    tokenA = jwt.sign({ userId: userA.id, email: userA.email }, jwtSecret, { expiresIn: '1h' });
+
+    // 2. 단일 워크스페이스 정책: 여러 번 호출해도 서버의 단일 활성 워크스페이스를 반환
     workspaceA = await createWorkspaceService(userA, { name: 'Alpha Organization' });
     workspaceB = await createWorkspaceService(userB, { name: 'Beta Organization' });
   });
@@ -42,58 +44,38 @@ describe('Multi-Tenant Database URL Dynamic Allocation & E2E Isolation Test', ()
     await workspaceManager.closeAll();
   });
 
-  it('1. 사용자 A와 B는 서로 다른 물리적 Database URL을 할당받아야 한다', () => {
-    expect(workspaceA.dbUrl).toBeDefined();
-    expect(workspaceB.dbUrl).toBeDefined();
-    expect(workspaceA.dbUrl).not.toBe(workspaceB.dbUrl);
-    expect(workspaceA.dbUrl).toContain('ws_alpha-organization');
-    expect(workspaceB.dbUrl).toContain('ws_beta-organization');
+  it('1. 단일 워크스페이스 정책에 따라 동일 서버 내 워크스페이스 생성 요청은 단일 활성 워크스페이스로 귀속되어야 한다', () => {
+    expect(workspaceA.id).toBeDefined();
+    expect(workspaceB.id).toBe(workspaceA.id);
+    expect(workspaceA.dbUrl).toBe(workspaceB.dbUrl);
   });
 
-  it('2. 사용자 A의 DB 인스턴스에 생성된 프로젝트는 사용자 B의 DB 인스턴스에 존재하지 않아야 한다 (물리 격리)', async () => {
+  it('2. 서버 내 모든 사용자는 단일 싱글톤 Workspace DB 인스턴스를 공유하며 프로젝트 데이터를 일관되게 조회해야 한다', async () => {
     const dbA = await workspaceManager.getDbClient(workspaceA);
     const dbB = await workspaceManager.getDbClient(workspaceB);
 
-    // DB A에 Project 생성
+    expect(dbA).toBe(prisma);
+    expect(dbB).toBe(prisma);
+
     const projectA = await dbA.project.create({
       data: {
-        name: 'Alpha Confidential Core',
-        key: `ALPH_${Date.now()}`,
+        name: 'Unified Workspace Core Project',
+        key: `UNIF_${Date.now()}`,
         ownerId: userA.id,
       },
     });
 
-    // DB B에 Project 생성
-    const projectB = await dbB.project.create({
-      data: {
-        name: 'Beta Top Secret Research',
-        key: `BETA_${Date.now()}`,
-        ownerId: userB.id,
-      },
-    });
-
-    // DB A 검증: projectA는 존재하고 projectB는 null이어야 함
-    const foundAInA = await dbA.project.findUnique({ where: { id: projectA.id } });
-    const foundBInA = await dbA.project.findFirst({ where: { key: projectB.key } });
-    expect(foundAInA).toBeDefined();
-    expect(foundAInA?.name).toBe('Alpha Confidential Core');
-    expect(foundBInA).toBeNull();
-
-    // DB B 검증: projectB는 존재하고 projectA는 null이어야 함
-    const foundBInB = await dbB.project.findUnique({ where: { id: projectB.id } });
-    const foundAInB = await dbB.project.findFirst({ where: { key: projectA.key } });
-    expect(foundBInB).toBeDefined();
-    expect(foundBInB?.name).toBe('Beta Top Secret Research');
-    expect(foundAInB).toBeNull();
+    const foundInUnifiedDb = await dbB.project.findUnique({ where: { id: projectA.id } });
+    expect(foundInUnifiedDb).toBeDefined();
+    expect(foundInUnifiedDb?.name).toBe('Unified Workspace Core Project');
   });
 
-  it('3. 사용자 A가 사용자 B의 워크스페이스(Workspace B)로 API 요청 시 403 Forbidden 차단되어야 한다', async () => {
+  it('3. 인증된 사용자가 워크스페이스 상세 조회 API 요청 시 단일 활성 워크스페이스로 정상 응답(200 OK)해야 한다', async () => {
     const res = await request(app)
-      .get(`/api/workspaces/${workspaceB.id}`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .set('x-workspace-id', String(workspaceB.id));
+      .get(`/api/workspaces/${workspaceA.id}`)
+      .set('Authorization', `Bearer ${tokenA}`);
 
-    expect(res.status).toBe(403);
-    expect(res.body.code).toBe('WORKSPACE_ACCESS_DENIED');
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(workspaceA.id);
   });
 });

@@ -25,8 +25,14 @@ export const getWorklogsService = async (query: GetWorklogsQuery = {}) => {
     where,
     include: {
       user: { select: { id: true, name: true, email: true, avatar: true, avatarColor: true } },
-      issue: { select: { id: true, title: true, projectId: true, project: { select: { id: true, name: true, key: true } } } }
+      issue: { select: { id: true, title: true, projectId: true, project: { select: { id: true, name: true, key: true } } } },
+      gitCommit: {
+        include: {
+          repoMapping: { select: { id: true, repoIdentifier: true } },
+        },
+      },
     },
+
     orderBy: { createdAt: 'desc' },
     take: Number(limit),
     skip: Number(offset)

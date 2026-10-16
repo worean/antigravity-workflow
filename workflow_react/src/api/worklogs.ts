@@ -30,10 +30,19 @@ export const createWorklog = async (data: {
   timeSpentHours?: number;
   description?: string;
   startedAt?: string;
+  gitCommit?: {
+    repoMappingId: number;
+    commitHash: string;
+    message: string;
+    authorName: string;
+    authorEmail?: string;
+    committedAt?: string;
+  };
 }): Promise<Worklog> => {
   const res = await apiClient.post('/worklogs', data);
   return res.data;
 };
+
 
 export const worklogKeys = {
   all: ['worklogs'] as const,

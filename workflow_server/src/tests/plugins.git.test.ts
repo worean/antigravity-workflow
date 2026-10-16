@@ -10,7 +10,9 @@ describe('🧪 [plugins.git] Git Integration Plugin REST API & Services Tests', 
   let authToken: string;
   let testProject: any;
   let testIssue: any;
+  let testWorklog: any;
   let createdMappingId: number;
+
 
   beforeAll(async () => {
     testUser = await prisma.user.upsert({
@@ -55,17 +57,31 @@ describe('🧪 [plugins.git] Git Integration Plugin REST API & Services Tests', 
         priorityId: priority.id,
       },
     });
+
+    testWorklog = await prisma.worklog.create({
+      data: {
+        issueId: testIssue.id,
+        userId: testUser.id,
+        timeSpent: 60,
+        description: 'Implementing Git plugin features',
+      },
+    });
   });
 
   afterAll(async () => {
     if (createdMappingId) {
       await prisma.gitRepositoryMapping.delete({ where: { id: createdMappingId } }).catch(() => {});
     }
+    if (testWorklog) {
+      await prisma.gitWorklogCommitLink.deleteMany({ where: { worklogId: testWorklog.id } }).catch(() => {});
+      await prisma.worklog.delete({ where: { id: testWorklog.id } }).catch(() => {});
+    }
     if (testIssue) {
       await prisma.gitPullRequest.deleteMany({ where: { issueId: testIssue.id } }).catch(() => {});
       await prisma.gitCommitLink.deleteMany({ where: { issueId: testIssue.id } }).catch(() => {});
       await prisma.issue.delete({ where: { id: testIssue.id } }).catch(() => {});
     }
+
     if (testProject) {
       await prisma.project.delete({ where: { id: testProject.id } }).catch(() => {});
     }
@@ -122,6 +138,21 @@ describe('🧪 [plugins.git] Git Integration Plugin REST API & Services Tests', 
       expect(res.body.success).toBe(false);
       expect(res.body.message).toContain('Token');
     });
+
+    it('TC-POS-02-B: POST /api/plugins/git/test-connection - __SAVED_TOKEN__ 전송 시 저장된 토큰 복호화 사용', async () => {
+      // TC-POS-02에서 저장된 토큰이 있으므로 __SAVED_TOKEN__으로 연결 테스트를 호출하면 복호화된 토큰으로 verifyToken 시도
+      const res = await request(app)
+        .post('/api/plugins/git/test-connection')
+        .set('Authorization', 'Bearer ' + authToken)
+        .send({
+          provider: 'GITHUB',
+          token: '__SAVED_TOKEN__',
+        });
+
+      // 모의 또는 실제 호출 시 400(가짜 토큰이므로 GitHub Auth Failed)이더라도 메시지에 __SAVED_TOKEN__이 아닌 실제 검증 결과가 와야 함
+      expect(res.body.message).not.toContain('__SAVED_TOKEN__');
+      expect(res.body.message).toContain('GitHub Auth Failed');
+    });
   });
 
   describe('2. 프로젝트 - Git 저장소 매핑 (Repository Mapping)', () => {
@@ -165,6 +196,16 @@ describe('🧪 [plugins.git] Git Integration Plugin REST API & Services Tests', 
       expect(Array.isArray(res.body.mappings)).toBe(true);
       expect(res.body.mappings.length).toBeGreaterThanOrEqual(1);
       expect(res.body.mappings[0].repoIdentifier).toBe('antigravity-org/core-service');
+    });
+
+    it('TC-POS-04-B: GET /api/plugins/git/remote-repos - 원격 저장소 목록 조회 API 응답 확인', async () => {
+      const res = await request(app)
+        .get(`/api/plugins/git/remote-repos?projectId=${testProject.id}`)
+        .set('Authorization', 'Bearer ' + authToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.repositories)).toBe(true);
     });
   });
 
@@ -256,7 +297,93 @@ describe('🧪 [plugins.git] Git Integration Plugin REST API & Services Tests', 
     });
   });
 
-  describe('5. 저장소 매핑 삭제 (Clean up Mapping)', () => {
+  describe('5. 이슈 및 작업로그 커밋 수동 연결/해제 (Commit Linking)', () => {
+    let createdCommitLinkId: number;
+
+    it('TC-POS-09: POST /api/plugins/git/issues/:issueId/commits - 이슈에 커밋 수동 연결 (1:N)', async () => {
+      const res = await request(app)
+        .post(`/api/plugins/git/issues/${testIssue.id}/commits`)
+        .set('Authorization', 'Bearer ' + authToken)
+        .send({
+          repoMappingId: createdMappingId,
+          commitHash: 'a1b2c3d4e5f678901234567890abcdef12345678',
+          message: 'feat: add manual commit link to issue',
+          authorName: 'Developer Kim',
+          authorEmail: 'dev.kim@example.com',
+          committedAt: new Date().toISOString(),
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.commitLink).toBeDefined();
+      expect(res.body.commitLink.commitHash).toBe('a1b2c3d4e5f678901234567890abcdef12345678');
+      createdCommitLinkId = res.body.commitLink.id;
+    });
+
+    it('TC-POS-10: POST /api/plugins/git/worklogs/:worklogId/commit - 작업로그에 1개 커밋 연결 (1:1)', async () => {
+      const res = await request(app)
+        .post(`/api/plugins/git/worklogs/${testWorklog.id}/commit`)
+        .set('Authorization', 'Bearer ' + authToken)
+        .send({
+          repoMappingId: createdMappingId,
+          commitHash: 'b2c3d4e5f6a178901234567890abcdef12345678',
+          message: 'refactor: worklog linked commit implementation',
+          authorName: 'Developer Park',
+          authorEmail: 'dev.park@example.com',
+          committedAt: new Date().toISOString(),
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.worklogCommit).toBeDefined();
+      expect(res.body.worklogCommit.commitHash).toBe('b2c3d4e5f6a178901234567890abcdef12345678');
+      expect(res.body.worklogCommit.worklogId).toBe(testWorklog.id);
+    });
+
+    it('TC-POS-11: GET /api/worklogs - 작업로그 조회 시 연결된 Git 커밋 정보 함께 반환 확인', async () => {
+      const res = await request(app)
+        .get(`/api/worklogs?issueId=${testIssue.id}`)
+        .set('Authorization', 'Bearer ' + authToken);
+
+      expect(res.status).toBe(200);
+      const found = res.body.find((w: any) => w.id === testWorklog.id);
+      expect(found).toBeDefined();
+      expect(found.gitCommit).toBeDefined();
+      expect(found.gitCommit.commitHash).toBe('b2c3d4e5f6a178901234567890abcdef12345678');
+      expect(found.gitCommit.repoMapping.repoIdentifier).toBe('antigravity-org/core-service');
+    });
+
+    it('TC-POS-12: DELETE /api/plugins/git/worklogs/:worklogId/commit - 작업로그 커밋 연결 해제', async () => {
+      const res = await request(app)
+        .delete(`/api/plugins/git/worklogs/${testWorklog.id}/commit`)
+        .set('Authorization', 'Bearer ' + authToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const check = await prisma.gitWorklogCommitLink.findUnique({
+        where: { worklogId: testWorklog.id },
+      });
+      expect(check).toBeNull();
+    });
+
+    it('TC-POS-13: DELETE /api/plugins/git/issues/:issueId/commits/:commitLinkId - 이슈 커밋 연결 해제', async () => {
+      const res = await request(app)
+        .delete(`/api/plugins/git/issues/${testIssue.id}/commits/${createdCommitLinkId}`)
+        .set('Authorization', 'Bearer ' + authToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      const check = await prisma.gitCommitLink.findUnique({
+        where: { id: createdCommitLinkId },
+      });
+      expect(check).toBeNull();
+    });
+  });
+
+  describe('6. 저장소 매핑 삭제 (Clean up Mapping)', () => {
+
     it('TC-POS-08: DELETE /api/plugins/git/mappings/:id - 저장소 매핑 정상 해제', async () => {
       const res = await request(app)
         .delete('/api/plugins/git/mappings/' + createdMappingId)

@@ -1,4 +1,4 @@
-﻿﻿﻿import { describe, it, expect, beforeEach } from 'vitest';
+﻿import { describe, it, expect, beforeEach } from 'vitest';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { updateWorkspaceService } from '../modules/workspaces/services/updateWorkspace.service.js';
 import { getWorkspaceDetailService } from '../modules/workspaces/services/getWorkspaceDetail.service.js';
@@ -78,9 +78,13 @@ describe('Workspaces: Name & PNG Icon Crop Symbol Unit Tests', () => {
     expect(updated.icon).toBe(samplePngDataUrl);
   });
 
-  it('5. 유효하지 않은 워크스페이스 ID인 경우 예외를 발생시켜야 한다', async () => {
+  it('5. workspaceId가 0이면 단일 활성 워크스페이스를 자동 탐색해 수정하고, 음수 ID인 경우 예외를 발생시켜야 한다', async () => {
+    const fallbackResult = await updateWorkspaceService(0, { name: 'Single Active Workspace Fallback' });
+    expect(fallbackResult).toBeDefined();
+    expect(fallbackResult.name).toBe('Single Active Workspace Fallback');
+
     await expect(
-      updateWorkspaceService(0, { name: 'Invalid' })
+      updateWorkspaceService(-1, { name: 'Invalid' })
     ).rejects.toThrow();
   });
 });

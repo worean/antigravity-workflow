@@ -41,7 +41,7 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
       <div
         style={{
           fontSize: '0.65rem',
-          color: 'var(--text-sub, #888)',
+          color: 'var(--text-sub)',
           marginBottom: '3px',
           padding: '0 4px',
         }}
@@ -58,18 +58,18 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
           background: isUser
             ? 'var(--primary)'
             : message.isError
-            ? 'rgba(241, 76, 76, 0.15)'
+            ? 'var(--priority-urgent-bg)'
             : 'var(--bg-card)',
-          color: isUser ? '#ffffff' : 'var(--text-main)',
+          color: isUser ? 'var(--text-on-primary)' : 'var(--text-main)',
           border: isUser
             ? 'none'
             : message.isError
-            ? '1px solid rgba(241, 76, 76, 0.4)'
+            ? '1px solid var(--priority-urgent-border)'
             : '1px solid var(--border-light)',
           fontSize: '0.8rem',
           lineHeight: '1.45',
           wordBreak: 'break-word',
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         {/* 🤖 주도적 다단계 API 조합 및 실행 과정 (Agentic ReAct Steps) */}
@@ -79,8 +79,8 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
               marginBottom: '8px',
               padding: '6px 8px',
               borderRadius: '6px',
-              background: 'rgba(56, 139, 253, 0.08)',
-              border: '1px solid rgba(56, 139, 253, 0.25)',
+              background: 'var(--badge-progress-bg)',
+              border: '1px solid var(--badge-progress-border)',
               fontSize: '0.7rem',
             }}
           >
@@ -92,12 +92,12 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
                 justifyContent: 'space-between',
                 cursor: 'pointer',
                 userSelect: 'none',
-                color: '#58a6ff',
+                color: 'var(--accent-cyan)',
                 fontWeight: 600,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Bot size={13} color="#58a6ff" />
+                <Bot size={13} color="var(--accent-cyan)" />
                 <span>AI 자율 API 연쇄 분석 및 실행 ({message.steps.length}단계)</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.65rem' }}>
@@ -116,19 +116,19 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
                       style={{
                         padding: '4px 6px',
                         borderRadius: '4px',
-                        background: 'rgba(0, 0, 0, 0.3)',
+                        background: 'var(--bg-subtle)',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '2px',
-                        borderLeft: `3px solid ${isRead ? '#388bfd' : '#e3b341'}`,
+                        borderLeft: `3px solid ${isRead ? 'var(--accent-cyan)' : 'var(--priority-high-text)'}`,
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#e6edf3' }}>
-                        {isRead ? <Search size={11} color="#388bfd" /> : <Zap size={11} color="#e3b341" />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-bright)' }}>
+                        {isRead ? <Search size={11} color="var(--accent-cyan)" /> : <Zap size={11} color="var(--priority-high-text)" />}
                         <span style={{ fontWeight: 600 }}>{step.title}</span>
                       </div>
                       {step.resultSummary && (
-                        <div style={{ color: '#8b949e', fontSize: '0.65rem', paddingLeft: '15px' }}>
+                        <div style={{ color: 'var(--text-sub)', fontSize: '0.65rem', paddingLeft: '15px' }}>
                           ↳ {step.resultSummary}
                         </div>
                       )}
@@ -155,16 +155,16 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
               marginTop: '10px',
               padding: '8px 10px',
               borderRadius: '6px',
-              background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(0, 122, 204, 0.12))',
-              border: '1px solid rgba(234, 179, 8, 0.3)',
+              background: 'var(--badge-review-bg)',
+              border: '1px solid var(--badge-review-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#facc15' }}>
-              <Zap size={13} fill="#facc15" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: 'var(--accent-amber)' }}>
+              <Zap size={13} fill="var(--accent-amber)" />
               <span>
                 동시 제안된 <strong>{pendingActions.length}개 작업</strong>
               </span>
@@ -173,10 +173,10 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
               onClick={handleExecuteAll}
               disabled={isExecutingAny}
               style={{
-                background: isExecutingAny ? '#555' : 'linear-gradient(135deg, #eab308, #ca8a04)',
+                background: isExecutingAny ? 'var(--bg-subtle)' : 'var(--priority-high-text)',
                 border: 'none',
                 borderRadius: '5px',
-                color: '#000',
+                color: 'var(--text-inverse)',
                 fontWeight: 700,
                 fontSize: '0.72rem',
                 padding: '4px 10px',
@@ -184,7 +184,7 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                boxShadow: 'var(--shadow-sm)',
                 transition: 'opacity 0.2s',
               }}
             >
@@ -194,7 +194,7 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
                 </>
               ) : (
                 <>
-                  <Zap size={11} fill="#000" /> 모두 실행
+                  <Zap size={11} fill="var(--text-inverse)" /> 모두 실행
                 </>
               )}
             </button>
@@ -216,9 +216,9 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
             style={{
               marginTop: '6px',
               paddingTop: '4px',
-              borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
+              borderTop: '1px dashed var(--border-light)',
               fontSize: '0.62rem',
-              color: 'var(--text-sub, #888)',
+              color: 'var(--text-sub)',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -228,7 +228,7 @@ export const ChatbotMessageItem: React.FC<ChatbotMessageItemProps> = ({ message 
           >
             <span>🪙 {message.usage.totalTokens.toLocaleString()} 토큰</span>
             <span>•</span>
-            <span style={{ color: '#4ec9b0', fontWeight: 500 }}>
+            <span style={{ color: 'var(--secondary)', fontWeight: 500 }}>
               약 {message.usage.estimatedCostKrw < 0.01 ? '< 0.01' : message.usage.estimatedCostKrw}원
             </span>
           </div>

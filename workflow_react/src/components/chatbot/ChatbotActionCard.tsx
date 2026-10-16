@@ -68,11 +68,11 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {isDelete ? (
-            <Trash2 size={13} color="#f85149" />
+            <Trash2 size={13} color="var(--accent-rose)" />
           ) : isUpdate ? (
-            <Edit3 size={13} color="#d29922" />
+            <Edit3 size={13} color="var(--priority-high-text)" />
           ) : isSearch ? (
-            <Search size={13} color="#a371f7" />
+            <Search size={13} color="var(--accent-purple)" />
           ) : (
             <span style={{ fontSize: '0.75rem' }}>⚡</span>
           )}
@@ -80,7 +80,7 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
             style={{
               fontSize: '0.75rem',
               fontWeight: 600,
-              color: isDelete ? '#ff7b72' : isUpdate ? '#e3b341' : isSearch ? '#d2a8ff' : 'var(--text-main, #fff)',
+              color: isDelete ? 'var(--accent-rose)' : isUpdate ? 'var(--priority-high-text)' : isSearch ? 'var(--accent-purple)' : 'var(--text-main)',
             }}
           >
             {action.title}
@@ -92,31 +92,31 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
           {action.autoExecuted && (
             <span
               style={{
-                color: '#facc15',
+                color: 'var(--accent-amber)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '2px',
-                background: 'rgba(234, 179, 8, 0.15)',
+                background: 'var(--badge-review-bg)',
                 padding: '1px 5px',
                 borderRadius: '4px',
               }}
               title="Auto Mode로 자동 실행되었습니다."
             >
-              <Zap size={10} fill="#facc15" /> Auto
+              <Zap size={10} fill="var(--accent-amber)" /> Auto
             </span>
           )}
           {isCompleted && (
-            <span style={{ color: '#4ec9b0', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <Check size={12} /> 완료됨
             </span>
           )}
           {isFailed && (
-            <span style={{ color: '#f14c4c', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <AlertCircle size={12} /> 실패
             </span>
           )}
           {isExecuting && (
-            <span style={{ color: '#388bfd', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <Loader2 size={12} className="spin" /> 실행 중...
             </span>
           )}
@@ -128,8 +128,8 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
         <div
           style={{
             fontSize: '0.7rem',
-            color: 'var(--text-sub, #aaa)',
-            background: 'rgba(0, 0, 0, 0.25)',
+            color: 'var(--text-sub)',
+            background: 'var(--bg-subtle)',
             padding: '5px 8px',
             borderRadius: '4px',
             maxHeight: '65px',
@@ -148,7 +148,7 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
             <div><strong>상태:</strong> {['대기/백로그', '진행 중', '검토 중', '완료'][action.payload.statusId - 1] || action.payload.statusId}</div>
           )}
           {action.payload.dueDate && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#7ee787' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--accent-emerald)' }}>
               <Calendar size={11} /> <strong>마감 기한:</strong> {action.payload.dueDate}
             </div>
           )}
@@ -159,7 +159,7 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
           )}
           {action.payload.projectName && <div><strong>프로젝트:</strong> {action.payload.projectName}</div>}
           {action.payload.status && <div><strong>상태 조건:</strong> {action.payload.status}</div>}
-          {action.payload.isMy && <div style={{ color: '#79c0ff' }}><strong>담당:</strong> 내게 배정된 이슈만</div>}
+          {action.payload.isMy && <div style={{ color: 'var(--accent-cyan)' }}><strong>담당:</strong> 내게 배정된 이슈만</div>}
           {action.payload.dueDateFilter && (
             <div>
               <strong>기한 조건:</strong> {action.payload.dueDateFilter === 'today' ? '오늘 마감' : action.payload.dueDateFilter === 'overdue' ? '기한 지남/초과' : action.payload.dueDateFilter}
@@ -191,7 +191,7 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
             background: buttonBg,
             border: 'none',
             borderRadius: '6px',
-            color: '#fff',
+            color: 'var(--text-on-primary)',
             padding: '6px 10px',
             fontSize: '0.72rem',
             fontWeight: 600,
@@ -217,7 +217,7 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
             </>
           ) : (
             <>
-              <Play size={12} fill="#fff" /> 이 기능 지금 실행하기
+              <Play size={12} fill="var(--text-on-primary)" /> 이 기능 지금 실행하기
             </>
           )}
         </button>
@@ -228,9 +228,9 @@ export const ChatbotActionCard: React.FC<ChatbotActionCardProps> = ({ action }) 
           onClick={() => executeAction(action.id)}
           style={{
             background: 'none',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: '1px solid var(--border-light)',
             borderRadius: '4px',
-            color: 'var(--text-main, #fff)',
+            color: 'var(--text-main)',
             padding: '4px 8px',
             fontSize: '0.7rem',
             cursor: 'pointer',

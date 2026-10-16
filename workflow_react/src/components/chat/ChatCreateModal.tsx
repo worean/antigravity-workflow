@@ -1,14 +1,12 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import {
-  X,
-  MessageSquare,
-  Loader2,
-} from 'lucide-react';
+import { X, MessageSquare, Loader2 } from 'lucide-react';
 import type { ChannelType, User, Project, Group, ChatChannel } from '@/types';
 import { createChannel } from '@/api/chat';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { ActionFeedbackModal } from '@/components/ActionFeedbackModal';
 import { useOverlayClickClose } from '@/hooks/useOverlayClickClose';
+import { useModalLayer } from '@/hooks/useModalLayer';
+import { Portal } from '@/components/common/Portal';
 import { useWorkspace } from '@/context/WorkspaceContext';
 
 export interface ChatCreateModalProps {
@@ -34,6 +32,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
 }) => {
   const { isPending, errorState, closeErrorModal, executeAction } = useActionFeedback();
   const { currentWorkspace } = useWorkspace();
+  const { zIndex: dynamicZIndex } = useModalLayer(isOpen, { onClose, triggerKey: initialType });
   const overlayProps = useOverlayClickClose(onClose);
 
   const [createType, setCreateType] = useState<ChannelType>(initialType);
@@ -43,7 +42,6 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
   const [createProjectId, setCreateProjectId] = useState<number | null>(null);
   const [createGroupId, setCreateGroupId] = useState<number | null>(null);
 
-  // 🔒 이전 열림 상태 추적용 Ref (타이핑 중 원복 방어)
   const prevIsOpenRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -73,7 +71,6 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
         setCreateName('');
       }
     } else {
-      // 🔒 비동기로 프로젝트/그룹 데이터가 로딩되었을 때 자동 보정
       if (createType === 'PROJECT' && !createProjectId && allWorkspaceProjects.length > 0) {
         const firstProj = allWorkspaceProjects[0];
         setCreateProjectId(firstProj.id);
@@ -99,8 +96,6 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
       setCreateGroupId(gId);
       const g = allWorkspaceGroups.find((x) => x.id === gId);
       setCreateName(g ? g.name : '');
-    } else if (newType === 'DM') {
-      setCreateName('');
     } else {
       setCreateName('');
     }
@@ -176,19 +171,18 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <>
+    <Portal>
       <div
         className="modal-overlay"
+        role="dialog"
+        aria-modal="true"
         style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1100,
+          zIndex: dynamicZIndex,
           background: 'rgba(0, 0, 0, 0.65)',
           backdropFilter: 'blur(2px)',
         }}
@@ -218,7 +212,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: '14px',
-              borderBottom: '1px solid var(--border-light, #3c3c3c)',
+              borderBottom: '1px solid var(--border-light)',
               paddingBottom: '8px',
             }}
           >
@@ -229,19 +223,20 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                color: 'var(--text-bright, #fff)',
+                color: 'var(--text-bright)',
               }}
             >
-              <MessageSquare size={16} color="var(--primary, #007acc)" />
+              <MessageSquare size={16} color="var(--primary)" />
               <span>새 채팅 채널 생성</span>
             </div>
 
             <button
+              type="button"
               onClick={onClose}
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-muted, #888)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 padding: '2px',
                 display: 'flex',
@@ -255,10 +250,9 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* 1. 채널 유형 */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                채널 유형 <span style={{ color: '#f43f5e' }}>*</span>
+                채널 유형 <span style={{ color: 'var(--status-urgent)' }}>*</span>
               </label>
               <select
                 className="input-field"
@@ -272,11 +266,10 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
               </select>
             </div>
 
-            {/* 2. 조건부 대상 선택 */}
             {createType === 'DM' ? (
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                  대화 상대 선택 <span style={{ color: '#f43f5e' }}>*</span>
+                  대화 상대 선택 <span style={{ color: 'var(--status-urgent)' }}>*</span>
                 </label>
                 <select
                   className="input-field"
@@ -295,64 +288,59 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
                 </select>
               </div>
             ) : createType === 'PROJECT' ? (
-              <>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                    연결할 프로젝트 <span style={{ color: '#f43f5e' }}>*</span>
-                  </label>
-                  <select
-                    className="input-field"
-                    value={createProjectId || ''}
-                    onChange={(e) => {
-                      const pId = Number(e.target.value);
-                      setCreateProjectId(pId);
-                      const p = allWorkspaceProjects.find((x) => x.id === pId);
-                      if (p) setCreateName(p.name);
-                    }}
-                    required
-                  >
-                    <option value="">-- 프로젝트를 선택하세요 --</option>
-                    {allWorkspaceProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        [{p.key || `PRJ-${p.id}`}] {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                  연결할 프로젝트 <span style={{ color: 'var(--status-urgent)' }}>*</span>
+                </label>
+                <select
+                  className="input-field"
+                  value={createProjectId || ''}
+                  onChange={(e) => {
+                    const pId = Number(e.target.value);
+                    setCreateProjectId(pId);
+                    const p = allWorkspaceProjects.find((x) => x.id === pId);
+                    if (p) setCreateName(p.name);
+                  }}
+                  required
+                >
+                  <option value="">-- 프로젝트를 선택하세요 --</option>
+                  {allWorkspaceProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      [{p.key || `PRJ-${p.id}`}] {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ) : createType === 'GROUP' ? (
-              <>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                    연결할 그룹/부서 <span style={{ color: '#f43f5e' }}>*</span>
-                  </label>
-                  <select
-                    className="input-field"
-                    value={createGroupId || ''}
-                    onChange={(e) => {
-                      const gId = Number(e.target.value);
-                      setCreateGroupId(gId);
-                      const g = allWorkspaceGroups.find((x) => x.id === gId);
-                      if (g) setCreateName(g.name);
-                    }}
-                    required
-                  >
-                    <option value="">-- 그룹을 선택하세요 --</option>
-                    {allWorkspaceGroups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        [{g.code || `GRP-${g.id}`}] {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                  연결할 그룹/부서 <span style={{ color: 'var(--status-urgent)' }}>*</span>
+                </label>
+                <select
+                  className="input-field"
+                  value={createGroupId || ''}
+                  onChange={(e) => {
+                    const gId = Number(e.target.value);
+                    setCreateGroupId(gId);
+                    const g = allWorkspaceGroups.find((x) => x.id === gId);
+                    if (g) setCreateName(g.name);
+                  }}
+                  required
+                >
+                  <option value="">-- 그룹을 선택하세요 --</option>
+                  {allWorkspaceGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      [{g.code || `GRP-${g.id}`}] {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ) : null}
 
-            {/* 3. 채널명 (DM이 아닌 경우) */}
             {createType !== 'DM' && (
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                  채널명 <span style={{ color: '#f43f5e' }}>*</span>
+                  채널명 <span style={{ color: 'var(--status-urgent)' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -365,7 +353,6 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
               </div>
             )}
 
-            {/* 4. 채널 설명/주제 */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
                 채널 설명 (선택)
@@ -379,26 +366,19 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
               />
             </div>
 
-            {/* Footer Buttons */}
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'flex-end',
                 gap: '8px',
                 marginTop: '8px',
-                borderTop: '1px solid var(--border-light, #3c3c3c)',
+                borderTop: '1px solid var(--border-light)',
                 paddingTop: '12px',
               }}
             >
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={onClose}
-                disabled={isPending}
-              >
+              <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} disabled={isPending}>
                 취소
               </button>
-
               <button
                 type="submit"
                 className="btn btn-primary btn-sm"
@@ -413,13 +393,7 @@ export const ChatCreateModal: React.FC<ChatCreateModalProps> = ({
         </div>
       </div>
 
-      {/* Action Error Modal */}
-      {errorState.isOpen && (
-        <ActionFeedbackModal
-          state={errorState}
-          onClose={closeErrorModal}
-        />
-      )}
-    </>
+      {errorState.isOpen && <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />}
+    </Portal>
   );
 };

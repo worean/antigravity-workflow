@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User } from '@/types';
 
@@ -7,6 +7,7 @@ import { applyTheme } from '@/utils/themeUtils';
 
 export interface PrefSchema {
   isSundayStart: boolean;
+  timeFormat: '12h' | '24h';
   defaultPriority: number;
   compactCards: boolean;
   desktopNotifications: boolean;
@@ -22,6 +23,7 @@ export interface PrefSchema {
 
 export const DEFAULT_PREFS: PrefSchema = {
   isSundayStart: true,
+  timeFormat: '24h',
   defaultPriority: 3,
   compactCards: false,
   desktopNotifications: true,
@@ -41,6 +43,7 @@ export interface PrefStoreState extends PrefSchema {
 
   // 단일 속성 세터
   setSundayStart: (value: boolean) => void;
+  setTimeFormat: (value: '12h' | '24h') => void;
   setDefaultPriority: (value: number) => void;
   setCompactCards: (value: boolean) => void;
   setDesktopNotifications: (value: boolean) => void;
@@ -75,6 +78,7 @@ export const usePrefStore = create<PrefStoreState>()(
       currentUser: null,
 
       setSundayStart: (isSundayStart) => set({ isSundayStart }),
+      setTimeFormat: (timeFormat) => set({ timeFormat }),
       setDefaultPriority: (defaultPriority) => set({ defaultPriority }),
       setCompactCards: (compactCards) => set({ compactCards }),
       setDesktopNotifications: (desktopNotifications) => set({ desktopNotifications }),
@@ -133,6 +137,7 @@ export const usePrefStore = create<PrefStoreState>()(
 
           const updates: Partial<PrefSchema> = {};
           if (typeof prefs.isSundayStart === 'boolean') updates.isSundayStart = prefs.isSundayStart;
+          if (prefs.timeFormat === '12h' || prefs.timeFormat === '24h') updates.timeFormat = prefs.timeFormat;
           if (typeof prefs.defaultPriority === 'number') updates.defaultPriority = prefs.defaultPriority;
           if (typeof prefs.compactCards === 'boolean') updates.compactCards = prefs.compactCards;
           if (typeof prefs.desktopNotifications === 'boolean') updates.desktopNotifications = prefs.desktopNotifications;
@@ -151,6 +156,7 @@ export const usePrefStore = create<PrefStoreState>()(
         const state = get();
         return JSON.stringify({
           isSundayStart: state.isSundayStart,
+          timeFormat: state.timeFormat,
           defaultPriority: state.defaultPriority,
           compactCards: state.compactCards,
           desktopNotifications: state.desktopNotifications,

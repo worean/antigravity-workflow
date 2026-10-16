@@ -534,7 +534,9 @@ model Worklog {
   startedAt   DateTime @default(now())
   description String?
   createdAt   DateTime @default(now())
+  gitCommit   GitWorklogCommitLink?
 }
+
 
 // 알림 시스템
 model Notification {
@@ -902,6 +904,8 @@ model GitRepositoryMapping {
 
   pullRequests GitPullRequest[]
   commitLinks  GitCommitLink[]
+  worklogCommitLinks GitWorklogCommitLink[]
+
 
   @@unique([projectId, repoIdentifier])
   @@index([pluginConfigId])
@@ -941,12 +945,32 @@ model GitCommitLink {
   authorName    String               @map("author_name")
   authorEmail   String?              @map("author_email")
   committedAt   DateTime             @map("committed_at")
+  url           String?
   createdAt     DateTime             @default(now()) @map("created_at")
 
   @@unique([repoMappingId, commitHash, issueId])
   @@index([issueId])
   @@map("git_commit_links")
 }
+
+model GitWorklogCommitLink {
+  id            Int                  @id @default(autoincrement())
+  repoMappingId Int                  @map("repo_mapping_id")
+  repoMapping   GitRepositoryMapping @relation(fields: [repoMappingId], references: [id], onDelete: Cascade)
+  worklogId     Int                  @unique @map("worklog_id")
+  worklog       Worklog              @relation(fields: [worklogId], references: [id], onDelete: Cascade)
+  commitHash    String               @db.VarChar(40) @map("commit_hash")
+  message       String
+  authorName    String               @map("author_name")
+  authorEmail   String?              @map("author_email")
+  committedAt   DateTime             @map("committed_at")
+  url           String?
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  @@index([worklogId])
+  @@map("git_worklog_commit_links")
+}
+
 
 model GitWebhookLog {
   id          Int      @id @default(autoincrement())

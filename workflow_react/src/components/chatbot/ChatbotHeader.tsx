@@ -22,8 +22,8 @@ export const ChatbotHeader: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '10px 14px',
-        borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
-        background: 'var(--bg-secondary, #1e1e1e)',
+        borderBottom: '1px solid var(--border-light)',
+        background: 'var(--bg-header)',
         borderTopLeftRadius: '12px',
         borderTopRightRadius: '12px',
         userSelect: 'none',
@@ -36,11 +36,11 @@ export const ChatbotHeader: React.FC = () => {
             width: '28px',
             height: '28px',
             borderRadius: '6px',
-            background: 'linear-gradient(135deg, #007acc 0%, #0098ff 100%)',
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
+            color: 'var(--text-on-primary)',
             position: 'relative',
           }}
         >
@@ -54,8 +54,8 @@ export const ChatbotHeader: React.FC = () => {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: '#4ec9b0',
-                boxShadow: '0 0 8px #4ec9b0',
+                background: 'var(--secondary)',
+                boxShadow: '0 0 8px var(--secondary)',
               }}
             />
           )}
@@ -63,7 +63,7 @@ export const ChatbotHeader: React.FC = () => {
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main, #fff)' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
               AI Assistant
             </span>
             <span
@@ -71,8 +71,8 @@ export const ChatbotHeader: React.FC = () => {
                 fontSize: '0.65rem',
                 padding: '1px 5px',
                 borderRadius: '4px',
-                background: 'rgba(0, 122, 204, 0.2)',
-                color: '#388bfd',
+                background: 'var(--badge-progress-bg)',
+                color: 'var(--badge-progress-text)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '3px',
@@ -90,7 +90,7 @@ export const ChatbotHeader: React.FC = () => {
               fontSize: '0.72rem',
               background: 'transparent',
               border: 'none',
-              color: 'var(--text-sub, #888)',
+              color: 'var(--text-sub)',
               cursor: 'pointer',
               outline: 'none',
               padding: '0',
@@ -117,9 +117,9 @@ export const ChatbotHeader: React.FC = () => {
               : '⚡ Auto Mode 비활성화됨: 수동 승인 모드 (클릭 시 자동 실행 켜기)'
           }
           style={{
-            background: autoExecute ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-            border: autoExecute ? '1px solid rgba(234, 179, 8, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
-            color: autoExecute ? '#facc15' : 'var(--text-sub, #888)',
+            background: autoExecute ? 'var(--badge-review-bg)' : 'var(--bg-subtle)',
+            border: autoExecute ? '1px solid var(--badge-review-border)' : '1px solid var(--border-light)',
+            color: autoExecute ? 'var(--accent-amber)' : 'var(--text-sub)',
             padding: '3px 8px',
             borderRadius: '6px',
             fontSize: '0.68rem',
@@ -131,7 +131,7 @@ export const ChatbotHeader: React.FC = () => {
             transition: 'all 0.2s ease',
           }}
         >
-          <Zap size={12} fill={autoExecute ? '#facc15' : 'none'} />
+          <Zap size={12} fill={autoExecute ? 'var(--accent-amber)' : 'none'} />
           <span>{autoExecute ? 'Auto ON' : 'Auto OFF'}</span>
         </button>
 
@@ -141,7 +141,7 @@ export const ChatbotHeader: React.FC = () => {
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-sub, #888)',
+            color: 'var(--text-sub)',
             cursor: 'pointer',
             padding: '4px',
             borderRadius: '4px',
@@ -159,7 +159,7 @@ export const ChatbotHeader: React.FC = () => {
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-sub, #888)',
+            color: 'var(--text-sub)',
             cursor: 'pointer',
             padding: '4px',
             borderRadius: '4px',
@@ -177,7 +177,7 @@ export const ChatbotHeader: React.FC = () => {
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-sub, #888)',
+            color: 'var(--text-sub)',
             cursor: 'pointer',
             padding: '4px',
             borderRadius: '4px',

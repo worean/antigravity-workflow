@@ -153,8 +153,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
     try {
       await updateSprint(sprintId, { status: newStatus });
       await fetchData();
-      const statusLabel =
-        newStatus === 'ACTIVE' ? '진행 중' : newStatus === 'COMPLETED' ? '완료' : '계획됨';
+      const statusLabel = newStatus === 'ACTIVE' ? '진행 중' : newStatus === 'COMPLETED' ? '완료' : '계획됨';
       useUIStore.getState().showToast(`스프린트 상태가 '${statusLabel}'(으)로 변경되었습니다.`, 'success');
     } catch (err: any) {
       useUIStore.getState().showToast(err.response?.data?.error || '상태 변경에 실패했습니다.', 'error');
@@ -174,9 +173,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
       ]);
       setManagingSprint(fullSprint);
       setSprintIssues(fullSprint.issues || []);
-
-      const unassigned = (allProjIssues || []).filter((iss) => !iss.sprintId);
-      setBacklogIssues(unassigned);
+      setBacklogIssues((allProjIssues || []).filter((iss) => !iss.sprintId));
     } catch (err) {
       console.error(err);
       useUIStore.getState().showToast('이슈 목록 조회에 실패했습니다.', 'error');
@@ -367,6 +364,7 @@ export const SprintsPage: React.FC<SprintsPageProps> = ({
 
       {/* 4. Manage Issues Modal */}
       <SprintManageIssuesModal
+        isOpen={showManageModal}
         showManageModal={showManageModal}
         setShowManageModal={setShowManageModal}
         managingSprint={managingSprint}

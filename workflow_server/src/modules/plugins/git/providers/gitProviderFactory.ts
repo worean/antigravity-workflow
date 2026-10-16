@@ -1,4 +1,4 @@
-﻿﻿﻿import { IGitProvider } from './IGitProvider.js';
+﻿import { IGitProvider } from './IGitProvider.js';
 import { GitHubProvider } from './GitHubProvider.js';
 import { GitLabProvider } from './GitLabProvider.js';
 
@@ -11,3 +11,7 @@ export function getGitProvider(provider: string = 'GITHUB'): IGitProvider {
   }
   return githubProvider;
 }
+
+export const gitProviderFactory = {
+  getProvider: getGitProvider,
+};

@@ -1,4 +1,4 @@
-import path from 'path';
+﻿import path from 'path';
 import dotenv from 'dotenv';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { prisma } from '#lib/prisma.js';
@@ -74,10 +74,14 @@ export async function setup() {
       role: adminUser.role,
     });
 
-    // PostgreSQL autoincrement sequence 동기화 (명시적 id 삽입 후 시퀀스 꼬임 방지)
+    // PostgreSQL autoincrement sequence 동기화 (양쪽 DB 간 명시적 id 삽입 후 시퀀스 충돌 방지)
     try {
-      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), COALESCE((SELECT MAX(id) FROM "User"), 1));`);
-      await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), COALESCE((SELECT MAX(id) FROM "User"), 1));`);
+      const wsMaxRes = await prisma.user.aggregate({ _max: { id: true } });
+      const globalMaxRes = await globalPrisma.user.aggregate({ _max: { id: true } });
+      const unifiedMaxUserId = Math.max(wsMaxRes._max.id || 1, globalMaxRes._max.id || 1) + 500;
+
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), ${unifiedMaxUserId});`);
+      await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), ${unifiedMaxUserId});`);
       await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Workspace"', 'id'), COALESCE((SELECT MAX(id) FROM "Workspace"), 1));`);
     } catch {
       // SQLite 등 타 환경 무시

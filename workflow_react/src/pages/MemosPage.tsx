@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useMemos, useDeleteMemo } from '@/api/memo';
 import { useUIStore } from '@/stores/useUIStore';
 import type { MemoFilterType, MemoDto } from '@/types/memo';
-import { MemoFilterBar, MemoGrid, MemoDetailModal, MemoEditorModal } from '@/components/memos';
+import { MemoFilterBar, MemoGrid } from '@/components/memos';
 import { StickyNote, Lock } from 'lucide-react';
 
 interface MemosPageProps {
@@ -14,16 +14,13 @@ interface MemosPageProps {
 export const MemosPage: React.FC<MemosPageProps> = ({ onOpenAuth }) => {
   const { isAuthenticated } = useAuth();
   const showToast = useUIStore((s) => s.showToast);
+  const openMemoDetail = useUIStore((s) => s.openMemoDetail);
+  const openMemoEditor = useUIStore((s) => s.openMemoEditor);
   const deleteMutation = useDeleteMemo();
 
   // 검색 및 필터 상태
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<MemoFilterType>('all');
-
-  // 모달 제어 상태 (Colocation)
-  const [detailModalTarget, setDetailModalTarget] = useState<number | string | null>(null);
-  const [editorModalId, setEditorModalId] = useState<number | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   // TanStack Query 백엔드 API 연동
   const { data: memos = [], isLoading } = useMemos(
@@ -40,14 +37,11 @@ export const MemosPage: React.FC<MemosPageProps> = ({ onOpenAuth }) => {
       if (onOpenAuth) onOpenAuth();
       return;
     }
-    setEditorModalId(null);
-    setIsEditorOpen(true);
+    openMemoEditor(null);
   };
 
   const handleEditMemo = (memoId: number) => {
-    setEditorModalId(memoId);
-    setIsEditorOpen(true);
-    setDetailModalTarget(null);
+    openMemoEditor(memoId);
   };
 
   const handleDeleteMemo = async (memoId: number) => {
@@ -55,7 +49,6 @@ export const MemosPage: React.FC<MemosPageProps> = ({ onOpenAuth }) => {
     try {
       await deleteMutation.mutateAsync(memoId);
       showToast('메모가 삭제되었습니다.', 'success');
-      if (detailModalTarget === memoId) setDetailModalTarget(null);
     } catch (err: any) {
       showToast(err.message || '메모 삭제에 실패했습니다.', 'error');
     }
@@ -103,7 +96,6 @@ export const MemosPage: React.FC<MemosPageProps> = ({ onOpenAuth }) => {
         boxSizing: 'border-box',
       }}
     >
-      {/* 헤더 안내 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1
@@ -126,7 +118,6 @@ export const MemosPage: React.FC<MemosPageProps> = ({ onOpenAuth }) => {
         </div>
       </div>
 
-      {/* 필터 및 검색 바 */}
       <MemoFilterBar
         search={search}
         filter={filter}
@@ -136,29 +127,13 @@ export const MemosPage: React.FC<MemosPageProps> = ({ onOpenAuth }) => {
         totalCount={memos.length}
       />
 
-      {/* 메모 카드 그리드 */}
       <MemoGrid
         memos={memos}
         isLoading={isLoading}
-        onSelectMemo={(memo: MemoDto) => setDetailModalTarget(memo.id)}
+        onSelectMemo={(memo: MemoDto) => openMemoDetail(memo.id)}
         onEditMemo={handleEditMemo}
         onDeleteMemo={handleDeleteMemo}
         onNewMemo={handleNewMemo}
-      />
-
-      {/* 상세 조회 팝업 모달 (@멘션 및 카드 클릭 공통 Portal) */}
-      <MemoDetailModal
-        isOpen={detailModalTarget !== null}
-        target={detailModalTarget}
-        onClose={() => setDetailModalTarget(null)}
-        onEdit={handleEditMemo}
-      />
-
-      {/* 작성/수정 모달 */}
-      <MemoEditorModal
-        isOpen={isEditorOpen}
-        memoId={editorModalId}
-        onClose={() => setIsEditorOpen(false)}
       />
     </div>
   );

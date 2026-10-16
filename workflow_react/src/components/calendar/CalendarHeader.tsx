@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ChevronLeft, ChevronRight, Plus, UserCheck, Download, Link, Calendar } from 'lucide-react';
 import type { CalendarViewMode, Project } from '@/types';
 import { useUIStore } from '@/stores/useUIStore';
@@ -151,16 +151,16 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
         {/* 일정 범례 (Legend) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', color: 'var(--text-sub)' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#007acc' }} />
+            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--primary)' }} />
             이슈
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#c586c0' }} />
+            <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--accent-purple)' }} />
             스프린트
           </span>
           {isCalDavConnected && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#8a2be2' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--accent-caldav)' }} />
               CalDAV
             </span>
           )}
@@ -269,7 +269,7 @@ export const CalendarHeader: React.FC<CalendarHeaderProps> = ({
             height: '26px',
             fontSize: '0.75rem',
             gap: '4px',
-            borderColor: isCalDavConnected ? '#8a2be2' : undefined,
+            borderColor: isCalDavConnected ? 'var(--accent-caldav)' : undefined,
             background: isCalDavConnected ? 'rgba(138, 43, 226, 0.2)' : undefined,
             color: isCalDavConnected ? '#b366ff' : undefined,
           }}

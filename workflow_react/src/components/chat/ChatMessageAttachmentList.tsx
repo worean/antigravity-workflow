@@ -131,7 +131,7 @@ export const ChatMessageAttachmentList: React.FC<ChatMessageAttachmentListProps>
                     left: 0,
                     right: 0,
                     background: 'rgba(0,0,0,0.6)',
-                    color: '#fff',
+                    color: 'var(--text-on-overlay)',
                     padding: '3px 6px',
                     fontSize: '0.68rem',
                     display: 'flex',
@@ -158,7 +158,7 @@ export const ChatMessageAttachmentList: React.FC<ChatMessageAttachmentListProps>
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#fff',
+                      color: 'var(--text-on-overlay)',
                       cursor: 'pointer',
                       padding: '2px',
                     }}

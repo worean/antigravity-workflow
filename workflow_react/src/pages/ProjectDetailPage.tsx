@@ -6,12 +6,6 @@ import {
   deleteProject,
   getUsers,
   getGroups,
-  addProjectMember,
-  removeProjectMember,
-  updateProjectMemberRole,
-  addProjectGroup,
-  removeProjectGroup,
-  updateProjectGroupRole,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { AlertCircle } from 'lucide-react';
@@ -26,7 +20,10 @@ import {
   ProjectParticipationSection,
   ProjectSidebar,
   ProjectIssuesOverviewWidget,
+  useProjectParticipation,
 } from '@/components/projectDetail';
+import { GitRepositoryBrowserTab, GitRepositoryBrowserModal } from '@/components/plugins/git';
+
 
 interface ProjectDetailPageProps {
   projectId: number;
@@ -72,19 +69,38 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
   const [editActualStartDate, setEditActualStartDate] = useState<string>('');
   const [editActualEndDate, setEditActualEndDate] = useState<string>('');
 
-  // Sub-Tab State: 'members' | 'groups'
-  const [activeSubTab, setActiveSubTab] = useState<'members' | 'groups'>('members');
-
-  // Modals State
-  const [showAddMemberModal, setShowAddMemberModal] = useState<boolean>(false);
-  const [selectedUserIdToAdd, setSelectedUserIdToAdd] = useState<number | ''>('');
-  const [selectedMemberRole, setSelectedMemberRole] = useState<string>('MEMBER');
-
-  const [showAddGroupModal, setShowAddGroupModal] = useState<boolean>(false);
-  const [selectedGroupIdToAdd, setSelectedGroupIdToAdd] = useState<number | ''>('');
-  const [selectedGroupRole, setSelectedGroupRole] = useState<string>('MEMBER');
-
+  // Modals & Git Browser State
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [showGitBrowser, setShowGitBrowser] = useState<boolean>(false);
+
+  // Participation (Members & Groups) Hook
+  const {
+    activeSubTab,
+    setActiveSubTab,
+    showAddMemberModal,
+    setShowAddMemberModal,
+    selectedUserIdToAdd,
+    setSelectedUserIdToAdd,
+    selectedMemberRole,
+    setSelectedMemberRole,
+    handleAddMember,
+    handleUpdateMemberRole,
+    handleRemoveMember,
+    showAddGroupModal,
+    setShowAddGroupModal,
+    selectedGroupIdToAdd,
+    setSelectedGroupIdToAdd,
+    selectedGroupRole,
+    setSelectedGroupRole,
+    handleAddGroup,
+    handleUpdateGroupRole,
+    handleRemoveGroup,
+  } = useProjectParticipation({
+    project,
+    setProject,
+    executeAction,
+  });
+
 
   // Load Project and Metadata
   const loadProjectData = async () => {
@@ -186,155 +202,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
     );
   };
 
-  const handleAddMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!project || !selectedUserIdToAdd) return;
-
-    await executeAction(
-      async () => {
-        return await addProjectMember(project.id, Number(selectedUserIdToAdd), selectedMemberRole);
-      },
-      {
-        onSuccess: (newMember) => {
-          setShowAddMemberModal(false);
-          setSelectedUserIdToAdd('');
-          setSelectedMemberRole('MEMBER');
-          setProject((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  members: [...(prev.members || []), newMember],
-                }
-              : null
-          );
-        },
-      }
-    );
-  };
-
-  const handleUpdateMemberRole = async (userId: number, role: string) => {
-    if (!project) return;
-    await executeAction(
-      async () => {
-        return await updateProjectMemberRole(project.id, userId, role);
-      },
-      {
-        onSuccess: () => {
-          setProject((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  members: (prev.members || []).map((m) =>
-                    m.userId === userId ? { ...m, role } : m
-                  ),
-                }
-              : null
-          );
-        },
-      }
-    );
-  };
-
-  const handleRemoveMember = async (userId: number) => {
-    if (!project) return;
-    const target = project.members?.find((m) => m.userId === userId);
-    const targetName = target?.user?.name || target?.user?.email || '멤버';
-
-    if (!confirm(`'${targetName}' 사용자를 프로젝트에서 제외하시겠습니까?`)) return;
-
-    await executeAction(
-      async () => {
-        await removeProjectMember(project.id, userId);
-      },
-      {
-        onSuccess: () => {
-          setProject((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  members: (prev.members || []).filter((m) => m.userId !== userId),
-                }
-              : null
-          );
-        },
-      }
-    );
-  };
-
-  const handleAddGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!project || !selectedGroupIdToAdd) return;
-
-    await executeAction(
-      async () => {
-        return await addProjectGroup(project.id, Number(selectedGroupIdToAdd), selectedGroupRole);
-      },
-      {
-        onSuccess: (newGroup) => {
-          setShowAddGroupModal(false);
-          setSelectedGroupIdToAdd('');
-          setSelectedGroupRole('MEMBER');
-          setProject((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  groups: [...(prev.groups || []), newGroup],
-                }
-              : null
-          );
-        },
-      }
-    );
-  };
-
-  const handleUpdateGroupRole = async (groupId: number, role: string) => {
-    if (!project) return;
-    await executeAction(
-      async () => {
-        return await updateProjectGroupRole(project.id, groupId, role);
-      },
-      {
-        onSuccess: () => {
-          setProject((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  groups: (prev.groups || []).map((g) =>
-                    g.groupId === groupId ? { ...g, role } : g
-                  ),
-                }
-              : null
-          );
-        },
-      }
-    );
-  };
-
-  const handleRemoveGroup = async (groupId: number) => {
-    if (!project) return;
-    const target = project.groups?.find((g) => g.groupId === groupId);
-    const targetName = target?.group?.name || '그룹';
-
-    if (!confirm(`'${targetName}' 조직 그룹을 프로젝트에서 제외하시겠습니까?`)) return;
-
-    await executeAction(
-      async () => {
-        await removeProjectGroup(project.id, groupId);
-      },
-      {
-        onSuccess: () => {
-          setProject((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  groups: (prev.groups || []).filter((g) => g.groupId !== groupId),
-                }
-              : null
-          );
-        },
-      }
-    );
-  };
 
   if (loading) {
     return (
@@ -365,6 +232,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
         onGoToBoard={onGoToBoard}
         onGoToWBS={onGoToWBS}
         onGoToSprints={onGoToSprints}
+        onOpenGitBrowser={() => setShowGitBrowser(true)}
         isPM={isPM}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
@@ -374,6 +242,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
         setProject={setProject}
         onOpenAuth={onOpenAuth}
       />
+
 
       {/* 2. Main Content 2-Column Split */}
       <div style={{ flex: 1, display: 'flex', gap: '8px', overflow: 'hidden' }}>
@@ -424,6 +293,13 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
             onSelectIssue={onSelectIssue}
             onGoToBoard={onGoToBoard}
           />
+
+          {/* ⭐️ Git 저장소 브라우저 위젯 */}
+          <GitRepositoryBrowserTab
+            projectId={project.id}
+            projectKey={project.key}
+            projectName={project.name}
+          />
         </div>
 
         {/* Right Column: Metadata Sidebar */}
@@ -461,6 +337,15 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({
 
       {/* 4. Feedback Modal */}
       <ActionFeedbackModal state={errorState} onClose={closeErrorModal} />
+
+      {/* 5. Git Repository Browser Modal */}
+      <GitRepositoryBrowserModal
+        isOpen={showGitBrowser}
+        onClose={() => setShowGitBrowser(false)}
+        projectId={project.id}
+        projectKey={project.key}
+        projectName={project.name}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 🧪 [Domain: calendar / Service: getCalendarEvents]
  * - 기능: 캘린더 일정(이슈 및 스프린트 마일스톤) 목록 조회 API 테스트
  * - 검증 항목:
@@ -40,6 +40,7 @@ describe('🧪 [Calendar Events API] GET /api/calendar/events', () => {
         password: 'hashedPassword123',
       },
     }).catch(() => {});
+    await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "User"), 1), 1));`).catch(() => {});
 
     // 2. JWT 토큰 발급
     const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';

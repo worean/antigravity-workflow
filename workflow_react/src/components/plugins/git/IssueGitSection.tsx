@@ -1,10 +1,11 @@
-﻿﻿import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { GitBranch, GitPullRequest, GitCommit, RefreshCw, Plus, AlertCircle } from 'lucide-react';
-import { useIssueGitData } from '@/api/gitPlugin';
+import { useIssueGitData, useLinkCommitToIssue, useUnlinkCommitFromIssue } from '@/api/gitPlugin';
 import { GitPullRequestList } from './GitPullRequestList';
 import { GitCommitList } from './GitCommitList';
 import { CreateBranchModal } from './CreateBranchModal';
 import { CreatePullRequestModal } from './CreatePullRequestModal';
+import { GitCommitPickerModal } from './GitCommitPickerModal';
 
 interface IssueGitSectionProps {
   issueId: number;
@@ -17,16 +18,43 @@ export const IssueGitSection: React.FC<IssueGitSectionProps> = ({
   issueNumber,
   issueTitle,
 }) => {
-  const [activeTab, setActiveTab] = useState<'prs' | 'commits'>('prs');
+  const [activeTab, setActiveTab] = useState<'commits' | 'prs'>('commits');
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
   const [isPrModalOpen, setIsPrModalOpen] = useState(false);
+  const [isCommitPickerOpen, setIsCommitPickerOpen] = useState(false);
 
   const { data, isLoading, refetch, isRefetching, error } = useIssueGitData(issueId);
+  const linkCommitMutation = useLinkCommitToIssue();
+  const unlinkCommitMutation = useUnlinkCommitFromIssue();
+
 
   const repositories = data?.availableRepositories || [];
   const hasRepositories = repositories.length > 0;
   const pullRequests = data?.pullRequests || [];
   const commits = data?.commits || [];
+
+  const handleSelectCommit = async (commitData: {
+    repoMappingId: number;
+    commitHash: string;
+    message: string;
+    authorName: string;
+    authorEmail?: string;
+    committedAt?: string;
+  }) => {
+    await linkCommitMutation.mutateAsync({
+      issueId,
+      ...commitData,
+    });
+    refetch();
+  };
+
+  const handleUnlinkCommit = async (commitLinkId: number) => {
+    await unlinkCommitMutation.mutateAsync({
+      issueId,
+      commitLinkId,
+    });
+    refetch();
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0' }}>
@@ -143,29 +171,8 @@ export const IssueGitSection: React.FC<IssueGitSectionProps> = ({
         </div>
       )}
 
-      {/* 2. 서브 탭 헤더 */}
+      {/* 2. 서브 탭 헤더 - 커밋 히스토리가 기본 우선 */}
       <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-divider)', paddingBottom: '2px' }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('prs')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 12px',
-            fontSize: '13px',
-            fontWeight: activeTab === 'prs' ? 600 : 400,
-            color: activeTab === 'prs' ? 'var(--primary)' : 'var(--text-sub)',
-            borderBottom: activeTab === 'prs' ? '2px solid var(--primary)' : '2px solid transparent',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          <GitPullRequest size={14} />
-          <span>Pull Requests ({pullRequests.length})</span>
-        </button>
-
         <button
           type="button"
           onClick={() => setActiveTab('commits')}
@@ -186,6 +193,27 @@ export const IssueGitSection: React.FC<IssueGitSectionProps> = ({
           <GitCommit size={14} />
           <span>Commits ({commits.length})</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('prs')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 12px',
+            fontSize: '13px',
+            fontWeight: activeTab === 'prs' ? 600 : 400,
+            color: activeTab === 'prs' ? 'var(--primary)' : 'var(--text-sub)',
+            borderBottom: activeTab === 'prs' ? '2px solid var(--primary)' : '2px solid transparent',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <GitPullRequest size={14} />
+          <span>Pull Requests ({pullRequests.length})</span>
+        </button>
       </div>
 
       {/* 3. 탭 본문 */}
@@ -193,10 +221,17 @@ export const IssueGitSection: React.FC<IssueGitSectionProps> = ({
         <div style={{ padding: '16px', color: 'var(--accent-rose)', fontSize: '13px' }}>
           Git 데이터를 불러오는 중 오류가 발생했습니다.
         </div>
-      ) : activeTab === 'prs' ? (
-        <GitPullRequestList pullRequests={pullRequests} isLoading={isLoading} />
+      ) : activeTab === 'commits' ? (
+        <GitCommitList
+          commits={commits}
+          isLoading={isLoading}
+          onOpenCommitPicker={hasRepositories ? () => setIsCommitPickerOpen(true) : undefined}
+          onUnlinkCommit={handleUnlinkCommit}
+          defaultRepoMappingId={repositories[0]?.id}
+          repoIdentifier={repositories[0]?.repoIdentifier}
+        />
       ) : (
-        <GitCommitList commits={commits} isLoading={isLoading} />
+        <GitPullRequestList pullRequests={pullRequests} isLoading={isLoading} />
       )}
 
       {/* 4. 모달 팝업 */}
@@ -224,8 +259,17 @@ export const IssueGitSection: React.FC<IssueGitSectionProps> = ({
             issueTitle={issueTitle}
             availableRepositories={repositories}
           />
+
+          <GitCommitPickerModal
+            isOpen={isCommitPickerOpen}
+            onClose={() => setIsCommitPickerOpen(false)}
+            title={`이슈 #${issueNumber}에 커밋 연결`}
+            availableRepositories={repositories}
+            onSelectCommit={handleSelectCommit}
+          />
         </>
       )}
     </div>
   );
 };
+

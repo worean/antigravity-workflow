@@ -1,4 +1,5 @@
 ﻿export { GitPluginSettingTab } from './GitPluginSettingTab';
+export { GitAuthSettingCard } from './GitAuthSettingCard';
 export { GitRepoMappingModal } from './GitRepoMappingModal';
 export { GitRepoMappingTable } from './GitRepoMappingTable';
 export { GitWebhookSettingCard } from './GitWebhookSettingCard';
@@ -7,4 +8,16 @@ export { GitPullRequestList } from './GitPullRequestList';
 export { GitCommitList } from './GitCommitList';
 export { CreateBranchModal } from './CreateBranchModal';
 export { CreatePullRequestModal } from './CreatePullRequestModal';
+export { GitRepositoryBrowserModal } from './GitRepositoryBrowserModal';
+export { GitRepositoryBrowserTab } from './GitRepositoryBrowserTab';
+export { GitRemoteRepoCard } from './GitRemoteRepoCard';
+export { GitConnectedRepoCard } from './GitConnectedRepoCard';
+export { GitCommitDetailModal } from './GitCommitDetailModal';
+export { GitCommitFileTree } from './GitCommitFileTree';
+export { GitCommitDiffCard } from './GitCommitDiffCard';
+export { GitCommitPickerModal } from './GitCommitPickerModal';
+export { GitLogViewerModal } from './GitLogViewerModal';
+export { GitCommitSummaryHeader } from './GitCommitSummaryHeader';
+export { GitCommitDiffToolbar } from './GitCommitDiffToolbar';
 export * from './extensions';
+

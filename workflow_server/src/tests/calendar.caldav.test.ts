@@ -50,6 +50,7 @@ describe('🧪 [CalDAV Integration API] CalDAV 클라이언트 및 일정 연동
         role: 'MEMBER',
       },
     }).catch(() => {});
+    await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "User"), 1), 1));`).catch(() => {});
 
     const jwtSecret = process.env.JWT_SECRET || 'antigravity-jwt-secret-key-2026';
     authToken = jwt.sign(

@@ -1,4 +1,4 @@
-import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { broadcastGlobal } from '#lib/socket.js';
 
@@ -124,7 +124,10 @@ export const updateUserService = async (id: number, data: UpdateUserInput) => {
     const gUser = await globalPrisma.user.findFirst({
       where: { OR: [{ id: Number(id) }, ...(targetEmail ? [{ email: targetEmail }] : [])] },
     });
-    updatedWorkspaceUser = gUser ? { ...gUser, groupMemberships: [] } : { id: Number(id), ...updatePayload };
+    if (!gUser) {
+      throw new Error('User not found');
+    }
+    updatedWorkspaceUser = { ...gUser, groupMemberships: [] };
   }
 
   // 3. 🚀 전역 실시간 소켓 브로드캐스트 (채팅방 및 모든 활성 탭에 최신 아바타/프로필 실시간 통보)

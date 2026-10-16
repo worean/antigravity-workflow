@@ -1,4 +1,5 @@
 ﻿import { globalPrisma } from '#lib/globalPrisma.js';
+import { prisma } from '#lib/prisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
 
 export interface InviteWorkspaceMemberParams {
@@ -66,21 +67,14 @@ export const inviteWorkspaceMemberService = async (params: InviteWorkspaceMember
     },
   });
 
-  // 4. 워크스페이스 테넌트 DB에 사용자 정보 자동 동기화
-  await workspaceManager.syncUserToWorkspace(
-    {
-      id: workspace.id,
-      dbUrl: workspace.dbUrl,
-      dbType: workspace.dbType,
-    },
-    {
-      id: targetUser.id,
-      email: targetUser.email,
-      name: targetUser.name,
-      role: targetUser.role,
-      avatar: targetUser.avatar,
-    }
-  );
+  // 4. 단일 워크스페이스 DB(싱글톤 prisma)에 사용자 정보 자동 동기화
+  await workspaceManager.syncUserToWorkspace(prisma, {
+    id: targetUser.id,
+    email: targetUser.email,
+    name: targetUser.name,
+    role: targetUser.role,
+    avatar: targetUser.avatar,
+  });
 
   return membership;
 };

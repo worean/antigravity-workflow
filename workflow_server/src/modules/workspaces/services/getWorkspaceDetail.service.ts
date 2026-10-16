@@ -1,37 +1,46 @@
 ﻿import { globalPrisma } from '#lib/globalPrisma.js';
 
-export const getWorkspaceDetailService = async (workspaceId: number) => {
-  if (!workspaceId) {
-    throw new Error('Workspace ID is required');
-  }
-
-  const workspace = await globalPrisma.workspace.findUnique({
-    where: { id: workspaceId },
-    include: {
-      owner: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          avatar: true,
-        },
-      },
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              avatar: true,
-              role: true,
-            },
-          },
-        },
-        orderBy: { joinedAt: 'asc' },
+export const getWorkspaceDetailService = async (workspaceId?: number) => {
+  const includeRelations = {
+    owner: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
       },
     },
-  });
+    members: {
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            avatar: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'asc' as const },
+    },
+  };
+
+  let workspace =
+    workspaceId && workspaceId > 0
+      ? await globalPrisma.workspace.findUnique({
+          where: { id: workspaceId },
+          include: includeRelations,
+        })
+      : null;
+
+  if (!workspace) {
+    workspace = await globalPrisma.workspace.findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: { id: 'asc' },
+      include: includeRelations,
+    });
+  }
 
   if (!workspace) {
     throw new Error('Workspace not found');

@@ -1,4 +1,4 @@
-﻿﻿﻿export interface GitTokenVerifyResult {
+export interface GitTokenVerifyResult {
   valid: boolean;
   username: string;
   error?: string;
@@ -42,6 +42,45 @@ export interface GitPipelineItem {
   createdAt: string;
 }
 
+export interface GitRemoteRepoItem {
+  id: string | number;
+  name: string;
+  fullName: string;
+  description?: string;
+  isPrivate: boolean;
+  defaultBranch: string;
+  webUrl: string;
+  updatedAt: string;
+}
+
+export interface GitCommitItem {
+  commitHash: string;
+  shortHash: string;
+  message: string;
+  authorName: string;
+  authorEmail?: string;
+  committedAt: string;
+  url?: string;
+}
+
+export interface GitCommitFileDiff {
+  filename: string;
+  oldPath?: string;
+  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  additions: number;
+  deletions: number;
+  patch?: string;
+}
+
+export interface GitCommitDetail extends GitCommitItem {
+  stats?: {
+    total: number;
+    additions: number;
+    deletions: number;
+  };
+  files: GitCommitFileDiff[];
+}
+
 export interface IGitProvider {
   readonly providerName: 'GITHUB' | 'GITLAB';
   verifyToken(token: string, serverUrl?: string): Promise<GitTokenVerifyResult>;
@@ -50,4 +89,9 @@ export interface IGitProvider {
   listPullRequests(token: string, repo: string, serverUrl?: string): Promise<GitPullRequestItem[]>;
   createPullRequest(token: string, repo: string, params: { title: string; body: string; head: string; base: string }, serverUrl?: string): Promise<GitPullRequestCreateResult>;
   getPipelines(token: string, repo: string, serverUrl?: string): Promise<GitPipelineItem[]>;
+  listRepositories(token: string, serverUrl?: string): Promise<GitRemoteRepoItem[]>;
+  listCommits(token: string, repo: string, options?: { branch?: string; page?: number; perPage?: number }, serverUrl?: string): Promise<GitCommitItem[]>;
+  getCommitDetail(token: string, repo: string, sha: string, serverUrl?: string): Promise<GitCommitDetail>;
+  listPullRequestCommits?(token: string, repo: string, prNumber: number, serverUrl?: string): Promise<GitCommitItem[]>;
 }
+

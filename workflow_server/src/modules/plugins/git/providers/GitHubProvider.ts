@@ -1,10 +1,35 @@
-﻿import { IGitProvider, GitTokenVerifyResult, GitBranchCreateResult, GitPullRequestItem, GitPullRequestCreateResult, GitPipelineItem } from './IGitProvider.js';
+import {
+  IGitProvider,
+  GitTokenVerifyResult,
+  GitBranchCreateResult,
+  GitPullRequestItem,
+  GitPullRequestCreateResult,
+  GitPipelineItem,
+  GitRemoteRepoItem,
+  GitCommitItem,
+  GitCommitDetail,
+  GitCommitFileDiff,
+} from './IGitProvider.js';
+import { summarizeErrorBody } from './gitErrorUtils.js';
+
 
 export class GitHubProvider implements IGitProvider {
   readonly providerName = 'GITHUB' as const;
 
   private getBaseUrl(serverUrl?: string): string {
-    return serverUrl && serverUrl.trim() !== '' ? serverUrl.replace(/\/$/, '') : 'https://api.github.com';
+    if (!serverUrl || serverUrl.trim() === '') {
+      return 'https://api.github.com';
+    }
+    const clean = serverUrl.trim().replace(/\/$/, '');
+    // github.com 웹사이트 URL이 들어온 경우 GitHub 공식 API URL로 자동 보정
+    if (clean === 'https://github.com' || clean === 'http://github.com') {
+      return 'https://api.github.com';
+    }
+    // GitHub Enterprise Server인 경우 /api/v3가 포함되지 않았으면 추가
+    if (!clean.endsWith('/api/v3') && !clean.includes('api.github.com')) {
+      return `${clean}/api/v3`;
+    }
+    return clean;
   }
 
   private getHeaders(token: string) {
@@ -19,19 +44,33 @@ export class GitHubProvider implements IGitProvider {
   async verifyToken(token: string, serverUrl?: string): Promise<GitTokenVerifyResult> {
     try {
       const baseUrl = this.getBaseUrl(serverUrl);
+      const isFineGrained = token.trim().startsWith('github_pat_');
+      const tokenTypeLabel = isFineGrained ? 'Fine-grained PAT' : 'Classic PAT';
+
       const res = await fetch(`${baseUrl}/user`, {
         headers: this.getHeaders(token),
       });
 
       if (!res.ok) {
         const errorText = await res.text();
-        return { valid: false, username: '', error: `GitHub Auth Failed: ${res.status} ${errorText}` };
+        if (res.status === 401) {
+          return { valid: false, username: '', error: `GitHub Auth Failed: 401 Unauthorized (토큰이 만료되었거나 올바르지 않습니다)` };
+        }
+        if (res.status === 403) {
+          return {
+            valid: false,
+            username: '',
+            error: `GitHub Auth Failed: 403 Forbidden (${isFineGrained ? 'Fine-grained PAT의 권한(Contents, Pull requests, Metadata)을 확인해주세요.' : '토큰의 스코프(repo) 권한을 확인해주세요.'})`
+          };
+        }
+        return { valid: false, username: '', error: `GitHub Auth Failed: ${res.status} ${summarizeErrorBody(errorText)}` };
       }
 
       const data = (await res.json()) as any;
-      return { valid: true, username: data.login || data.name || 'GitHub User' };
+      const username = data.login || data.name || 'GitHub User';
+      return { valid: true, username: `${username} (${tokenTypeLabel})` };
     } catch (err: any) {
-      return { valid: false, username: '', error: err.message || 'Network error' };
+      return { valid: false, username: '', error: err.message || '네트워크 오류가 발생했습니다.' };
     }
   }
 
@@ -181,4 +220,161 @@ export class GitHubProvider implements IGitProvider {
       return [];
     }
   }
+
+  async listRepositories(token: string, serverUrl?: string): Promise<GitRemoteRepoItem[]> {
+    try {
+      const baseUrl = this.getBaseUrl(serverUrl);
+      const headers = this.getHeaders(token);
+
+      // 1차 시도: affiliation 파라미터를 포함하여 전체 참여 저장소 조회
+      let res = await fetch(`${baseUrl}/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member`, {
+        headers,
+      });
+
+      // Fine-grained PAT의 경우 affiliation 파라미터가 일부 제한될 수 있으므로 fallback 시도
+      if (!res.ok) {
+        res = await fetch(`${baseUrl}/user/repos?per_page=100&sort=updated`, {
+          headers,
+        });
+      }
+
+      if (!res.ok) {
+        return [];
+      }
+
+      const data = (await res.json()) as any[];
+      if (!Array.isArray(data)) return [];
+
+      return data.map((repo) => ({
+        id: repo.id,
+        name: repo.name || '',
+        fullName: repo.full_name || repo.name || '',
+        description: repo.description || '',
+        isPrivate: Boolean(repo.private),
+        defaultBranch: repo.default_branch || 'main',
+        webUrl: repo.html_url || '',
+        updatedAt: repo.updated_at || repo.created_at || new Date().toISOString(),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async listCommits(
+    token: string,
+    repo: string,
+    options?: { branch?: string; page?: number; perPage?: number },
+    serverUrl?: string
+  ): Promise<GitCommitItem[]> {
+    try {
+      const baseUrl = this.getBaseUrl(serverUrl);
+      const params = new URLSearchParams();
+      if (options?.branch) params.set('sha', options.branch);
+      if (options?.page) params.set('page', String(options.page));
+      params.set('per_page', String(options?.perPage || 30));
+
+      const res = await fetch(`${baseUrl}/repos/${repo}/commits?${params.toString()}`, {
+        headers: this.getHeaders(token),
+      });
+      if (!res.ok) {
+        throw new Error(`GitHub 커밋 조회 실패: HTTP ${res.status} ${summarizeErrorBody(await res.text())}`);
+      }
+      const data = (await res.json()) as any[];
+
+      return data.map((item) => ({
+        commitHash: item.sha,
+        shortHash: (item.sha || '').slice(0, 7),
+        message: item.commit?.message || '',
+        authorName: item.commit?.author?.name || item.author?.login || 'unknown',
+        authorEmail: item.commit?.author?.email,
+        committedAt: item.commit?.author?.date || item.commit?.committer?.date || new Date().toISOString(),
+        url: item.html_url,
+      }));
+    } catch (err: any) {
+      if (err?.message?.startsWith('GitHub 커밋 조회 실패')) throw err;
+      throw new Error(`GitHub 서버 연결 실패: ${err?.message || err}`);
+    }
+  }
+
+  async getCommitDetail(
+    token: string,
+    repo: string,
+    sha: string,
+    serverUrl?: string
+  ): Promise<GitCommitDetail> {
+    const baseUrl = this.getBaseUrl(serverUrl);
+    const res = await fetch(`${baseUrl}/repos/${repo}/commits/${sha}`, {
+      headers: this.getHeaders(token),
+    });
+    if (!res.ok) {
+      throw new Error(`GitHub Commit not found: ${res.status}`);
+    }
+    const data = (await res.json()) as any;
+
+    const files: GitCommitFileDiff[] = (data.files || []).map((f: any) => {
+      let status: 'added' | 'modified' | 'deleted' | 'renamed' = 'modified';
+      if (f.status === 'added') status = 'added';
+      else if (f.status === 'removed') status = 'deleted';
+      else if (f.status === 'renamed') status = 'renamed';
+
+      return {
+        filename: f.filename,
+        oldPath: f.previous_filename,
+        status,
+        additions: f.additions || 0,
+        deletions: f.deletions || 0,
+        patch: f.patch,
+      };
+    });
+
+    return {
+      commitHash: data.sha,
+      shortHash: (data.sha || '').slice(0, 7),
+      message: data.commit?.message || '',
+      authorName: data.commit?.author?.name || data.author?.login || 'unknown',
+      authorEmail: data.commit?.author?.email,
+      committedAt: data.commit?.author?.date || data.commit?.committer?.date || new Date().toISOString(),
+      url: data.html_url,
+      stats: data.stats
+        ? {
+            total: data.stats.total || 0,
+            additions: data.stats.additions || 0,
+            deletions: data.stats.deletions || 0,
+          }
+        : undefined,
+      files,
+    };
+  }
+
+  async listPullRequestCommits(
+    token: string,
+    repo: string,
+    prNumber: number,
+    serverUrl?: string
+  ): Promise<GitCommitItem[]> {
+    try {
+      const baseUrl = this.getBaseUrl(serverUrl);
+      const res = await fetch(`${baseUrl}/repos/${repo}/pulls/${prNumber}/commits?per_page=100`, {
+        headers: this.getHeaders(token),
+      });
+      if (!res.ok) {
+        throw new Error(`GitHub PR 커밋 조회 실패: HTTP ${res.status} ${summarizeErrorBody(await res.text())}`);
+      }
+      const data = (await res.json()) as any[];
+
+      return data.map((item) => ({
+        commitHash: item.sha,
+        shortHash: (item.sha || '').slice(0, 7),
+        message: item.commit?.message || '',
+        authorName: item.commit?.author?.name || item.author?.login || 'unknown',
+        authorEmail: item.commit?.author?.email,
+        committedAt: item.commit?.author?.date || item.commit?.committer?.date || new Date().toISOString(),
+        url: item.html_url,
+      }));
+    } catch (err: any) {
+      if (err?.message?.startsWith('GitHub PR 커밋 조회 실패')) throw err;
+      throw new Error(`GitHub PR 커밋 조회 서버 연결 실패: ${err?.message || err}`);
+    }
+  }
 }
+

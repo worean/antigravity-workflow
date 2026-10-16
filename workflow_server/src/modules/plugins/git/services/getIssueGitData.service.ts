@@ -1,4 +1,4 @@
-﻿﻿﻿import { prisma } from '#lib/prisma.js';
+﻿import { prisma } from '#lib/prisma.js';
 
 export async function getIssueGitDataService(issueId: number) {
   const issue = await prisma.issue.findUnique({
@@ -27,8 +27,14 @@ export async function getIssueGitDataService(issueId: number) {
         orderBy: { createdAt: 'desc' },
       },
       gitCommitLinks: {
+        include: {
+          repoMapping: {
+            select: { id: true, repoIdentifier: true },
+          },
+        },
         orderBy: { committedAt: 'desc' },
       },
+
     },
   });
 
@@ -57,6 +63,8 @@ export async function getIssueGitDataService(issueId: number) {
     })),
     commits: issue.gitCommitLinks.map((c) => ({
       id: c.id,
+      repoMappingId: c.repoMappingId,
+      repoIdentifier: c.repoMapping?.repoIdentifier,
       commitHash: c.commitHash,
       message: c.message,
       authorName: c.authorName,
@@ -64,5 +72,6 @@ export async function getIssueGitDataService(issueId: number) {
       committedAt: c.committedAt,
       createdAt: c.createdAt,
     })),
+
   };
 }

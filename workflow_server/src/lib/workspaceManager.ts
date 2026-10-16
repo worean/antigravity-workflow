@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+﻿import { prisma } from '#lib/prisma.js';
 import { PrismaClient as WorkspacePrismaClient, Prisma as WorkspacePrisma } from '../generated/workspace-client/index.js';
 
 export type WorkspacePrismaTx = WorkspacePrisma.TransactionClient;
@@ -8,7 +7,7 @@ export type WorkspacePrismaClientOrTx = WorkspacePrismaClient | WorkspacePrismaT
 export interface WorkspaceConnectionInfo {
   id: number;
   slug?: string;
-  dbUrl: string;
+  dbUrl?: string;
   dbType?: string;
 }
 
@@ -23,11 +22,11 @@ export interface SyncUserData {
 }
 
 /**
- * 🏢 동적 워크스페이스 데이터베이스 커넥션 매니저
+ * 🏢 단일 워크스페이스 데이터베이스 매니저 (1 Server = 1 Workspace)
+ * - 멀티 워크스페이스 동적 커넥션 풀(clientPool)을 제거하고 싱글톤 `prisma` 인스턴스를 일원화하여 사용합니다.
  */
 export class WorkspaceManager {
   private static instance: WorkspaceManager;
-  private clientPool: Map<number, WorkspacePrismaClient> = new Map();
 
   private constructor() {}
 
@@ -39,97 +38,32 @@ export class WorkspaceManager {
   }
 
   /**
-   * 🔍 워크스페이스 ID에 해당하는 PrismaClient 인스턴스를 가져오거나 동적으로 생성
+   * 🔍 단일 워크스페이스 싱글톤 PrismaClient 반환
    */
-  public async getDbClient(workspace: WorkspaceConnectionInfo): Promise<WorkspacePrismaClient> {
-    if (this.clientPool.has(workspace.id)) {
-      return this.clientPool.get(workspace.id)!;
-    }
-
-    // 대상 DB URL 결정 (PostgreSQL 모드인 경우 file: URL 방어)
-    let targetDbUrl = workspace.dbUrl;
-    const isPostgresMode = process.env.TASK_STORAGE_MODE === 'postgresql' || Boolean(process.env.WORKSPACE_DATABASE_URL);
-    if (isPostgresMode && (!targetDbUrl || targetDbUrl.startsWith('file:'))) {
-      targetDbUrl = process.env.WORKSPACE_DATABASE_URL || 'postgresql://juyeong:qkrwndud@localhost:5432/workspace';
-    }
-
-    // SQLite 파일 기반인 경우 디렉터리 존재 보장
-    if (targetDbUrl.startsWith('file:')) {
-      const filePath = targetDbUrl.replace(/^file:/, '');
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      // DB 파일이 없는 경우 기본 템플릿 복사 또는 초기 프로비저닝
-      if (!fs.existsSync(filePath)) {
-        await this.provisionWorkspaceDb({ ...workspace, dbUrl: targetDbUrl });
-      }
-    }
-
-    const client = new WorkspacePrismaClient({
-      datasources: {
-        db: {
-          url: targetDbUrl,
-        },
-      },
-    });
-
-    await client.$connect();
-    this.clientPool.set(workspace.id, client);
-    return client;
+  public async getDbClient(_workspace?: WorkspaceConnectionInfo): Promise<WorkspacePrismaClient> {
+    return prisma;
   }
 
   /**
-   * 📦 워크스페이스 데이터베이스 신규 프로비저닝 및 기본 메타데이터 시딩
+   * 📦 단일 워크스페이스 데이터베이스 기본 메타데이터 시딩 및 소유자 동기화
    */
   public async provisionWorkspaceDb(
-    workspace: WorkspaceConnectionInfo,
+    _workspace?: WorkspaceConnectionInfo,
     initialOwner?: SyncUserData
   ): Promise<WorkspacePrismaClient> {
-    const defaultTemplatePath = path.resolve(process.cwd(), '.tmp/workspaces/default.db');
-    let targetFilePath: string | null = null;
+    await this.seedDefaultMetadata(prisma);
 
-    if (workspace.dbUrl.startsWith('file:')) {
-      targetFilePath = workspace.dbUrl.replace(/^file:/, '');
-      const dir = path.dirname(targetFilePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      // 기본 템플릿 DB가 존재하면 복사하여 빠르게 초기화
-      if (fs.existsSync(defaultTemplatePath) && !fs.existsSync(targetFilePath)) {
-        fs.copyFileSync(defaultTemplatePath, targetFilePath);
-      }
-    }
-
-    const client = new WorkspacePrismaClient({
-      datasources: {
-        db: {
-          url: workspace.dbUrl,
-        },
-      },
-    });
-
-    await client.$connect();
-
-    // 기본 메타데이터 시딩 (없을 경우에만 생성)
-    await this.seedDefaultMetadata(client);
-
-    // 초기 소유자가 주어진 경우 유저 정보 동기화
     if (initialOwner) {
-      await this.syncUserToWorkspace(client, initialOwner);
+      await this.syncUserToWorkspace(prisma, initialOwner);
     }
 
-    this.clientPool.set(workspace.id, client);
-    return client;
+    return prisma;
   }
 
   /**
    * 🌱 워크스페이스 기본 메타데이터 시딩
    */
-  public async seedDefaultMetadata(client: WorkspacePrismaClient): Promise<void> {
-    // 1. Issue Types
+  public async seedDefaultMetadata(client: WorkspacePrismaClient = prisma): Promise<void> {
     const issueTypes = [
       { id: 1, name: 'Task', description: '일반 작업', icon: 'CheckSquare', isSystem: true },
       { id: 2, name: 'Bug', description: '버그 수정', icon: 'Bug', isSystem: true },
@@ -144,7 +78,6 @@ export class WorkspaceManager {
       });
     }
 
-    // 2. Issue Priorities
     const issuePriorities = [
       { id: 1, name: 'LOW', level: 1, color: '#10b981', isSystem: true },
       { id: 2, name: 'MEDIUM', level: 2, color: '#f59e0b', isSystem: true },
@@ -159,7 +92,6 @@ export class WorkspaceManager {
       });
     }
 
-    // 3. Issue Statuses
     const issueStatuses = [
       { id: 1, name: 'TODO', category: 'TODO', isSystem: true },
       { id: 2, name: 'IN_PROGRESS', category: 'IN_PROGRESS', isSystem: true },
@@ -175,7 +107,6 @@ export class WorkspaceManager {
       });
     }
 
-    // 4. Project Priorities & Statuses
     const projectPriorities = [
       { id: 1, name: 'LOW', level: 1, color: '#10b981', isSystem: true },
       { id: 2, name: 'MEDIUM', level: 2, color: '#f59e0b', isSystem: true },
@@ -203,7 +134,6 @@ export class WorkspaceManager {
       });
     }
 
-    // 5. Milestone Priorities & Statuses
     const milestonePriorities = [
       { id: 1, name: 'LOW', level: 1, color: '#10b981', isSystem: true },
       { id: 2, name: 'MEDIUM', level: 2, color: '#f59e0b', isSystem: true },
@@ -229,7 +159,6 @@ export class WorkspaceManager {
       });
     }
 
-    // 6. Test Statuses & Step Types
     const testRunStatuses = [
       { id: 1, name: 'PENDING', category: 'TODO', isSystem: true },
       { id: 2, name: 'IN_PROGRESS', category: 'IN_PROGRESS', isSystem: true },
@@ -272,16 +201,16 @@ export class WorkspaceManager {
   }
 
   /**
-   * 🔄 Global 유저 정보를 특정 워크스페이스 DB에 동기화 (Upsert)
+   * 🔄 Global 유저 정보를 단일 워크스페이스 DB에 동기화 (Upsert)
    */
   public async syncUserToWorkspace(
-    clientOrWorkspace: WorkspacePrismaClient | WorkspaceConnectionInfo,
+    clientOrWorkspace: WorkspacePrismaClientOrTx | WorkspaceConnectionInfo | undefined,
     user: SyncUserData
   ): Promise<void> {
-    const client =
-      typeof (clientOrWorkspace as any).$connect === 'function'
-        ? (clientOrWorkspace as WorkspacePrismaClient)
-        : await this.getDbClient(clientOrWorkspace as WorkspaceConnectionInfo);
+    const client: WorkspacePrismaClientOrTx =
+      clientOrWorkspace && typeof (clientOrWorkspace as any).user?.upsert === 'function'
+        ? (clientOrWorkspace as WorkspacePrismaClientOrTx)
+        : prisma;
 
     await client.user.upsert({
       where: { id: user.id },
@@ -305,29 +234,12 @@ export class WorkspaceManager {
     });
   }
 
-  /**
-   * 🛑 특정 워크스페이스 연결 해제 및 캐시 제거
-   */
-  public async closeClient(workspaceId: number): Promise<void> {
-    const client = this.clientPool.get(workspaceId);
-    if (client) {
-      await client.$disconnect();
-      this.clientPool.delete(workspaceId);
-    }
+  public async closeClient(_workspaceId?: number): Promise<void> {
+    // 단일 워크스페이스 싱글톤 구조이므로 별도 풀 해제 불필요
   }
 
-  /**
-   * 🛑 모든 워크스페이스 데이터베이스 연결 종료
-   */
   public async closeAll(): Promise<void> {
-    for (const [id, client] of this.clientPool.entries()) {
-      try {
-        await client.$disconnect();
-      } catch (err) {
-        console.error(`Failed to disconnect workspace client [${id}]:`, err);
-      }
-    }
-    this.clientPool.clear();
+    // 단일 워크스페이스 싱글톤 구조이므로 별도 풀 해제 불필요
   }
 }
 

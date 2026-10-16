@@ -84,11 +84,11 @@ export const DotIndicator: React.FC<DotIndicatorProps> = ({
   label,
 }) => {
   const colorMap: Record<string, string> = {
-    green: '#10b981',
-    amber: '#f59e0b',
-    red: '#f43f5e',
-    blue: '#3b82f6',
-    purple: '#a855f7',
+    green: 'var(--accent-emerald)',
+    amber: 'var(--priority-high-text)',
+    red: 'var(--accent-rose)',
+    blue: 'var(--primary)',
+    purple: 'var(--accent-purple)',
   };
 
   const actualColor = colorMap[color] || color;
@@ -128,11 +128,11 @@ export const CountBadge: React.FC<CountBadgeProps> = ({
   const displayCount = count > max ? `${max}+` : count;
 
   const variantStyles: Record<string, React.CSSProperties> = {
-    primary: { background: 'var(--primary)', color: '#fff' },
+    primary: { background: 'var(--primary)', color: 'var(--text-on-primary)' },
     secondary: { background: 'var(--bg-subtle)', color: 'var(--text-sub)', border: '1px solid var(--border-light)' },
-    danger: { background: '#f43f5e', color: '#fff' },
-    warning: { background: '#f59e0b', color: '#000' },
-    amber: { background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)' },
+    danger: { background: 'var(--accent-rose)', color: 'var(--text-on-primary)' },
+    warning: { background: 'var(--priority-high-text)', color: 'var(--text-inverse)' },
+    amber: { background: 'var(--priority-high-bg)', color: 'var(--priority-high-text)', border: '1px solid var(--priority-high-border)' },
     muted: { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-light)' },
   };
 
@@ -186,7 +186,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         style={{
           width: '100%',
           height: `${height}px`,
-          background: '#333',
+          background: 'var(--bg-subtle)',
           borderRadius: '2px',
           overflow: 'hidden',
         }}
@@ -215,7 +215,7 @@ export const HealthPill: React.FC<HealthPillProps> = ({ isHealthy, lastCheck }) 
   if (isHealthy === null) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#888' }} />
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-sub)' }} />
         <span>확인 중...</span>
       </div>
     );
@@ -230,9 +230,9 @@ export const HealthPill: React.FC<HealthPillProps> = ({ isHealthy, lastCheck }) 
         fontSize: '0.72rem',
         padding: '2px 8px',
         borderRadius: 'var(--radius-xs)',
-        background: isHealthy ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
-        border: `1px solid ${isHealthy ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
-        color: isHealthy ? '#10b981' : '#f43f5e',
+        background: isHealthy ? 'var(--badge-done-bg)' : 'var(--priority-urgent-bg)',
+        border: `1px solid ${isHealthy ? 'var(--badge-done-border)' : 'var(--priority-urgent-border)'}`,
+        color: isHealthy ? 'var(--accent-emerald)' : 'var(--accent-rose)',
       }}
       title={lastCheck ? `마지막 확인: ${lastCheck}` : undefined}
     >
@@ -241,7 +241,7 @@ export const HealthPill: React.FC<HealthPillProps> = ({ isHealthy, lastCheck }) 
           width: '6px',
           height: '6px',
           borderRadius: '50%',
-          backgroundColor: isHealthy ? '#10b981' : '#f43f5e',
+          backgroundColor: isHealthy ? 'var(--accent-emerald)' : 'var(--accent-rose)',
         }}
       />
       <span>{isHealthy ? '정상 작동 중' : '서버 연결 불가'}</span>

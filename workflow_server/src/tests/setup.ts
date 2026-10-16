@@ -1,6 +1,6 @@
-import path from 'path';
+﻿import path from 'path';
 import dotenv from 'dotenv';
-import { afterAll } from 'vitest';
+import { beforeAll, afterAll } from 'vitest';
 import { prisma } from '#lib/prisma.js';
 import { globalPrisma } from '#lib/globalPrisma.js';
 import { workspaceManager } from '#lib/workspaceManager.js';
@@ -13,6 +13,16 @@ process.env.GLOBAL_DATABASE_URL = 'postgresql://juyeong:qkrwndud@localhost:5432/
 process.env.WORKSPACE_DATABASE_URL = 'postgresql://juyeong:qkrwndud@localhost:5432/workspace_test';
 process.env.DATABASE_URL = 'postgresql://juyeong:qkrwndud@localhost:5432/workspace_test';
 process.env.TASK_STORAGE_MODE = 'postgresql';
+
+// 각 테스트 파일 시작 전 시퀀스 동기화 보장 (명시적 ID 삽입으로 인한 P2002 충돌 방지)
+beforeAll(async () => {
+  try {
+    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "User"), 1), 1));`);
+    await globalPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"User"', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM "User"), 1), 1));`);
+  } catch {
+    // 무시
+  }
+});
 
 // 각 테스트 파일 실행 완료 시 Prisma 커넥션 정리
 afterAll(async () => {
